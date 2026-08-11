@@ -454,6 +454,7 @@ function hideHint(){
   if(!UI.hintShown){UI.hintShown=true; $("#map-hint").classList.add("hidden");}
 }
 function updateMapMarks(){
+  if(!mapSvg) return;   /* main map not built yet (e.g. loading a snapshot from the home screen) */
   const f = S.trip.begun ? focusDayClamped() : null;
   $$(".city").forEach(g=>{
     const id=g.dataset.city;
@@ -875,8 +876,35 @@ function planDayLabel(st){
   const dw1=fmtDow(st.arrive), dw2=fmtDow(addD(st.arrive,n-1));
   return d1===d2?`Day ${d1} · ${dw1}`:`Days ${d1}–${d2} · ${dw1}–${dw2}`;
 }
-const chkDone=(item)=> item.stay ? (!!lodgingFor(item.stay) || !!S.trip.checklist[item.id])
-                                 : !!S.trip.checklist[item.id];
+/* ---- booking pipeline: each checklist item has a status + price ----
+   S.trip.checklist[id] = {st:"todo|researching|held|booked|paid", pr:number}
+   (legacy snapshots stored `true` — normalized on read) */
+const CHK_STATES=["todo","researching","held","booked","paid"];
+const CHK_LABEL={todo:"to do",researching:"researching",held:"held",booked:"booked",paid:"paid"};
+function chkMatchBooking(item){
+  if(item.stay) return lodgingFor(item.stay);
+  const m=item.match; if(!m) return null;
+  const kw=m.kw? new RegExp(m.kw,"i") : null;
+  return S.trip.bookings.find(b=>
+    (!m.type || b.type===m.type) &&
+    (!m.city || b.cityId===m.city) &&
+    (!kw || kw.test(b.name+" "+(b.notes||""))));
+}
+function chkState(item){
+  const raw=S.trip.checklist[item.id];
+  const o = raw===true ? {st:"booked"} : (raw && typeof raw==="object" ? raw : {});
+  const bk=chkMatchBooking(item);
+  let st=o.st||"todo";
+  if(bk && st!=="paid") st="booked";
+  return {st, pr:o.pr, bk, auto:!!bk};
+}
+const chkDone=(item)=>{ const s=chkState(item); return s.st==="booked"||s.st==="paid"; };
+function priceNum(v){
+  if(v==null||v==="") return 0;
+  const m=String(v).replace(/[.,](\d{3})\b/g,"$1").match(/\d+(?:[.,]\d{1,2})?/);
+  return m? parseFloat(m[0].replace(",",".")) : 0;
+}
+function chkPrice(s){ return (s.pr!=null && s.pr!=="") ? +s.pr : priceNum(s.bk && s.bk.price); }
 function planBlocks(blocks){
   return `<div class="plan-blocks">${blocks.map(b=>`<div class="plan-block"><h4>${esc(b.h)}</h4><ul>${
     b.items.map(i=>`<li><b>${esc(i.n)}</b>${PRICE(i.p)} — ${esc(i.d)}</li>`).join("")}</ul></div>`).join("")}</div>`;
@@ -924,8 +952,101 @@ function planDaytripCard(dt){
       ${dt.callout?`<div class="plan-callout">${dt.callout}</div>`:""}
     </div></div>`;
 }
+/* ---- document wallet: tickets & confirmations in IndexedDB, offline-first ---- */
+let DOCDB=null, DOCS=[];   /* DOCS = metadata cache; blobs stay in IndexedDB until viewed */
+function docsInit(){
+  return new Promise(res=>{
+    let r;
+    try{ r=indexedDB.open("pathseeker",2); }catch(e){ return res(); }
+    r.onupgradeneeded=()=>{
+      if(!r.result.objectStoreNames.contains("docs")) r.result.createObjectStore("docs",{keyPath:"id"});
+    };
+    r.onerror=()=>res();
+    r.onsuccess=()=>{
+      DOCDB=r.result;
+      const out=[], c=DOCDB.transaction("docs").objectStore("docs").openCursor();
+      c.onsuccess=()=>{ const cur=c.result;
+        if(cur){ const {blob,...meta}=cur.value; out.push(meta); cur.continue(); }
+        else { DOCS=out; res(); } };
+      c.onerror=()=>res();
+    };
+  });
+}
+function docAdd(chk,file){
+  return new Promise((res,rej)=>{
+    const rec={id:uid(),chk,name:file.name,mime:file.type,size:file.size,added:Date.now(),blob:file};
+    const tx=DOCDB.transaction("docs","readwrite");
+    tx.objectStore("docs").put(rec);
+    tx.oncomplete=()=>{ const{blob,...meta}=rec; DOCS.push(meta); res(meta); };
+    tx.onerror=()=>rej(tx.error);
+  });
+}
+function docGet(id){
+  return new Promise((res,rej)=>{
+    const q=DOCDB.transaction("docs").objectStore("docs").get(id);
+    q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error);
+  });
+}
+function docDel(id){
+  return new Promise((res,rej)=>{
+    const tx=DOCDB.transaction("docs","readwrite");
+    tx.objectStore("docs").delete(id);
+    tx.oncomplete=()=>{ DOCS=DOCS.filter(d=>d.id!==id); res(); };
+    tx.onerror=()=>rej(tx.error);
+  });
+}
+const docsFor=(chk)=> DOCS.filter(d=>d.chk===chk);
+const fmtSize=(b)=> b>1048576? (b/1048576).toFixed(1)+" MB" : Math.max(1,Math.round(b/1024))+" KB";
+let docsCtx=null;   /* checklist id the docs dialog is showing */
+function docRow(d){
+  return `<div class="doc-row">
+    <span class="doc-ico">${d.mime==="application/pdf"?"📄":"🖼"}</span>
+    <span class="doc-name">${esc(d.name)}</span>
+    <span class="doc-size">${fmtSize(d.size)}</span>
+    <button type="button" class="btn btn-sm" data-dv="${d.id}">View</button>
+    <button type="button" class="btn btn-sm" data-dx="${d.id}">✕</button>
+  </div>`;
+}
+function renderDocsList(){
+  const list=docsFor(docsCtx);
+  $("#docs-list").innerHTML = list.length? list.map(docRow).join("")
+    : `<p style="color:var(--ink-soft);font-size:13px;margin:0">Nothing here yet — attach the PDF ticket or a
+       screenshot of the confirmation.</p>`;
+  $$("#docs-list [data-dv]").forEach(b=>b.addEventListener("click",()=>viewDoc(b.dataset.dv)));
+  $$("#docs-list [data-dx]").forEach(b=>b.addEventListener("click",async()=>{
+    await docDel(b.dataset.dx); renderDocsList(); renderPlan();
+  }));
+}
+function openDocsDlg(chk,label){
+  if(!DOCDB){ toast("Document storage isn't available in this browser"); return; }
+  docsCtx=chk;
+  $("#docs-title").textContent="Documents — "+label;
+  renderDocsList();
+  const dlg=$("#dlg-docs"); dlg.returnValue=""; dlg.showModal();
+}
+async function viewDoc(id){
+  const rec=await docGet(id); if(!rec) return;
+  const url=URL.createObjectURL(rec.blob);
+  const body=$("#docview-body");
+  body.innerHTML = rec.mime==="application/pdf"
+    ? `<iframe src="${url}" title="${esc(rec.name)}"></iframe>`
+    : `<img src="${url}" alt="${esc(rec.name)}">`;
+  $("#docview-name").textContent=rec.name+" · "+fmtSize(rec.size);
+  const dlg=$("#dlg-docview"); dlg.returnValue=""; dlg.showModal();
+  dlg.addEventListener("close",()=>{ URL.revokeObjectURL(url); body.innerHTML=""; },{once:true});
+}
+function wireDocsDlg(){
+  $("#docs-add").addEventListener("change",async e=>{
+    for(const f of e.target.files){
+      if(f.size>15*1048576){ toast(`${f.name} is too big (15 MB max)`); continue; }
+      await docAdd(docsCtx,f);
+    }
+    e.target.value=""; renderDocsList(); renderPlan();
+  });
+}
+
 function agentItemRow(item){
-  const done=chkDone(item), auto=item.stay&&!!lodgingFor(item.stay);
+  const s=chkState(item), done=s.st==="booked"||s.st==="paid";
   let acts="";
   if(item.stay){
     const L=stayLinks(item.stay);
@@ -933,10 +1054,18 @@ function agentItemRow(item){
           <a class="btn btn-sm" href="${L.airbnb}" target="_blank" rel="noopener">Airbnb ↗</a>`;
   }
   if(item.href) acts+=`<a class="btn btn-sm" href="${item.href}" target="_blank" rel="noopener">${item.stay?"Direct":"Book"} ↗</a>`;
+  const bkPrice=s.bk? priceNum(s.bk.price) : 0;
   return `<div class="agent-item${done?" done":""}">
-    <button class="agent-check" role="checkbox" aria-checked="${done}" data-chk="${item.id}" ${auto?"disabled":""}
+    <button class="agent-check" role="checkbox" aria-checked="${done}" data-chk="${item.id}" ${s.auto?"disabled":""}
       aria-label="${esc(item.label)}">${done?"✓":""}</button>
-    <div class="t"><strong>${esc(item.label)}</strong><p>${esc(item.sub)}${auto?" · ✓ booked in your journal":""}</p></div>
+    <div class="t"><strong>${esc(item.label)}</strong><p>${esc(item.sub)}${s.auto?" · ✓ booked in your journal":""}</p></div>
+    <div class="pipe">
+      <button class="st-pill st-${s.st}" data-cyc="${item.id}" title="Click to advance the status">${CHK_LABEL[s.st]}</button>
+      <input class="chk-price" data-pr="${item.id}" inputmode="decimal" placeholder="${bkPrice?"€"+bkPrice:"€ price"}"
+        value="${s.pr!=null?esc(String(s.pr)):""}" aria-label="Price for ${esc(item.label)}">
+      <button class="doc-clip${docsFor(item.id).length?" has":""}" data-docs="${item.id}"
+        title="Attached documents" aria-label="Documents for ${esc(item.label)}">📎${docsFor(item.id).length||""}</button>
+    </div>
     <div class="acts">${acts}</div></div>`;
 }
 function renderPlan(){
@@ -951,7 +1080,16 @@ function renderPlan(){
     if(legMode(tt)==="car"){ anyCar=true;
       const m=tt.match(/(\d+)h(\d\d?)?/); if(m) maxDrive=Math.max(maxDrive,+m[1]+(m[2]?+m[2]/60:0)); }
   }
-  const doneCount=CHECKLIST.filter(chkDone).length;
+  const chkStates=CHECKLIST.map(it=>({it, s:chkState(it)}));
+  const doneCount=chkStates.filter(x=>x.s.st==="booked"||x.s.st==="paid").length;
+  const heldCount=chkStates.filter(x=>x.s.st==="held").length;
+  const resCount=chkStates.filter(x=>x.s.st==="researching").length;
+  const committed=Math.round(chkStates.reduce((a,x)=>
+    a + ((x.s.st==="booked"||x.s.st==="paid") ? chkPrice(x.s) : 0), 0));
+  const pipelineLine=[`${doneCount} of ${CHECKLIST.length} booked`,
+    committed?`€${committed.toLocaleString("en-US")} committed`:"",
+    heldCount?`${heldCount} held`:"", resCount?`${resCount} researching`:"",
+    DOCS.length?`📎 ${DOCS.length} document${DOCS.length>1?"s":""}`:""].filter(Boolean).join(" · ");
   /* hero + facts */
   let h=`<div class="plan-hero">
       <div class="plan-kicker">${esc(GUIDE.kicker)}</div>
@@ -979,7 +1117,7 @@ function renderPlan(){
         anywhere in the app). Want different recommendations or a route change? Tell your travel agent in
         Claude Code and this page redraws.</p></div>
       <div class="agent-progress"><i style="width:${Math.round(doneCount/CHECKLIST.length*100)}%"></i></div>
-      <p class="plan-lead" style="margin-bottom:6px">${doneCount} of ${CHECKLIST.length} booked</p>
+      <p class="plan-lead" style="margin-bottom:6px">${pipelineLine}</p>
       ${CHECKLIST.map(agentItemRow).join("")}
     </div></section>`;
   /* route at a glance */
@@ -1028,10 +1166,30 @@ function renderPlan(){
       <ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")}</div></section>`;
   wrap.innerHTML=h;
   /* wiring */
-  wrap.querySelectorAll("[data-chk]").forEach(b=>b.addEventListener("click",()=>{
-    const id=b.dataset.chk;
-    S.trip.checklist[id]=!S.trip.checklist[id];
+  const chkSet=(id,patch)=>{
+    const raw=S.trip.checklist[id];
+    const cur = raw===true? {st:"booked"} : (raw && typeof raw==="object"? raw : {});
+    S.trip.checklist[id]=Object.assign({},cur,patch);
     mutate(); renderPlan();
+  };
+  wrap.querySelectorAll("[data-chk]").forEach(b=>b.addEventListener("click",()=>{
+    const item=CHECKLIST.find(i=>i.id===b.dataset.chk), s=chkState(item);
+    chkSet(item.id,{st:(s.st==="booked"||s.st==="paid")?"todo":"booked"});
+  }));
+  wrap.querySelectorAll("[data-cyc]").forEach(b=>b.addEventListener("click",()=>{
+    const item=CHECKLIST.find(i=>i.id===b.dataset.cyc), s=chkState(item);
+    let next;
+    if(s.auto){ next = s.st==="paid" ? "booked" : "paid"; }  /* auto-booked items only toggle paid */
+    else next = CHK_STATES[(CHK_STATES.indexOf(s.st)+1)%CHK_STATES.length];
+    chkSet(item.id,{st:next});
+  }));
+  wrap.querySelectorAll("[data-pr]").forEach(inp=>inp.addEventListener("change",()=>{
+    const v=inp.value.trim();
+    chkSet(inp.dataset.pr,{pr: v===""? undefined : priceNum(v)||undefined});
+  }));
+  wrap.querySelectorAll("[data-docs]").forEach(b=>b.addEventListener("click",()=>{
+    const item=CHECKLIST.find(i=>i.id===b.dataset.docs);
+    openDocsDlg(item.id,item.label);
   }));
   wrap.querySelectorAll("[data-editstop]").forEach(el=>el.addEventListener("click",()=>openStopDlg(el.dataset.editstop)));
   wrap.querySelectorAll("[data-gocity]").forEach(el=>el.addEventListener("click",()=>{
@@ -1836,11 +1994,20 @@ function parseConfirmation(txt){
   else if(lower.includes("trenitalia")||lower.includes("italo")||lower.includes("train")) type="train";
   else if(lower.includes("museum")||lower.includes("tour")||lower.includes("ticket")||lower.includes("entry")) type="ticket";
   else if(lower.includes("restaurant")||lower.includes("table")||lower.includes("dinner")) type="restaurant";
-  let cityId=null;
-  for(const c of CITIES){ if(lower.includes(c.n.toLowerCase())){ cityId=c.id; break; } }
-  if(!cityId){ if(lower.includes("positano")||lower.includes("ravello")||lower.includes("amalfi")) cityId="amalfi";
-    else if(lower.includes("vernazza")||lower.includes("monterosso")||lower.includes("riomaggiore")||lower.includes("manarola")) cityId="cinqueterre";
-    else if(lower.includes("varenna")||lower.includes("bellagio")||lower.includes("como")) cityId="como"; }
+  const CITY_ALIASES={milan:["milano"],venice:["venezia"],rome:["roma"],naples:["napoli"],
+    florence:["firenze"],turin:["torino"],amalfi:["positano","ravello"],
+    cinqueterre:["vernazza","monterosso","riomaggiore","manarola"],como:["varenna","bellagio"]};
+  /* collect every mentioned city with its position; trains file under the destination (last mention) */
+  const found=[];
+  for(const c of CITIES){
+    const names=[c.n.toLowerCase(), ...(CITY_ALIASES[c.id]||[])];
+    for(const nm of names){
+      let idx=lower.lastIndexOf(nm);
+      if(idx>=0){ found.push({id:c.id, idx}); break; }
+    }
+  }
+  found.sort((a,b)=>a.idx-b.idx);
+  let cityId = found.length ? (type==="train" ? found[found.length-1].id : found[0].id) : null;
   let conf="";
   let m=txt.match(/(?:confirmation|reservation|booking|itinerary|PNR)[^\S\n]*(?:code|number|reference|#|no\.?|:)?[^\S\n]*[:#]?[^\S\n]*([A-Z0-9][A-Z0-9-]{4,13})(?![a-z])/i);
   if(m) conf=m[1]; else { m=txt.match(/\bHM[A-Z0-9]{6,10}\b/); if(m) conf=m[0]; }
@@ -1848,6 +2015,14 @@ function parseConfirmation(txt){
   m=txt.match(/total[^\n]{0,40}?((?:€|EUR\s?|\$|USD\s?|£)\s?\d[\d.,]*)/i);
   if(m) price=m[1].trim();
   else { m=txt.match(/(?:€|\$|£)\s?\d[\d.,]*/); if(m) price=m[0]; }
+  let time="";
+  m=txt.match(/\b(?:departs?|departure|check.?in(?:\s+from)?|pick.?up|at)\D{0,12}([01]?\d|2[0-3]):([0-5]\d)\s?(am|pm)?\b/i)
+    || txt.match(/\b([01]?\d|2[0-3]):([0-5]\d)\s?(am|pm)?\b/i);
+  if(m){
+    let hh=+m[1]; const ap=(m[3]||"").toLowerCase();
+    if(ap==="pm"&&hh<12) hh+=12; if(ap==="am"&&hh===12) hh=0;
+    time=String(hh).padStart(2,"0")+":"+m[2];
+  }
   let name="";
   for(const line of txt.split(/\n/)){
     const t=line.trim();
@@ -1856,6 +2031,7 @@ function parseConfirmation(txt){
   }
   const dates=extractDates(txt);
   const out={type, name, conf, price};
+  if(time) out.time=time;
   if(cityId) out.cityId=cityId;
   if(dates.length) out.date=dates[0];
   if(dates.length>1) out.notes=`Check-out ${fmtShort(dates[dates.length-1])} (imported from confirmation)`;
@@ -1919,6 +2095,8 @@ function init(){
   renderHome();
   wirePostcards();
   wireLiveFilter();
+  wireDocsDlg();
+  docsInit().then(()=>{ const v=$("#view-plan"); if(v && !v.classList.contains("hidden")) renderPlan(); });
   buildMapInto($("#home-minimap"), false);
   /* scrapbook parchment backgrounds per tab, under a theme-aware veil (--pveil) */
   const TAB_BG = {today:BG_TODAY, plan:BG_PLAN, itin:BG_ITIN, translate:BG_TRANSLATE, journal:BG_JOURNAL};

@@ -252,6 +252,29 @@
   </form>
 </dialog>
 
+<dialog id="dlg-docs">
+  <form method="dialog">
+    <div class="dlg-head"><h3 id="docs-title">Documents</h3></div>
+    <div class="dlg-body">
+      <div id="docs-list"></div>
+      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-top:10px">+ Attach a file
+        <input type="file" id="docs-add" accept="application/pdf,image/*" multiple hidden>
+      </label>
+      <p style="font-size:11.5px;color:var(--ink-soft);margin:8px 0 0">Stored on this device — tickets and
+        confirmations stay available offline. Not included in Drive snapshots.</p>
+    </div>
+    <div class="dlg-foot"><button class="btn btn-primary" value="close">Done</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-docview">
+  <form method="dialog">
+    <div class="docview-body" id="docview-body"></div>
+    <div class="dlg-foot"><span id="docview-name" style="margin-right:auto;font-size:12.5px;color:var(--ink-soft)"></span>
+      <button class="btn btn-primary" value="close">Close</button></div>
+  </form>
+</dialog>
+
 <dialog id="dlg-postcard">
   <form method="dialog">
     <div class="pc-frame">
@@ -733,24 +756,27 @@ const GUIDE = {
    "<b>Milan→Venice</b> and <b>Naples→Rome</b>: book Frecciarossa (Trenitalia) or Italo ahead for cheaper reserved seats.",
    "<b>Amalfi ferries</b> run ~April–October — verify the late-September timetable; they beat road traffic and the views win.",
    "<b>Timed tickets sell out:</b> Flight of the Angel, St. Mark's, Duomo rooftop, Colosseum, Vatican. Reserve popular dinners too.",
+   "<b>Paperwork:</b> ETIAS authorization for both travelers + passports valid 3+ months past your return date. IDPs from AAA before you fly.",
    "<b>Weather</b> late Sept–early Oct: ~20–25°C days, cool evenings, crisp in Abruzzo; the sea is still swimmable-ish."]}]
 };
 /* concierge checklist — the laptop booking walkthrough, in order */
 const CHECKLIST = [
- {id:"duomo",     label:"Duomo + rooftop tickets",            sub:"Timed entry for Tue Sep 22 midday — book before you fly", href:"https://www.duomomilano.it/en/"},
+ {id:"etias",     label:"ETIAS travel authorization",         sub:"Both travelers · required for US passports — apply online, minutes to do, valid 3 years", href:"https://travel-europe.europa.eu/etias_en"},
+ {id:"insurance", label:"Travel insurance",                   sub:"Cover the non-refundable bookings before the big deposits land", href:"https://www.squaremouth.com/"},
+ {id:"duomo",     label:"Duomo + rooftop tickets",            sub:"Timed entry for Tue Sep 22 midday — book before you fly", href:"https://www.duomomilano.it/en/", match:{type:"ticket", kw:"duomo"}},
  {id:"stay-milan",label:"Book Milan — 1 night",               sub:"Tue Sep 22 · near the Duomo or Centrale", stay:"milan"},
- {id:"train-ven", label:"Train Milan → Venice",               sub:"Wed Sep 23 · Frecciarossa or Italo, ~2h15 — early booking = cheap seats", href:"https://www.trenitalia.com/en.html"},
+ {id:"train-ven", label:"Train Milan → Venice",               sub:"Wed Sep 23 · Frecciarossa or Italo, ~2h15 — early booking = cheap seats · reserve seats!", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"venice"}},
  {id:"stay-venice",label:"Book Venice — 2 nights",            sub:"Sep 23–24 · Cannaregio, Dorsoduro or Castello", stay:"venice"},
- {id:"marks",     label:"St. Mark's & Doge's Palace slots",   sub:"Skip-the-line for Thu Sep 24", href:"https://www.basilicasanmarco.it/?lang=en"},
- {id:"car",       label:"Rental car — Mestre → Naples",       sub:"Pick up Fri Sep 25, drop Wed Sep 30 · one-way within Italy", href:"https://www.autoeurope.com/"},
- {id:"idp",       label:"International Driving Permits",      sub:"Both drivers · ~$20 at any AAA office — required in Italy", href:"https://www.aaa.com/vacation/idpf.html"},
+ {id:"marks",     label:"St. Mark's & Doge's Palace slots",   sub:"Skip-the-line for Thu Sep 24", href:"https://www.basilicasanmarco.it/?lang=en", match:{type:"ticket", kw:"marco|doge"}},
+ {id:"car",       label:"Rental car — Mestre → Naples",       sub:"Pick up Fri Sep 25, drop Wed Sep 30 · one-way within Italy · automatic = book early", href:"https://www.autoeurope.com/", match:{kw:"rental|car pickup|autoeurope|europcar|hertz|avis|sixt|maggiore"}},
+ {id:"idp",       label:"International Driving Permits",      sub:"Both drivers · ~$20 at any AAA office — legally required in Italy, allow 2+ weeks", href:"https://www.aaa.com/vacation/idpf.html"},
  {id:"stay-ss",   label:"Book Santo Stefano — 1 night",       sub:"Fri Sep 25 · Sextantio if you can — the bucket-list stay", stay:"santostefano", href:"https://www.sextantio.it/en/santo-stefano-sessanio/"},
  {id:"stay-matera",label:"Book a Matera cave hotel — 2 nights",sub:"Sep 26–27 · sleep inside the rock", stay:"matera"},
- {id:"volo",      label:"Volo dell'Angelo zipline",           sub:"Sun Sep 27 · verify the 2026 weekend calendar, then book", href:"https://www.volodellangelo.com/"},
+ {id:"volo",      label:"Volo dell'Angelo zipline",           sub:"Sun Sep 27 · verify the 2026 weekend calendar, then book", href:"https://www.volodellangelo.com/", match:{type:"ticket", kw:"volo|angelo|zipline"}},
  {id:"stay-sorrento",label:"Book Sorrento — 2 nights",        sub:"Sep 28–29 · base here, not on the corniche", stay:"sorrento"},
  {id:"stay-rome", label:"Book Rome — 2 nights",               sub:"Sep 30 – Oct 1 · Monti or Centro Storico", stay:"rome"},
- {id:"train-rome",label:"Train Naples → Rome",                sub:"Wed Sep 30 · ~1h10, after dropping the car", href:"https://www.trenitalia.com/en.html"},
- {id:"colosseum", label:"Colosseum / Forum timed tickets",    sub:"Thu Oct 1 morning — they sell out", href:"https://parcocolosseo.it/en/"},
- {id:"vatican",   label:"Vatican Museums (optional)",         sub:"Thu Oct 1 afternoon — or savor Ancient Rome only", href:"https://www.museivaticani.va/"}
+ {id:"train-rome",label:"Train Naples → Rome",                sub:"Wed Sep 30 · ~1h10, after dropping the car · reserve seats", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"rome"}},
+ {id:"colosseum", label:"Colosseum / Forum timed tickets",    sub:"Thu Oct 1 morning — they sell out", href:"https://parcocolosseo.it/en/", match:{type:"ticket", kw:"colosse|forum|foro"}},
+ {id:"vatican",   label:"Vatican Museums (optional)",         sub:"Thu Oct 1 afternoon — or savor Ancient Rome only", href:"https://www.museivaticani.va/", match:{type:"ticket", kw:"vatican"}}
 ];
 </script>
