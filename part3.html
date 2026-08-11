@@ -1818,6 +1818,7 @@ function initSync(){
   $("#btn-drive-load").addEventListener("click",driveLoad);
   $("#btn-export").addEventListener("click",exportFile);
   $("#btn-tripsheet").addEventListener("click",exportTripSheet);
+  $("#btn-ics").addEventListener("click",exportICS);
   $("#btn-import").addEventListener("click",()=>$("#import-file").click());
   $("#import-file").addEventListener("change",(e)=>{
     const f=e.target.files[0]; if(!f) return;
@@ -2089,7 +2090,8 @@ function renderToday(){
       <button class="btn btn-sm" id="td-exp-add">Expense</button>
       <span style="font-size:12.5px;color:var(--ink-soft)">${spentToday?`today: ${money(spentToday)}`:""}</span>
     </div>
-    <div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button></div>
+    <div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button>
+      <button class="btn btn-quiet btn-sm" id="td-ics">📅 Phone reminders</button></div>
     ${ESSENTIALS_HTML}`;
   wireBkRows(wrap);
   $("#td-to-map").addEventListener("click",()=>{ setView("map"); if(city) selectCity(city.id); });
@@ -2105,6 +2107,7 @@ function renderToday(){
     S.trip.expenses.push(Object.assign({id:uid(), date:t}, p)); mutate(); renderToday(); toast(money(p.amount)+" logged");
   });
   $("#td-sheet").addEventListener("click",exportTripSheet);
+  const ti=$("#td-ics"); if(ti) ti.addEventListener("click",exportICS);
   $("#td-note").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-note-add").click();} });
   $("#td-exp").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-exp-add").click();} });
   const nav=(d)=>{ UI.focusDay=clampDay(d); renderToday(); if(mapSvg) updateMapMarks(); };
@@ -2168,6 +2171,63 @@ async function exportTripSheet(){
     const a=document.createElement("a"); a.href=url; a.download="pathseeker-tripsheet.txt";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }catch(e){ toast("Couldn't export here"); }
+}
+
+/* ---- phone reminders: .ics calendar with alarms for every dated booking ----
+   No push server here by design — the phone's own calendar is the most reliable
+   alarm delivery there is (works offline, locked, and for anyone who imports it). */
+const icsEsc=(s)=>String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+function icsDT(date,time){ return date.replace(/-/g,"")+"T"+(time||"09:00").replace(":","")+"00"; }
+function buildICS(){
+  const now=new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z";
+  const V=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pathseeker//Italy//EN",
+    "CALSCALE:GREGORIAN","X-WR-CALNAME:Pathseeker · Italia","X-WR-TIMEZONE:Europe/Rome"];
+  let n=0;
+  [...S.trip.bookings].sort((a,b)=>a.date<b.date?-1:1).forEach(b=>{
+    if(!b.date) return;
+    const c=CITY_BY_ID[b.cityId];
+    const isFlight=/✈/.test(b.name)||/flight/i.test(b.name);
+    let time=b.time, alarms, icon;
+    if(isFlight){ alarms=["-P1D","-PT3H"]; time=time||"09:00"; icon="✈"; }
+    else if(b.type==="train"){ alarms=["-PT2H","-PT45M"]; time=time||"09:00"; icon="🚄"; }
+    else if(b.type==="hotel"||b.type==="airbnb"){ alarms=["-PT2H"]; time=time||"15:00"; icon="🏨"; }
+    else if(b.type==="restaurant"){ alarms=["-PT2H"]; time=time||"19:30"; icon="🍝"; }
+    else { alarms=["-PT2H"]; time=time||"10:00"; icon="🎟"; }
+    const desc=[b.conf?`Confirmation: ${b.conf}`:"", b.price?`Price: ${b.price}`:"",
+      b.link||"", (b.notes||"").slice(0,400)].filter(Boolean).join("\n");
+    V.push("BEGIN:VEVENT",
+      `UID:${b.id}@pathseeker`,
+      `DTSTAMP:${now}`,
+      `DTSTART;TZID=Europe/Rome:${icsDT(b.date,time)}`,
+      "DURATION:PT1H30M",
+      `SUMMARY:${icsEsc(icon+" "+b.name)}`,
+      c?`LOCATION:${icsEsc(c.n+", Italy")}`:"",
+      desc?`DESCRIPTION:${icsEsc(desc)}`:"");
+    alarms.forEach(a=>V.push("BEGIN:VALARM","ACTION:DISPLAY",
+      `TRIGGER:${a}`,`DESCRIPTION:${icsEsc(b.name)}`,"END:VALARM"));
+    V.push("END:VEVENT"); n++;
+  });
+  V.push("END:VCALENDAR");
+  return {ics:V.filter(Boolean).join("\r\n"), count:n};
+}
+async function exportICS(){
+  const {ics,count}=buildICS();
+  if(!count){ toast("No dated bookings yet — log some first"); return; }
+  if(window.claude && window.claude.downloads){
+    try{ await window.claude.downloads.save({filename:"pathseeker-italy.ics", data:ics});
+      toast(`${count} reminders exported — open the file to add them to your calendar`); return; }
+    catch(e){
+      if(e && e.code==="declined") return;
+      if(e && e.code==="rate_limited"){ toast("A download prompt is already open — try again shortly"); return; }
+    }
+  }
+  try{
+    const url=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));
+    const a=document.createElement("a"); a.href=url; a.download="pathseeker-italy.ics";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast(`${count} reminders exported — open the file to add them to your calendar`);
   }catch(e){ toast("Couldn't export here"); }
 }
 
