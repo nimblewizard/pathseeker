@@ -19,10 +19,21 @@ const SICILY = [[12.43,37.80],[12.51,38.02],[12.73,38.17],[12.88,38.03],[13.36,3
 const SARDINIA = [[9.16,41.24],[9.56,41.14],[9.73,40.92],[9.69,40.42],[9.63,39.86],[9.57,39.13],
 [9.11,39.21],[8.88,38.88],[8.40,38.96],[8.46,39.75],[8.31,40.56],[8.13,40.73],[8.19,40.96],[8.83,40.93]];
 
-const MAP_W=700, MAP_H=870, LON0=6.2, LON1=19.0, LAT0=36.3, LAT1=47.5;
-const px = (lon)=> (lon-LON0)/(LON1-LON0)*MAP_W;
-const py = (lat)=> (LAT1-lat)/(LAT1-LAT0)*MAP_H;
-const P = (c)=> [px(c[0]), py(c[1])];
+/* The map is the hand-painted "Italia — La Dolce Avventura" artwork (MAP_IMG, defined in
+   mapimg.html). All map geometry lives in the artwork's pixel space; ART pins each city to
+   its painted position (on the art's own star markers where it labels them). */
+const MAP_W=1672, MAP_H=941;
+const ART = {
+  milan:[533,191], como:[629,139], turin:[385,230], verona:[786,158], venice:[960,207],
+  bologna:[805,257], cinqueterre:[560,350], pisa:[730,422], florence:[831,365],
+  siena:[845,417], orvieto:[945,474], rome:[933,545], santostefano:[1089,524],
+  naples:[1070,634], sorrento:[1046,660], amalfi:[1092,655], matera:[1297,625],
+  castelmezzano:[1235,635], lecce:[1529,667], palermo:[914,746], taormina:[1132,798],
+};
+/* cities the artwork itself labels — we draw no text for these, only the interactive marker */
+const ART_LABELED = new Set(["milan","verona","venice","bologna","pisa","florence","rome",
+  "naples","lecce","palermo"]);
+const P = (c)=> c; /* smoothPath input is already in art pixels */
 
 function smoothPath(coords, close){
   const p = coords.map(P);
@@ -41,7 +52,7 @@ function smoothPath(coords, close){
 }
 
 /* label side per city (default right) */
-const LBL_LEFT = new Set(["pisa","cinqueterre","sorrento","turin","palermo"]);
+const LBL_LEFT = new Set(["pisa","cinqueterre","sorrento","turin","palermo","castelmezzano"]);
 
 /* ================= STATE ================= */
 const LS_KEY = "pathseeker.v1";
@@ -137,7 +148,7 @@ let VB = {x:0,y:0,w:MAP_W,h:MAP_H};
 let mapSvg, routeEl, routeDoneEl, cityLayer;
 function panToCity(id){
   const c=CITY_BY_ID[id]; if(!c||!mapSvg) return;
-  const [x,y]=P([c.lon,c.lat]);
+  const [x,y]=ART[c.id]||[MAP_W/2,MAP_H/2];
   VB.x=x-VB.w/2; VB.y=y-VB.h/2; applyVB();
 }
 
@@ -149,29 +160,16 @@ function el(tag, attrs, parent){
 }
 function buildMapInto(container, interactive){
   const svg = el("svg", {viewBox:`0 0 ${MAP_W} ${MAP_H}`, preserveAspectRatio:"xMidYMid meet"});
-  el("rect",{x:-2000,y:-2000,width:5000,height:5000,fill:"var(--sea)"},svg);
-  const grat = el("g",{class:"graticule"},svg);
-  for(let lat=37;lat<=47;lat+=2) el("line",{x1:0,y1:py(lat),x2:MAP_W,y2:py(lat)},grat);
-  for(let lon=8;lon<=18;lon+=2) el("line",{x1:px(lon),y1:0,x2:px(lon),y2:MAP_H},grat);
-  el("path",{class:"land",d:smoothPath(MAINLAND,true)},svg);
-  el("path",{class:"land",d:smoothPath(SICILY,true)},svg);
-  el("path",{class:"land",d:smoothPath(SARDINIA,true)},svg);
-  if(interactive){
-    const t1=el("text",{class:"sea-label","font-size":"17",x:px(11.6),y:py(39.7),"text-anchor":"middle"},svg);
-    t1.textContent="MAR TIRRENO";
-    const ax=px(16.1), ay=py(43.1);
-    const t2=el("text",{class:"sea-label","font-size":"17",x:ax,y:ay,"text-anchor":"middle",
-      transform:`rotate(-52 ${ax} ${ay})`},svg);
-    t2.textContent="MARE ADRIATICO";
-    const t3=el("text",{class:"sea-label","font-size":"13",x:px(8.9),y:py(43.35),"text-anchor":"middle"},svg);
-    t3.textContent="MAR LIGURE";
-  }
+  el("rect",{x:-4000,y:-4000,width:10000,height:10000,fill:"#171208"},svg);
+  const img = el("image",{x:0,y:0,width:MAP_W,height:MAP_H,preserveAspectRatio:"none"},svg);
+  img.setAttribute("href", MAP_IMG);
+  img.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href", MAP_IMG);
   container.appendChild(svg);
   return svg;
 }
 function applyVB(){ mapSvg.setAttribute("viewBox", `${VB.x} ${VB.y} ${VB.w} ${VB.h}`); }
 function zoomAt(cx, cy, f){
-  const w=Math.min(Math.max(VB.w*f, 70), MAP_W*1.6);
+  const w=Math.min(Math.max(VB.w*f, 180), MAP_W*1.6);
   const s=w/VB.w;
   VB.x = cx-(cx-VB.x)*s; VB.y = cy-(cy-VB.y)*s; VB.w=w; VB.h=VB.h*s;
   applyVB();
@@ -189,24 +187,35 @@ function initMap(){
   routeEl = el("path",{class:"route",d:""},mapSvg);
   cityLayer = el("g",{},mapSvg);
   for(const c of CITIES){
-    const [x,y]=P([c.lon,c.lat]);
+    const [x,y]=ART[c.id]||[MAP_W/2,MAP_H/2];
     const g=el("g",{class:"city","data-city":c.id,transform:`translate(${x.toFixed(1)} ${y.toFixed(1)})`,
       tabindex:"0",role:"button"},cityLayer);
     g.setAttribute("aria-label", c.n);
-    el("circle",{class:"halo",r:10.5},g);
-    el("circle",{class:"dot",r:5.2},g);
-    const left = LBL_LEFT.has(c.id);
-    const t=el("text",{x:left?-9:9,y:4,"text-anchor":left?"end":"start"},g);
-    t.textContent=c.n;
-    g.addEventListener("click",(e)=>{ e.stopPropagation(); selectCity(c.id); });
+    el("circle",{class:"halo",r:24},g);
+    el("circle",{class:"dot",r:11},g);
+    if(!ART_LABELED.has(c.id)){
+      const left = LBL_LEFT.has(c.id);
+      const t=el("text",{x:left?-20:20,y:8,"text-anchor":left?"end":"start"},g);
+      t.textContent=c.n;
+    }
     g.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();selectCity(c.id);} });
   }
-  stage.addEventListener("click",()=> selectCity(null));
-  /* pan & pinch via pointer events */
+  /* City taps are resolved from the stage click, not per-marker listeners: the pan handler's
+     setPointerCapture redirects the composed click to the svg, so g-level click never fires. */
   const ptrs=new Map(); let panStart=null, pinchStart=null, moved=false;
+  let downCity=null, downOnMap=false;
+  stage.addEventListener("click",()=>{
+    if(!downOnMap) return;      /* began on HUD chrome (chips, zoom), not the map */
+    downOnMap=false;
+    if(moved) return;           /* it was a pan/pinch */
+    selectCity(downCity); downCity=null;
+  });
   mapSvg.addEventListener("pointerdown",(e)=>{
     mapSvg.setPointerCapture(e.pointerId);
     ptrs.set(e.pointerId,[e.clientX,e.clientY]); moved=false;
+    downOnMap=true;
+    const cg = e.target && e.target.closest ? e.target.closest(".city") : null;
+    downCity = cg ? cg.dataset.city : null;
     if(ptrs.size===1) panStart={x:e.clientX,y:e.clientY,vb:{...VB}};
     if(ptrs.size===2){ const a=[...ptrs.values()]; pinchStart={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),vb:{...VB},
       mid:clientToMap((a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2)}; panStart=null; }
@@ -267,16 +276,16 @@ function updateMapMarks(){
     const gw = id===S.trip.arrivalCity || id===S.trip.departureCity;
     g.classList.toggle("gateway", gw);
     let pl=g.querySelector(".plane");
-    if(gw && !pl){ pl=el("text",{class:"plane",y:-9,x:0,"text-anchor":"middle"},g); pl.textContent="✈"; }
+    if(gw && !pl){ pl=el("text",{class:"plane",y:-20,x:0,"text-anchor":"middle"},g); pl.textContent="✈"; }
     if(!gw && pl) pl.remove();
     /* photo count badge */
     const n=PHOTOS.filter(p=>p.cityId===id).length;
     let pb=g.querySelector(".pbadge");
     if(n){
       if(!pb){
-        pb=el("g",{class:"pbadge",transform:"translate(9 -9)"},g);
-        el("circle",{r:6.5},pb);
-        el("text",{y:3,"text-anchor":"middle"},pb);
+        pb=el("g",{class:"pbadge",transform:"translate(20 -20)"},g);
+        el("circle",{r:14},pb);
+        el("text",{y:7,"text-anchor":"middle"},pb);
       }
       pb.querySelector("text").textContent = n>9? "9+" : n;
     }else if(pb) pb.remove();
@@ -288,7 +297,7 @@ function updateMapMarks(){
   sortedStops().forEach(s=>push(s.cityId, s.arrive));
   push(S.trip.departureCity, S.trip.endDate);
   if(seq.length>1){
-    const pts=seq.map(s=>[CITY_BY_ID[s.id].lon, CITY_BY_ID[s.id].lat]);
+    const pts=seq.map(s=>ART[s.id]);
     if(f){
       let k=0;
       for(let i=0;i<seq.length;i++) if(seq[i].d<=f) k=i;
