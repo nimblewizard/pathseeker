@@ -612,7 +612,8 @@ function renderPanel(){
       <div class="label region">${esc(c.region)} <span class="wx-slot" data-wx="${c.id}|"></span></div>
       <h2 class="serif">${esc(c.n)}</h2>
       <div class="tagline">${esc(c.tag)}</div>
-      <div class="panel-status">${pills}</div>
+      <div class="panel-status">${pills}
+        <button class="btn btn-sm" id="panel-deps">🚉 Departures</button></div>
     </div>
     <div class="panel-body">
       ${UI.filter==="all" && (CITY_PHOTOS[c.id]||[]).length? `<div class="poi-section"><span class="label">Postcards</span>
@@ -634,6 +635,13 @@ function renderPanel(){
     </div>`;
   p.classList.remove("hidden");
   fillWxSlots(p);
+  const DEP_HINT={milan:"Milano Centrale",venice:"Venezia S. Lucia",rome:"Roma Termini",
+    naples:"Napoli Centrale",florence:"Firenze Santa Maria Novella",turin:"Torino Porta Nuova",
+    bologna:"Bologna Centrale",verona:"Verona Porta Nuova",pisa:"Pisa Centrale",
+    sorrento:"Sorrento",matera:"Matera Centrale",lecce:"Lecce",palermo:"Palermo Centrale",
+    taormina:"Taormina-Giardini",santostefano:"L'Aquila",castelmezzano:"Potenza Centrale"};
+  const pd=$("#panel-deps");
+  if(pd) pd.addEventListener("click",()=>openDepartures(DEP_HINT[c.id]||c.n));
   $("#panel-close").addEventListener("click",()=>selectCity(null));
   p.querySelectorAll("[data-pc]").forEach(b=>b.addEventListener("click",()=>showPostcard(c.id,+b.dataset.pc)));
   const pp=$("#panel-paste"); if(pp) pp.addEventListener("click",()=>openPasteDlg());
@@ -2091,7 +2099,8 @@ function renderToday(){
       <span style="font-size:12.5px;color:var(--ink-soft)">${spentToday?`today: ${money(spentToday)}`:""}</span>
     </div>
     <div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button>
-      <button class="btn btn-quiet btn-sm" id="td-ics">📅 Phone reminders</button></div>
+      <button class="btn btn-quiet btn-sm" id="td-ics">📅 Phone reminders</button>
+      <button class="btn btn-quiet btn-sm" id="td-deps">🚉 Departures</button></div>
     ${ESSENTIALS_HTML}`;
   wireBkRows(wrap);
   $("#td-to-map").addEventListener("click",()=>{ setView("map"); if(city) selectCity(city.id); });
@@ -2108,6 +2117,11 @@ function renderToday(){
   });
   $("#td-sheet").addEventListener("click",exportTripSheet);
   const ti=$("#td-ics"); if(ti) ti.addEventListener("click",exportICS);
+  const tdp=$("#td-deps");
+  if(tdp) tdp.addEventListener("click",()=>{
+    const here=(stopsOn(focusDayClamped())[0]||{}).cityId;
+    openDepartures(here? (CITY_BY_ID[here].n||"") : "");
+  });
   $("#td-note").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-note-add").click();} });
   $("#td-exp").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-exp-add").click();} });
   const nav=(d)=>{ UI.focusDay=clampDay(d); renderToday(); if(mapSvg) updateMapMarks(); };
@@ -2172,6 +2186,61 @@ async function exportTripSheet(){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),4000);
   }catch(e){ toast("Couldn't export here"); }
+}
+
+/* ---- live departure boards: any station/stop, trains + buses + metro + trams + ferries ---- */
+const DEP_ICON=(m)=> /HIGHSPEED|LONG_DISTANCE/.test(m||"")?"🚄" : /RAIL|REGIONAL|SUBURBAN/.test(m||"")?"🚆"
+  : /SUBWAY|METRO/.test(m||"")?"Ⓜ️" : /TRAM/.test(m||"")?"🚊" : /BUS|COACH/.test(m||"")?"🚌"
+  : /FERRY/.test(m||"")?"⛴" : "🚏";
+const DEP_OFFLINE='<p class="times-note">Live departures need the web version of Pathseeker, or the service is briefly busy.<br><br><a href="https://nimblewizard.github.io/pathseeker/" target="_blank" rel="noopener"><b>Open Pathseeker on the web ↗</b></a></p>';
+let depTimer=null;
+function openDepartures(query){
+  const dlg=$("#dlg-departures");
+  $("#dep-q").value=query||"";
+  $("#dep-body").innerHTML='<p class="times-note">Type a station or stop name — big rail stations, metro stops, bus stops, ferry piers all work.</p>';
+  dlg.returnValue=""; if(!dlg.open) dlg.showModal();
+  if(query) depSearch(query);
+}
+async function depSearch(q){
+  const body=$("#dep-body");
+  body.innerHTML='<p class="times-note">Searching stops…</p>';
+  try{
+    const r=await fetch(`https://api.transitous.org/api/v1/geocode?text=${encodeURIComponent(q)}&type=STOP&language=en`);
+    if(!r.ok) throw 0;
+    const list=(await r.json()).filter(m=>m.type==="STOP").slice(0,9);
+    if(!list.length){ body.innerHTML='<p class="times-note">No stops found — try the local name ("Venezia S. Lucia", "Napoli Centrale").</p>'; return; }
+    body.innerHTML=`<p class="times-note" style="margin:0 0 6px">Pick a stop:</p>`+
+      list.map(m=>`<button type="button" class="dep-stop" data-depstop="${esc(m.id)}" data-depname="${esc(m.name)}">🚏 ${esc(m.name)}</button>`).join("");
+    body.querySelectorAll("[data-depstop]").forEach(b=>
+      b.addEventListener("click",()=>depBoard(b.dataset.depstop,b.dataset.depname)));
+  }catch(e){ body.innerHTML=DEP_OFFLINE; }
+}
+async function depBoard(id,name){
+  const body=$("#dep-body");
+  body.innerHTML=`<p class="times-note">Loading departures from ${esc(name)}…</p>`;
+  try{
+    const t=encodeURIComponent(new Date().toISOString());
+    const r=await fetch(`https://api.transitous.org/api/v1/stoptimes?stopId=${encodeURIComponent(id)}&time=${t}&n=14`);
+    if(!r.ok) throw 0;
+    const sts=((await r.json()).stopTimes||[]);
+    if(!sts.length){ body.innerHTML=`<p class="times-note">Nothing scheduled from ${esc(name)} right now.</p>`; return; }
+    body.innerHTML=`<p class="times-note" style="margin:0 0 6px"><b>${esc(name)}</b> · next departures (Italy time)</p>`+
+      sts.map(s=>{
+        const dep=s.place && (s.place.departure||s.place.scheduledDeparture);
+        if(!dep) return "";
+        return `<div class="time-row"><b>${fmtHM(dep)}</b>
+          <span class="dep-mode">${DEP_ICON(s.mode)} ${esc(s.routeShortName||s.displayName||"")}</span>
+          <span class="time-name">${esc(s.headsign||"")}</span></div>`;
+      }).join("")+
+      '<p class="times-note">Scheduled times from open data — platforms and delays live on station boards.</p>';
+  }catch(e){ body.innerHTML=DEP_OFFLINE; }
+}
+function wireDepartures(){
+  $("#dep-q").addEventListener("input",()=>{
+    clearTimeout(depTimer);
+    const q=$("#dep-q").value.trim();
+    if(q.length>2) depTimer=setTimeout(()=>depSearch(q),450);
+  });
 }
 
 /* ---- phone reminders: .ics calendar with alarms for every dated booking ----
@@ -2559,6 +2628,7 @@ function init(){
   wirePostcards();
   wireLiveFilter();
   wireDocsDlg();
+  wireDepartures();
   docsInit().then(()=>{ const v=$("#view-plan"); if(v && !v.classList.contains("hidden")) renderPlan(); });
   buildMapInto($("#home-minimap"), false);
   /* scrapbook parchment backgrounds per tab, under a theme-aware veil (--pveil) */
