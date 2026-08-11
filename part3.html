@@ -262,7 +262,7 @@ function buildLiveMap(){
   btn.addEventListener("click",()=>{ startLocate(true); });
   el.appendChild(btn);
   LIVE.map.on("moveend",()=>{ clearTimeout(LIVE.fetchTimer); LIVE.fetchTimer=setTimeout(fetchPOIs,700); });
-  startLocate();
+  startLocate(false);   /* show the blue dot quietly — never yank the view away from Italy */
 }
 function startLocate(fly){
   if(!navigator.geolocation||!LIVE.map) return;
@@ -273,7 +273,7 @@ function startLocate(fly){
         LIVE.meRing=L.circle(ll,{radius:p.coords.accuracy||30,color:"#2E6BB8",weight:1,fillColor:"#2E6BB8",fillOpacity:.12}).addTo(LIVE.map);
         LIVE.meDot=L.circleMarker(ll,{radius:7,color:"#fff",weight:2.5,fillColor:"#2E6BB8",fillOpacity:1})
           .addTo(LIVE.map).bindPopup("You are here");
-        if(fly!==false) LIVE.map.flyTo(ll,15);
+        if(fly===true) LIVE.map.flyTo(ll,15);
       }else{
         LIVE.meDot.setLatLng(ll); LIVE.meRing.setLatLng(ll).setRadius(p.coords.accuracy||30);
       }
@@ -342,21 +342,22 @@ function wireLiveFilter(){
       $("#map-hint").innerHTML='map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
       return;
     }
-    if(LIVE.map && LIVE.map.getZoom()<13){
-      /* zoomed out to the whole route — dive into the nearest useful place instead of doing nothing:
-         your live location if it's known, else the trip stop closest to the map center */
-      let target = LIVE.meDot ? LIVE.meDot.getLatLng() : null;
-      if(!target){
-        const c=LIVE.map.getCenter();
-        let best=null, bd=Infinity;
-        [S.trip.arrivalCity, ...sortedStops().map(s=>s.cityId), S.trip.departureCity].forEach(id=>{
-          const ct=CITY_BY_ID[id]; if(!ct||!ct.lat) return;
-          const d=(ct.lat-c.lat)**2+(ct.lon-c.lng)**2;
-          if(d<bd){ bd=d; best=[ct.lat,ct.lon]; }
-        });
-        target=best;
+    if(LIVE.map){
+      /* the Nearby filters are about the TRIP — find the stop closest to the current view.
+         If the view is far from the whole route (e.g. browsing from home in Colorado),
+         or just zoomed out, fly to that Italian stop instead of searching locally. */
+      const c=LIVE.map.getCenter();
+      let best=null, bd=Infinity;
+      [S.trip.arrivalCity, ...sortedStops().map(s=>s.cityId), S.trip.departureCity].forEach(id=>{
+        const ct=CITY_BY_ID[id]; if(!ct||!ct.lat) return;
+        const d=(ct.lat-c.lat)**2+(ct.lon-c.lng)**2;
+        if(d<bd){ bd=d; best=[ct.lat,ct.lon]; }
+      });
+      const farKm = Math.sqrt(bd)*111;   /* rough degrees → km */
+      if(best && (LIVE.map.getZoom()<13 || farKm>150)){
+        LIVE.map.flyTo(best,15);         /* moveend triggers the search on arrival */
+        return;
       }
-      if(target){ LIVE.map.flyTo(target,15); return; }  /* moveend triggers the search */
     }
     fetchPOIs();
   }));
@@ -1159,14 +1160,32 @@ function renderPlan(){
   let legs=`<div class="plan-leg"><div class="dot">✈</div><div class="body">
       <span class="place">Fly into ${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")}</span>
       <div class="meta">Lands ${fmtDow(S.trip.startDate)} ${fmtShort(S.trip.startDate)}.</div></div></div>`;
+  /* schedule guidance + booking links per leg — the trains-and-such booking desk */
+  const LEG_SCHED={
+    "milan>venice":"Frecciarossa & Italo run all day, roughly every 30 min from ~6 AM. Book 2–3 months out and morning seats are ~€25–35; day-of can triple.",
+    "naples>rome":"High-speed trains several times an hour, ~1h10. Booking ahead roughly halves the fare; any mid-day departure works after the car drop.",
+  };
+  const LEG_LINKS={
+    train:[["Trenitalia","https://www.trenitalia.com/en.html"],["Italo","https://www.italotreno.com/en"],["Compare · Omio","https://www.omio.com/trains"]],
+    car:[["Auto Europe","https://www.autoeurope.com/"],["DiscoverCars","https://www.discovercars.com/"]],
+    ferry:[["Ferry timetables","https://www.traghettilines.it/en/"]],
+  };
   seq.forEach((s,i)=>{
     if(!i) return;
     const a=seq[i-1].cityId,b=s.cityId,tt=travelInfo(a,b)||"",mode=legMode(tt);
     const time=(tt.match(/^~?\d+h\d*|^~?\d+m/)||[""])[0];
+    const sched=LEG_SCHED[a+">"+b];
+    const links=LEG_LINKS[mode]||[];
+    const legName=`${CITY_BY_ID[a].short||CITY_BY_ID[a].n} → ${CITY_BY_ID[b].short||CITY_BY_ID[b].n}`;
+    const acts = (links.length||mode) ? `<div class="leg-acts">
+        ${links.map(l=>`<a class="btn btn-sm" href="${l[1]}" target="_blank" rel="noopener">${esc(l[0])} ↗</a>`).join("")}
+        <button class="btn btn-sm btn-primary" data-logleg="${b}|${s.arrive}|${mode==="car"?"other":mode||"other"}|${esc(mode==="car"?"Rental car — "+legName:(mode==="train"?"Train ":"")+legName)}">＋ Log booking</button>
+      </div>` : "";
     legs+=`<div class="plan-leg"><div class="dot">${i+1}</div><div class="body">
       <span class="place">${esc(CITY_BY_ID[a].n)} → ${esc(CITY_BY_ID[b].n)}</span>
       ${tt?`<span class="plan-tag ${mode}">${esc(mode||"go")}${time?" ~"+esc(time.replace(/^~/,"")):""}</span>`:""}
-      <div class="meta">${esc(GUIDE.legNotes[a+">"+b]||tt||"")} Arrive ${fmtShort(s.arrive)}.</div></div></div>`;
+      <div class="meta">${esc(GUIDE.legNotes[a+">"+b]||tt||"")} Arrive ${fmtShort(s.arrive)}.${sched?` <b>${esc(sched)}</b>`:""}</div>
+      ${acts}</div></div>`;
   });
   legs+=`<div class="plan-leg"><div class="dot">✈</div><div class="body">
       <span class="place">Fly home from ${esc(CITY_BY_ID[S.trip.departureCity]?.n||"—")}</span>
@@ -1225,6 +1244,10 @@ function renderPlan(){
   wrap.querySelectorAll("[data-docs]").forEach(b=>b.addEventListener("click",()=>{
     const item=CHECKLIST.find(i=>i.id===b.dataset.docs);
     openDocsDlg(item.id,item.label);
+  }));
+  wrap.querySelectorAll("[data-logleg]").forEach(b=>b.addEventListener("click",()=>{
+    const [cityId,date,type,name]=b.dataset.logleg.split("|");
+    openBookingDlg({cityId,date,type,name});
   }));
   wrap.querySelectorAll("[data-editstop]").forEach(el=>el.addEventListener("click",()=>openStopDlg(el.dataset.editstop)));
   wrap.querySelectorAll("[data-gocity]").forEach(el=>el.addEventListener("click",()=>{
