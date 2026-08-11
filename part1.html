@@ -124,7 +124,10 @@ h1,h2,h3{margin:0;text-wrap:balance}
 /* Painted PATHSEEKER banner header (BG_BANNER applied in init()) */
 .appbar{
   position:relative;display:flex;align-items:flex-end;justify-content:flex-end;gap:12px;
-  padding:0 14px 10px;height:108px;flex:none;z-index:30;
+  padding:0 14px 10px;flex:none;z-index:30;
+  /* banner asset is pre-cropped to its title band (aspect ~3.96:1); height tracks viewport
+     width so the full PATHSEEKER title always fits the header */
+  height:clamp(110px,12vw,190px);
   background-color:#1a130a;background-position:center 42%;background-size:cover;
   border-bottom:2px solid #3a2c16;
 }
@@ -456,7 +459,7 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 /* ---------- mobile ---------- */
 .mob-tabs{display:none}
 @media (max-width:820px){
-  .appbar{padding:0 12px 8px;height:66px;background-position:center 40%}
+  .appbar{padding:0 12px 8px;height:clamp(84px,24vw,110px);background-position:center 42%}
   .appbar .tabs{display:none}
   .trip-chip{display:none}
   .mob-tabs{
