@@ -1751,7 +1751,9 @@ function init(){
      re-renders (data URIs can't live in the static CSS) */
   const skin=document.createElement("style");
   skin.textContent =
-    `.appbar{background-image:url(${BG_BANNER})}`+
+    `.appbar{background-image:url(${BG_HDLOGO}),url(${BG_HDSCENE});`+
+    `background-size:auto 62%,cover;background-position:40% 46%,center;`+
+    `background-repeat:no-repeat,no-repeat}`+
     `.map-stage{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
     `.home-card,.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub`+
