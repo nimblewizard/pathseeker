@@ -1683,6 +1683,10 @@ function init(){
   loadState();
   renderHome();
   buildMapInto($("#home-minimap"), false);
+  /* scrapbook parchment backgrounds per tab, under a theme-aware veil (--pveil) */
+  const TAB_BG = {today:BG_TODAY, plan:BG_PLAN, itin:BG_ITIN, translate:BG_TRANSLATE, journal:BG_JOURNAL};
+  for(const k in TAB_BG)
+    $("#view-"+k).style.backgroundImage = `linear-gradient(var(--pveil),var(--pveil)), url(${TAB_BG[k]})`;
   $("#btn-start").addEventListener("click",()=>{
     const s=$("#trip-start").value, e=$("#trip-end").value;
     if(!s||!e||e<s){ toast("Check your dates — depart must follow arrive"); return; }
