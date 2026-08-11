@@ -88,18 +88,24 @@ h1,h2,h3{margin:0;text-wrap:balance}
   position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:.5;
 }
 #home-minimap svg{width:min(120vw,2000px);height:auto}
+/* setup card is the painted scroll (BG_SCROLL via skin); art carries the wordmark */
 .home-card{
-  position:relative;width:min(430px,100%);
-  background:var(--surface);border:1px solid var(--line);border-radius:16px;
-  box-shadow:var(--shadow);padding:32px 30px 28px;
+  position:relative;width:min(470px,100%);
+  background:none;border:none;border-radius:14px;box-shadow:none;
+  padding:150px 58px 132px;
+  filter:drop-shadow(0 18px 36px rgba(22,14,4,.5));
 }
+.home-card .wordmark{display:none}
 .wordmark{
   font-size:44px;line-height:1;font-weight:600;letter-spacing:.01em;margin-bottom:2px;
 }
 .wordmark .path{color:var(--accent)}
 .home-tag{
-  font-style:italic;color:var(--ink-soft);margin:2px 0 24px;
+  font-style:italic;color:var(--ink-soft);margin:0 0 20px;text-align:center;
   font-family:"Bodoni 72",Didot,Georgia,serif;font-size:17px;
+}
+@media (max-width:520px){
+  .home-card{padding:118px 42px 78px}
 }
 .field{margin-bottom:14px}
 .field .label{display:block;margin-bottom:5px}
