@@ -46,8 +46,8 @@ const LBL_LEFT = new Set(["pisa","cinqueterre","sorrento","turin","palermo"]);
 /* ================= STATE ================= */
 const LS_KEY = "pathseeker.v1";
 const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
-const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-25", endDate:"2026-10-09",
-  arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false});
+const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-22", endDate:"2026-10-02",
+  arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{}});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
 let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
 
@@ -102,6 +102,13 @@ const TT = {
  "matera|naples":"4h — the direct bus is easiest","lecce|rome":"5h30 by train","lecce|matera":"2h30 via Bari",
  "naples|taormina":"5h30 by train — or fly to Catania","palermo|rome":"1h by air","naples|palermo":"1h by air",
  "palermo|taormina":"4h by train","rome|taormina":"fly to Catania (1h15) + 1h",
+ "santostefano|venice":"4h30 by car — the trip's longest drive; break in Ravenna",
+ "matera|santostefano":"3h30 by car",
+ "castelmezzano|matera":"1h by car",
+ "matera|sorrento":"3h by car — optional Paestum temples en route",
+ "rome|sorrento":"1h drive to Naples (drop the car) + 1h10 by train",
+ "milan|santostefano":"6h by car — break the journey",
+ "castelmezzano|naples":"2h30 by car",
 };
 const travelInfo=(a,b)=> TT[[a,b].sort().join("|")] || null;
 const schedLink=(a,b,d)=> "https://www.google.com/search?q="+encodeURIComponent(
@@ -568,7 +575,7 @@ function renderItin(){
 function stopEditorHtml(){
   const seq=sortedStops();
   if(!seq.length)
-    return `<p class="stop-editor-hint">No stops yet — pick cities on the map, then shape the route here.</p>`;
+    return `<p class="stop-editor-hint">No stops yet — pick cities on the map or right here, then shape the route.</p>${addStopPicker()}`;
   const last=seq[seq.length-1], routeEnd=addD(last.arrive, Math.max(0,+last.nights||0));
   const warn = routeEnd>S.trip.endDate
     ? `<p class="stop-warn">⚠ Route checks out ${fmtShort(routeEnd)} — past your flight home ${fmtShort(S.trip.endDate)}.</p>` : "";
@@ -589,7 +596,8 @@ function stopEditorHtml(){
       </div>
       <button class="stop-x" data-del aria-label="Remove ${esc(CITY_BY_ID[s.cityId].n)}">✕</button>
     </div>`).join("")+`</div>${warn}
-    <p class="stop-editor-hint">↑↓ reorder · − + nights · tap a city for exact dates — later stops shift automatically.</p>`;
+    <p class="stop-editor-hint">↑↓ reorder · − + nights · tap a city for exact dates — later stops shift automatically.</p>
+    ${addStopPicker()}`;
 }
 function rechain(seq, from){
   for(let j=Math.max(1,from); j<seq.length; j++)
@@ -627,6 +635,198 @@ function wireStopEditor(wrap){
       const arr=seq(), i=idx(arr); if(i>=0) openStopDlg(arr[i].cityId);
     });
   });
+  const sel=wrap.querySelector("#add-stop-sel");
+  if(sel) sel.addEventListener("change",()=>{ if(sel.value) openStopDlg(sel.value); sel.value=""; });
+}
+function addStopPicker(){
+  const opts=CITIES.filter(c=>!stopFor(c.id))
+    .map(c=>`<option value="${c.id}">${esc(c.n)} · ${esc(c.region)}</option>`).join("");
+  return `<div class="day-add" style="margin:4px 0 20px;display:flex;gap:10px;align-items:center">
+    <span class="label" style="flex:none">Add a stop</span>
+    <select id="add-stop-sel" style="max-width:280px"><option value="">Choose a city…</option>${opts}</select>
+  </div>`;
+}
+
+/* ================= PLAN TAB (fairy-tale guide + concierge) ================= */
+function stayLinks(cityId){
+  const c=CITY_BY_ID[cityId], st=stopFor(cityId), enc=encodeURIComponent;
+  let ci="",co="";
+  if(st){ ci=st.arrive; co=addD(st.arrive, Math.max(1,st.nights)); }
+  return {
+    bcom:`https://www.booking.com/searchresults.html?ss=${enc(c.n+", Italy")}`+(ci?`&checkin=${ci}&checkout=${co}&group_adults=2`:""),
+    airbnb:`https://www.airbnb.com/s/${enc(c.n+"--Italy")}/homes`+(ci?`?checkin=${ci}&checkout=${co}&adults=2`:"")
+  };
+}
+const PRICE=(p)=> p?`<span class="plan-price${p>1?" p"+p:""}">${"€".repeat(p)}</span>`:"";
+const legMode=(s)=> /car|drive/i.test(s||"")?"car":/train/i.test(s||"")?"train":/ferry/i.test(s||"")?"ferry":"";
+function planDayLabel(st){
+  const d1=Math.round((pD(st.arrive)-pD(S.trip.startDate))/864e5)+1;
+  const n=Math.max(1,+st.nights||1), d2=d1+n-1;
+  const dw1=fmtDow(st.arrive), dw2=fmtDow(addD(st.arrive,n-1));
+  return d1===d2?`Day ${d1} · ${dw1}`:`Days ${d1}–${d2} · ${dw1}–${dw2}`;
+}
+const chkDone=(item)=> item.stay ? (!!lodgingFor(item.stay) || !!S.trip.checklist[item.id])
+                                 : !!S.trip.checklist[item.id];
+function planBlocks(blocks){
+  return `<div class="plan-blocks">${blocks.map(b=>`<div class="plan-block"><h4>${esc(b.h)}</h4><ul>${
+    b.items.map(i=>`<li><b>${esc(i.n)}</b>${PRICE(i.p)} — ${esc(i.d)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+}
+function guideFor(cityId){
+  if(GUIDE.days[cityId]) return GUIDE.days[cityId];
+  /* fallback for cities without hand-written guide content: build from scouted POIs */
+  const c=CITY_BY_ID[cityId], grp={stay:[],eat:[],sight:[]};
+  c.pois.forEach(p=>grp[p.c]&&grp[p.c].push({n:p.n,d:p.d}));
+  return {vibe:c.tag, getting:stripTags(c.note||""), blocks:[
+    grp.stay.length?{h:"Where to stay",items:grp.stay}:null,
+    grp.eat.length?{h:"Where to eat",items:grp.eat}:null,
+    grp.sight.length?{h:"What to do",items:grp.sight}:null].filter(Boolean)};
+}
+function planDayCard(st, prevCityId){
+  const c=CITY_BY_ID[st.cityId], g=guideFor(st.cityId);
+  const n=Math.max(0,+st.nights||0);
+  const co=addD(st.arrive,Math.max(1,n));
+  const tt=prevCityId?travelInfo(prevCityId,st.cityId):null;
+  const note=prevCityId?GUIDE.legNotes[prevCityId+">"+st.cityId]:null;
+  const getting=[tt?`<b>Getting here:</b> ${esc(tt)}.`:"",esc(note||"")||esc(g.getting||"")].filter(Boolean).join(" ");
+  return `<div class="plan-day">
+    <div class="plan-day-head" data-editstop="${st.cityId}" title="Edit dates in ${esc(c.n)}">
+      <div class="dnum">${planDayLabel(st)}</div>
+      <h3 class="serif">${esc(c.n)}</h3>
+      <span class="when">${fmtShort(st.arrive)} → out ${fmtShort(co)}</span>
+      <span class="nights">${n} night${n===1?"":"s"}</span><span class="pencil">✎</span>
+    </div>
+    <div class="plan-day-body">
+      <div class="plan-vibe">${esc(g.vibe||c.tag)}</div>
+      ${getting?`<div class="plan-drive">${getting}</div>`:""}
+      ${planBlocks(g.blocks||[])}
+      ${g.callout?`<div class="plan-callout">${g.callout}</div>`:""}
+    </div></div>`;
+}
+function planDaytripCard(dt){
+  return `<div class="plan-day">
+    <div class="plan-day-head" data-gocity="${dt.cityId}">
+      <div class="dnum">${esc(dt.when)}</div><h3 class="serif">${esc(dt.title)}</h3><span class="pencil">🗺</span>
+    </div>
+    <div class="plan-day-body">
+      <div class="plan-vibe">${esc(dt.vibe)}</div>
+      <div class="plan-drive"><b>Getting there:</b> ${esc(dt.getting)}</div>
+      ${planBlocks(dt.blocks||[])}
+      ${dt.callout?`<div class="plan-callout">${dt.callout}</div>`:""}
+    </div></div>`;
+}
+function agentItemRow(item){
+  const done=chkDone(item), auto=item.stay&&!!lodgingFor(item.stay);
+  let acts="";
+  if(item.stay){
+    const L=stayLinks(item.stay);
+    acts=`<a class="btn btn-sm" href="${L.bcom}" target="_blank" rel="noopener">Booking ↗</a>
+          <a class="btn btn-sm" href="${L.airbnb}" target="_blank" rel="noopener">Airbnb ↗</a>`;
+  }
+  if(item.href) acts+=`<a class="btn btn-sm" href="${item.href}" target="_blank" rel="noopener">${item.stay?"Direct":"Book"} ↗</a>`;
+  return `<div class="agent-item${done?" done":""}">
+    <button class="agent-check" role="checkbox" aria-checked="${done}" data-chk="${item.id}" ${auto?"disabled":""}
+      aria-label="${esc(item.label)}">${done?"✓":""}</button>
+    <div class="t"><strong>${esc(item.label)}</strong><p>${esc(item.sub)}${auto?" · ✓ booked in your journal":""}</p></div>
+    <div class="acts">${acts}</div></div>`;
+}
+function renderPlan(){
+  const wrap=$("#plan-wrap");
+  const seq=sortedStops();
+  const names=seq.map(s=>CITY_BY_ID[s.cityId].short||CITY_BY_ID[s.cityId].n);
+  const title=names.length?names.join(" → "):"Your Italian route";
+  const nightsPlanned=seq.reduce((a,s)=>a+(+s.nights||0),0);
+  let maxDrive=0, anyCar=false;
+  for(let i=1;i<seq.length;i++){
+    const tt=travelInfo(seq[i-1].cityId,seq[i].cityId)||"";
+    if(legMode(tt)==="car"){ anyCar=true;
+      const m=tt.match(/(\d+)h(\d\d?)?/); if(m) maxDrive=Math.max(maxDrive,+m[1]+(m[2]?+m[2]/60:0)); }
+  }
+  const doneCount=CHECKLIST.filter(chkDone).length;
+  /* hero + facts */
+  let h=`<div class="plan-hero">
+      <div class="plan-kicker">${esc(GUIDE.kicker)}</div>
+      <h1 class="serif">${esc(title)}</h1>
+      <div class="sub">${esc(GUIDE.sub)}</div>
+      <div class="dates">${fmtDow(S.trip.startDate)} ${fmtShort(S.trip.startDate)} – ${fmtDow(S.trip.endDate)} ${fmtShort(S.trip.endDate)} · ${Math.max(0,tripDays().length-1)} nights</div>
+    </div>
+    <div class="plan-facts">
+      <div class="plan-fact"><div class="n">${nightsPlanned}</div><div class="l">Nights placed</div></div>
+      <div class="plan-fact"><div class="n">${seq.length}</div><div class="l">Base towns</div></div>
+      <div class="plan-fact"><div class="n">${anyCar?"~"+(maxDrive%1?maxDrive.toFixed(1):maxDrive)+"h":"—"}</div><div class="l">Max daily drive</div></div>
+      <div class="plan-fact"><div class="n">${anyCar?1:0}</div><div class="l">Rented car</div></div>
+    </div>
+    <div class="plan-nav">
+      <a href="#p-agent">Travel agent</a><a href="#p-route">Route</a><a href="#p-days">Day by day</a>
+      <a href="#p-gems">Fairy-tale gems</a><a href="#p-flex">Flex options</a><a href="#p-ess">Essentials</a>
+    </div>`;
+  /* concierge */
+  h+=`<section class="plan-section" id="p-agent">
+    <h2 class="serif">Your travel agent</h2>
+    <div class="plan-panel">
+      <div class="agent-intro"><div class="agent-badge">✈</div>
+        <p>Book the whole trip from this list, top to bottom — every link opens with your dates carried along.
+        Hotel steps check themselves off when a booking lands in your journal (paste the confirmation email
+        anywhere in the app). Want different recommendations or a route change? Tell your travel agent in
+        Claude Code and this page redraws.</p></div>
+      <div class="agent-progress"><i style="width:${Math.round(doneCount/CHECKLIST.length*100)}%"></i></div>
+      <p class="plan-lead" style="margin-bottom:6px">${doneCount} of ${CHECKLIST.length} booked</p>
+      ${CHECKLIST.map(agentItemRow).join("")}
+    </div></section>`;
+  /* route at a glance */
+  let legs=`<div class="plan-leg"><div class="dot">✈</div><div class="body">
+      <span class="place">Fly into ${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")}</span>
+      <div class="meta">Lands ${fmtDow(S.trip.startDate)} ${fmtShort(S.trip.startDate)}.</div></div></div>`;
+  seq.forEach((s,i)=>{
+    if(!i) return;
+    const a=seq[i-1].cityId,b=s.cityId,tt=travelInfo(a,b)||"",mode=legMode(tt);
+    const time=(tt.match(/^~?\d+h\d*|^~?\d+m/)||[""])[0];
+    legs+=`<div class="plan-leg"><div class="dot">${i+1}</div><div class="body">
+      <span class="place">${esc(CITY_BY_ID[a].n)} → ${esc(CITY_BY_ID[b].n)}</span>
+      ${tt?`<span class="plan-tag ${mode}">${esc(mode||"go")}${time?" ~"+esc(time.replace(/^~/,"")):""}</span>`:""}
+      <div class="meta">${esc(GUIDE.legNotes[a+">"+b]||tt||"")} Arrive ${fmtShort(s.arrive)}.</div></div></div>`;
+  });
+  legs+=`<div class="plan-leg"><div class="dot">✈</div><div class="body">
+      <span class="place">Fly home from ${esc(CITY_BY_ID[S.trip.departureCity]?.n||"—")}</span>
+      <div class="meta">${fmtDow(S.trip.endDate)} ${fmtShort(S.trip.endDate)}.</div></div></div>`;
+  h+=`<section class="plan-section" id="p-route">
+    <h2 class="serif">The route at a glance</h2>
+    <p class="plan-lead">This page follows your live trip — tap any day's header to change its dates, or
+      reorder and resize stops in the Itinerary tab and everything here redraws.</p>
+    <div class="plan-route">${seq.length?legs:`<div class="empty">No stops yet — add cities on the map or in the Itinerary tab.</div>`}</div>
+  </section>`;
+  /* day cards */
+  h+=`<section class="plan-section" id="p-days"><h2 class="serif">The journey, day by day</h2>`;
+  if(!seq.length) h+=`<div class="empty">Your day-by-day cards appear as you add stops.</div>`;
+  seq.forEach((s,i)=>{
+    h+=planDayCard(s, i?seq[i-1].cityId:null);
+    const dt=GUIDE.daytrips[s.cityId];
+    if(dt) h+=planDaytripCard(dt);
+  });
+  h+=`</section>`;
+  /* gems, flex, essentials */
+  h+=`<section class="plan-section" id="p-gems">
+    <h2 class="serif">Your fairy-tale highlight reel</h2>
+    <p class="plan-lead">Six wildly different storybook worlds in ten days.</p>
+    <div class="plan-gems">${GUIDE.gems.map(g=>`<div class="plan-gem"><div class="em">◆</div>
+      <h4>${esc(g.t)}</h4><p>${esc(g.d)}</p></div>`).join("")}</div></section>`;
+  h+=`<section class="plan-section" id="p-flex">
+    <h2 class="serif">Flex options &amp; trade-offs</h2>
+    <div class="plan-panel">${GUIDE.flex.map(f=>`<div class="plan-flex-item"><b>${esc(f.b)}</b> ${esc(f.d)}</div>`).join("")}</div></section>`;
+  h+=`<section class="plan-section" id="p-ess">
+    <h2 class="serif">Practical essentials</h2>
+    <div class="plan-grid2">${GUIDE.essentials.map(p=>`<div class="plan-panel"><h3>${esc(p.t)}</h3>
+      <ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")}</div></section>`;
+  wrap.innerHTML=h;
+  /* wiring */
+  wrap.querySelectorAll("[data-chk]").forEach(b=>b.addEventListener("click",()=>{
+    const id=b.dataset.chk;
+    S.trip.checklist[id]=!S.trip.checklist[id];
+    mutate(); renderPlan();
+  }));
+  wrap.querySelectorAll("[data-editstop]").forEach(el=>el.addEventListener("click",()=>openStopDlg(el.dataset.editstop)));
+  wrap.querySelectorAll("[data-gocity]").forEach(el=>el.addEventListener("click",()=>{
+    setView("map"); selectCity(el.dataset.gocity);
+  }));
 }
 
 /* ================= JOURNAL ================= */
@@ -718,12 +918,13 @@ const jNoteRow=(j)=>`<div class="j-note"><span class="jd">${fmtShort(j.date)}</s
 /* ================= VIEWS / NAV ================= */
 function setView(v){
   UI.view=v;
-  for(const k of ["map","itin","journal","today","translate"])
+  for(const k of ["map","itin","journal","today","translate","plan"])
     $("#view-"+k).classList.toggle("hidden", v!==k);
   $$(".tab").forEach(t=>t.setAttribute("aria-selected", String(t.dataset.view===v)));
   if(v==="itin") renderItin();
   if(v==="journal") renderJournal();
   if(v==="today") renderToday();
+  if(v==="plan") renderPlan();
   if(v==="translate" && !$("#tr-q")) renderTranslate();
 }
 function renderAll(){
@@ -731,6 +932,7 @@ function renderAll(){
   if(UI.view==="itin") renderItin();
   if(UI.view==="journal") renderJournal();
   if(UI.view==="today") renderToday();
+  if(UI.view==="plan") renderPlan();
 }
 function updateTripChip(){
   const n=S.trip.stops.length;

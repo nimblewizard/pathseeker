@@ -7,6 +7,7 @@
   --line:#D9D1BB; --sea:#B7CFD0; --sea-deep:#A3C0C2; --land:#E9E2C9; --land-line:#C6BC9D;
   --accent:#BE1E3C; --accent-soft:#F3D9DC; --accent-ink:#FFF7EF;
   --olive:#5F6F3E; --olive-soft:#E3E6D2; --gold:#B8862B;
+  --train:#3E6F8F; --ferry:#4A7C7C;
   --shadow:0 10px 30px rgba(46,42,32,.16); --shadow-sm:0 2px 8px rgba(46,42,32,.10);
   --focus:#1D5FA0;
 }
@@ -16,6 +17,7 @@
     --line:#333B3E; --sea:#152529; --sea-deep:#0F1D21; --land:#2A2E23; --land-line:#4A4F3B;
     --accent:#E14B64; --accent-soft:#46242B; --accent-ink:#1C0C10;
     --olive:#99A75F; --olive-soft:#2A3024; --gold:#D2A24E;
+    --train:#5E93B5; --ferry:#5E9C9C;
     --shadow:0 10px 30px rgba(0,0,0,.5); --shadow-sm:0 2px 8px rgba(0,0,0,.4);
     --focus:#6FA8DC;
   }
@@ -25,6 +27,7 @@
   --line:#333B3E; --sea:#152529; --sea-deep:#0F1D21; --land:#2A2E23; --land-line:#4A4F3B;
   --accent:#E14B64; --accent-soft:#46242B; --accent-ink:#1C0C10;
   --olive:#99A75F; --olive-soft:#2A3024; --gold:#D2A24E;
+  --train:#5E93B5; --ferry:#5E9C9C;
   --shadow:0 10px 30px rgba(0,0,0,.5); --shadow-sm:0 2px 8px rgba(0,0,0,.4);
   --focus:#6FA8DC;
 }
@@ -248,7 +251,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .travel-note b{color:var(--ink)}
 
 /* ---------- itinerary ---------- */
-#view-itin,#view-journal,#view-today,#view-translate{position:absolute;inset:0;overflow-y:auto}
+#view-itin,#view-journal,#view-today,#view-translate,#view-plan{position:absolute;inset:0;overflow-y:auto}
 /* ---------- translate ---------- */
 .phrase{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dotted var(--line)}
 .phrase:last-child{border-bottom:none}
@@ -455,6 +458,109 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   .journal-form .row{grid-template-columns:1fr}
   .view-title{font-size:28px}
 }
+/* ---- Plan tab (fairy-tale guide + concierge) ---- */
+.plan-wrap{max-width:1000px;margin:0 auto;padding:0 0 80px}
+.plan-hero{background:linear-gradient(135deg,var(--accent) 0%,var(--gold) 100%);color:var(--accent-ink);
+  padding:52px 24px 60px;text-align:center;position:relative;overflow:hidden}
+.plan-hero:after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.15),transparent 45%)}
+.plan-kicker{letter-spacing:.32em;text-transform:uppercase;font-size:11px;font-weight:700;opacity:.9}
+.plan-hero h1{font-size:clamp(26px,4.4vw,42px);margin:12px 0 6px;font-weight:600;line-height:1.12}
+.plan-hero .sub{font-style:italic;font-size:16px;opacity:.95}
+.plan-hero .dates{margin-top:16px;display:inline-block;border:1px solid currentColor;
+  border-radius:30px;padding:7px 18px;font-size:13.5px;font-weight:600;opacity:.95}
+.plan-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:-30px 20px 0;position:relative;z-index:3}
+.plan-fact{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 10px;
+  text-align:center;box-shadow:var(--shadow-sm)}
+.plan-fact .n{font-size:22px;font-weight:800;color:var(--accent)}
+.plan-fact .l{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.plan-nav{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);
+  padding:10px 20px;display:flex;gap:8px;overflow-x:auto;margin-top:24px}
+.plan-nav a{white-space:nowrap;font-size:13px;font-weight:600;text-decoration:none;color:var(--ink-soft);
+  padding:6px 13px;border-radius:20px}
+.plan-nav a:hover{background:var(--accent);color:var(--accent-ink)}
+.plan-section{padding:30px 20px 4px}
+.plan-section h2{font-size:26px;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.plan-section h2:before{content:"";width:34px;height:3px;background:var(--gold);border-radius:2px;flex:none}
+.plan-lead{color:var(--ink-soft);margin:0 0 18px;font-size:15px}
+.plan-route{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 22px;box-shadow:var(--shadow-sm)}
+.plan-leg{display:flex;align-items:flex-start;gap:14px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.plan-leg:last-child{border-bottom:none}
+.plan-leg .dot{flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.plan-leg .body{flex:1;min-width:0}
+.plan-leg .place{font-weight:700}
+.plan-leg .meta{font-size:13.5px;color:var(--ink-soft);margin-top:1px}
+.plan-tag{display:inline-block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;
+  color:#fff;padding:2px 9px;border-radius:20px;margin-left:7px;vertical-align:middle;background:var(--olive)}
+.plan-tag.car{background:var(--accent)} .plan-tag.train{background:var(--train)} .plan-tag.ferry{background:var(--ferry)}
+.plan-day{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);
+  margin:20px 0;overflow:hidden}
+.plan-day-head{background:linear-gradient(100deg,var(--accent),var(--gold));color:var(--accent-ink);
+  padding:16px 22px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;cursor:pointer}
+.plan-day-head .dnum{font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.9;width:100%;font-weight:700}
+.plan-day-head h3{font-size:24px;font-weight:600}
+.plan-day-head .when{font-size:13.5px;opacity:.95;font-weight:600}
+.plan-day-head .nights{margin-left:auto;font-size:12px;font-weight:700;background:rgba(255,255,255,.22);
+  padding:4px 12px;border-radius:20px}
+.plan-day-head .pencil{font-size:14px;opacity:.85}
+.plan-day-body{padding:18px 22px}
+.plan-vibe{font-style:italic;color:var(--olive);border-left:3px solid var(--gold);padding-left:14px;margin-bottom:14px;
+  font-family:"Bodoni 72",Didot,Georgia,serif;font-size:16px}
+.plan-drive{font-size:13.5px;color:var(--ink-soft);margin-bottom:14px}
+.plan-drive b{color:var(--ink)}
+.plan-blocks{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.plan-block h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);
+  margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.plan-block ul{list-style:none;margin:0;padding:0}
+.plan-block li{padding:5px 0 5px 16px;position:relative;font-size:14px}
+.plan-block li:before{content:"›";position:absolute;left:0;color:var(--gold);font-weight:700}
+.plan-price{font-size:10.5px;color:#fff;background:var(--gold);padding:1px 7px;border-radius:10px;
+  margin-left:5px;vertical-align:middle;font-weight:700}
+.plan-price.p2{background:var(--olive)} .plan-price.p3{background:var(--accent)}
+.plan-callout{background:var(--surface2);border:1px solid var(--line);border-radius:12px;
+  padding:11px 15px;margin-top:14px;font-size:13.5px}
+.plan-callout b{color:var(--accent)}
+.plan-gems{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.plan-gem{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:var(--shadow-sm)}
+.plan-gem .em{color:var(--gold);font-size:18px}
+.plan-gem h4{color:var(--ink);margin:4px 0 5px;font-size:15px}
+.plan-gem p{font-size:13px;color:var(--ink-soft);margin:0}
+.plan-flex-item{border-left:3px solid var(--olive);padding:4px 0 4px 14px;margin:12px 0;font-size:14px}
+.plan-flex-item b{color:var(--olive)}
+.plan-panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px;box-shadow:var(--shadow-sm)}
+.plan-panel h3{font-size:16px;color:var(--ink);margin-bottom:8px}
+.plan-panel ul{padding-left:18px;margin:0}
+.plan-panel li{margin:6px 0;font-size:13.5px;color:var(--ink-soft)}
+.plan-panel li b{color:var(--ink)}
+.plan-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* concierge */
+.agent-intro{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
+.agent-badge{flex:none;width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;font-size:18px}
+.agent-intro p{margin:0;font-size:14px;color:var(--ink-soft)}
+.agent-progress{height:7px;border-radius:4px;background:var(--surface2);overflow:hidden;margin:10px 0 16px}
+.agent-progress i{display:block;height:100%;background:var(--olive);border-radius:4px;transition:width .3s ease}
+.agent-item{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dotted var(--line)}
+.agent-item:last-child{border-bottom:none}
+.agent-check{flex:none;width:24px;height:24px;border-radius:8px;border:1.5px solid var(--line);
+  background:var(--surface);display:grid;place-items:center;font-size:13px;color:var(--accent-ink);cursor:pointer}
+.agent-check[aria-checked="true"]{background:var(--olive);border-color:var(--olive)}
+.agent-check:disabled{cursor:default}
+.agent-item .t{flex:1;min-width:0}
+.agent-item .t strong{font-size:14px}
+.agent-item.done .t strong{text-decoration:line-through;color:var(--ink-soft)}
+.agent-item .t p{margin:1px 0 0;font-size:12.5px;color:var(--ink-soft)}
+.agent-item .acts{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:820px){
+  .plan-facts{grid-template-columns:1fr 1fr;margin:-30px 12px 0}
+  .plan-blocks,.plan-gems,.plan-grid2{grid-template-columns:1fr}
+  .plan-section{padding:24px 14px 4px}
+  .mob-tabs .tab{font-size:11.5px;padding:9px 0}
+  .agent-item{flex-wrap:wrap}
+  .agent-item .acts{width:100%;justify-content:flex-start;padding-left:36px}
+}
+
 /* ---- route editor (itinerary) ---- */
 .stop-editor{display:flex;flex-direction:column;gap:8px;margin:14px 0 22px}
 .stop-card{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;
@@ -489,7 +595,7 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
       <span class="label">Destination</span>
       <div class="dest-grid" role="group" aria-label="Destination">
         <button class="dest" id="dest-italy" aria-pressed="true">
-          <strong>Italy</strong><small>19 cities scouted</small>
+          <strong>Italy</strong><small>21 cities scouted</small>
         </button>
         <button class="dest" disabled><strong>France</strong><small>in scouting</small></button>
         <button class="dest" disabled><strong>Spain</strong><small>in scouting</small></button>
@@ -500,11 +606,11 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
     <div class="field field-row">
       <div>
         <label class="label" for="trip-start">Arrive</label>
-        <input type="date" id="trip-start" value="2026-09-25">
+        <input type="date" id="trip-start" value="2026-09-22">
       </div>
       <div>
         <label class="label" for="trip-end">Depart</label>
-        <input type="date" id="trip-end" value="2026-10-09">
+        <input type="date" id="trip-end" value="2026-10-02">
       </div>
     </div>
 
@@ -538,6 +644,7 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
     <nav class="tabs" role="tablist" aria-label="Views">
       <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
       <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+      <button class="tab" role="tab" data-view="plan" aria-selected="false">Plan</button>
       <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
       <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
       <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
@@ -585,11 +692,15 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 
     <!-- TRANSLATE -->
     <div id="view-translate" class="hidden"><div class="sheet-wrap" id="translate-wrap"></div></div>
+
+    <!-- PLAN (fairy-tale guide + concierge) -->
+    <div id="view-plan" class="hidden"><div class="plan-wrap" id="plan-wrap"></div></div>
   </div>
 
   <nav class="mob-tabs" role="tablist" aria-label="Views">
     <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
     <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+    <button class="tab" role="tab" data-view="plan" aria-selected="false">Plan</button>
     <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
     <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
     <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
@@ -995,9 +1106,214 @@ const CITIES = [
   {c:"stay",n:"Politeama / Libertà",d:"Elegant 19th-century Palermo, calmer streets."},
   {c:"eat",n:"Street food crawl",d:"Panelle, arancine, sfincione — and pani ca meusa for the brave."},
   {c:"eat",n:"Cannoli at I Segreti del Chiostro",d:"Convent-recipe cannoli filled to order."},
-  {c:"eat",n:"Antica Focacceria San Francesco",d:"Serving the classics since 1834."}]}
+  {c:"eat",n:"Antica Focacceria San Francesco",d:"Serving the classics since 1834."}]},
+{id:"santostefano", n:"Santo Stefano di Sessanio", short:"Abruzzo", region:"Abruzzo", lat:42.342, lon:13.646,
+ tag:"A restored medieval hamlet at 1,250m — the most storybook stop on the route.",
+ note:"<b>Getting in:</b> By car only — down the A14 then up into the Gran Sasso. Pack a real layer: it's crisp at altitude even in late September.",
+ pois:[
+  {c:"sight",n:"Rocca Calascio",d:"One of Italy's highest castles (1,460m), filmed in Ladyhawke — short steep walk from the car park, unreal at sunset."},
+  {c:"sight",n:"Campo Imperatore",d:"The \"Little Tibet\" plateau with wild horses, 20 minutes away."},
+  {c:"sight",n:"Santo Stefano at dusk",d:"Wander the stone lanes after the day-trippers leave and the hamlet is yours."},
+  {c:"stay",n:"Sextantio Albergo Diffuso",d:"Candlelit rooms scattered through restored village houses, no TVs — a bucket-list stay."},
+  {c:"stay",n:"Locanda Sotto gli Archi",d:"Cozy inn and kitchen in the village."},
+  {c:"eat",n:"Sextantio's Locanda",d:"Candlelit Abruzzese tasting of mountain ingredients."},
+  {c:"eat",n:"Rifugio della Rocca",d:"Simple plates at the foot of the castle."},
+  {c:"eat",n:"Local tastes",d:"Santo Stefano lentils (Slow Food), arrosticini lamb skewers, maccheroni alla chitarra, aged pecorino."}]},
+{id:"castelmezzano", n:"Castelmezzano", region:"Basilicata", lat:40.530, lon:16.078,
+ tag:"Houses fused into jagged stone spires — the purest RPG-town fantasy in Italy.",
+ note:"<b>Getting in:</b> ~1h by car from Matera — best as a day trip. The Flight of the Angel zipline runs weekends in late September; verify the calendar at volodellangelo.com.",
+ pois:[
+  {c:"sight",n:"Volo dell'Angelo",d:"Zipline between the two villages at up to 120 km/h (~€45 single / €78 in pairs; book ahead)."},
+  {c:"sight",n:"Percorso delle 7 Pietre",d:"The \"Path of the 7 Stones\" — a scenic 2h folklore trail to Pietrapertosa."},
+  {c:"sight",n:"Gradinata Normanna",d:"Rock-cut Norman steps above the village for the big view."},
+  {c:"eat",n:"Al Becco della Civetta",d:"Beloved inn of mountain Lucanian cooking; also has rooms if you want the village after dark."},
+  {c:"eat",n:"La Locanda di Pietra",d:"Cozy stop in Pietrapertosa across the valley."}]}
 ];
 const CITY_BY_ID = Object.fromEntries(CITIES.map(c=>[c.id,c]));
+
+/* ================= PLAN TAB: guide content + concierge checklist ================= */
+const GUIDE = {
+ kicker:"A fairy-tale road trip",
+ sub:"Hidden hilltop villages, cave cities, castles & coastline — the storybook route through Italy",
+ legNotes:{
+  "milan>venice":"Frecciarossa or Italo from Milano Centrale to Venezia S. Lucia — you step off the train straight onto the Grand Canal. Stay car-free in Venice; the rental comes later.",
+  "venice>santostefano":"Pick up the car at Venezia Mestre. The trip's longest drive — break it in Ravenna (1.5h in) for the shimmering 6th-century Byzantine mosaics of San Vitale.",
+  "santostefano>matera":"Down from the Gran Sasso, across to Basilicata. Time it to reach the sassi at golden hour.",
+  "matera>sorrento":"Swing west toward the coast; optional detour to the Greek temples of Paestum (~2h from Matera, then ~1.5h on).",
+  "sorrento>rome":"Drive to Naples (~1h), drop the rental there to skip Rome's ZTL maze, then Frecciarossa/Italo to Roma Termini (~1h10)."},
+ days:{
+  milan:{vibe:"One golden evening in the fashion capital — first espresso, first duomo.",
+   getting:"Land MXP 7:30 AM → Malpensa Express to Centrale or Cadorna (~40–50 min, every 30 min, ~€13) → drop bags at the hotel → Duomo by midday. The full step-by-step lives in your Sep 22 itinerary notes.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Room Mate Giulia",p:3,d:"Designer rooms literally next to the Duomo."},
+     {n:"Hotel Gran Duca di York",p:2,d:"Elegant little palazzo five minutes from the Duomo."},
+     {n:"Ostello Bello Grande",p:1,d:"Italy's most-loved hostel — private rooms, near Centrale."}]},
+    {h:"Where to eat",items:[
+     {n:"Luini",p:1,d:"The panzerotto institution behind the Duomo — the perfect first bite of Italy."},
+     {n:"Camparino in Galleria",p:2,d:"The historic bar where Campari was born — aperitivo under the glass dome."},
+     {n:"Trattoria Milanese",p:2,d:"Risotto alla milanese and cotoletta, the two local classics."}]},
+    {h:"What to do",items:[
+     {n:"Duomo rooftop",d:"Walk among the marble spires — your 12:30 timed entry."},
+     {n:"Galleria Vittorio Emanuele II",d:"Spin your heel on the bull mosaic for luck."},
+     {n:"Evening passeggiata",d:"Aperitivo in Brera's lanes or along the Navigli canals."}]},
+    {h:"Why just one night",items:[
+     {n:"The warm-up act",d:"You'll be jet-lagged — one rooftop, one aperitivo, one good sleep, then the lagoon."}]}],
+   callout:"<b>Before you fly:</b> book Duomo + rooftop tickets (duomomilano.it) and tell the hotel you'll drop bags around 10:30 AM."},
+  venice:{vibe:"Floating city of the imagination — get gloriously lost, then escape the crowds to the rainbow island of Burano.",
+   getting:"Train from Milano Centrale, ~2h15 — you'll be dropping bags by early afternoon.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Oltre il Giardino",p:3,d:"Romantic garden villa in quiet San Polo, once Alma Mahler's home."},
+     {n:"Hotel Ai Reali",p:2,d:"Comfortable, central (Castello), small spa."},
+     {n:"Al Ponte Mocenigo",p:1,d:"17th-century palazzo with a courtyard in Santa Croce; wonderful value."},
+     {n:"Where to base",d:"Cannaregio, Dorsoduro or Castello — sleep away from the San Marco crush."}]},
+    {h:"Where to eat",items:[
+     {n:"All'Arco",p:1,d:"Legendary cicchetti near the Rialto market (lunch only)."},
+     {n:"Cantina Do Mori",p:1,d:"Venice's oldest bacaro (since 1462) — standing-room ombre and snacks."},
+     {n:"Osteria al Squero",p:1,d:"Cicchetti facing the gondola boatyard."},
+     {n:"Alle Testiere",p:2,d:"Tiny, superb seafood; reserve well ahead."},
+     {n:"Bacareto Da Lele",p:1,d:"€1 wine and panini with the students; pure local."}]},
+    {h:"What to do",items:[
+     {n:"Wander with no map",d:"Dawn or dusk — the real Venice magic."},
+     {n:"St. Mark's & Doge's Palace",d:"Book skip-the-line slots."},
+     {n:"Rialto market + traghetto",d:"Cross the Grand Canal standing in a €2 gondola."},
+     {n:"Libreria Acqua Alta",d:"The flooded bookshop with a gondola full of books."}]},
+    {h:"Fairy-tale detour",items:[
+     {n:"Burano",d:"Vaporetto ~45 min — candy-colored fishermen's houses and lace. Storybook perfection."},
+     {n:"Torcello",d:"The lagoon's oldest settlement — golden mosaics and Hemingway's haunt."}]}],
+   callout:"<b>Tip:</b> arrive, check in, get lost before dinner. Book the Milan→Venice train ahead for cheap reserved seats."},
+  santostefano:{vibe:"A restored medieval hamlet at 1,250m and a ruined mountaintop castle straight out of a film set — the single most storybook stop of the trip.",
+   getting:"The trip's longest drive (~4.5h from Venezia Mestre, Ravenna break recommended). Worth every kilometer.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Sextantio Albergo Diffuso",p:3,d:"Rooms in restored stone village houses, candlelit, no TVs — a genuine step back in time."},
+     {n:"Locanda Sotto gli Archi",p:2,d:"Cozy inn + kitchen in the village."}]},
+    {h:"Where to eat",items:[
+     {n:"Sextantio's Locanda",p:2,d:"Candlelit Abruzzese tasting of mountain ingredients."},
+     {n:"Rifugio della Rocca",p:1,d:"Simple plates at the foot of the castle."},
+     {n:"Taste",d:"Santo Stefano lentils, arrosticini, maccheroni alla chitarra, aged pecorino."}]},
+    {h:"What to do",items:[
+     {n:"Rocca Calascio",d:"One of Italy's highest castles (1,460m) — Ladyhawke's film set. Short steep walk; unreal at sunset."},
+     {n:"Campo Imperatore",d:"The \"Little Tibet\" plateau with wild horses, 20 min away."},
+     {n:"The hamlet at dusk",d:"When the day-trippers leave, it's yours."}]},
+    {h:"Relaxed alternative",items:[
+     {n:"Termoli",d:"Prefer a ~3h coastal day instead? A walled seaside borgo of pastel lanes — less epic, more easygoing."}]}],
+   callout:"<b>Pack for altitude:</b> Santo Stefano sits at 1,250m — evenings are properly crisp even in September."},
+  matera:{vibe:"The sassi — a honeycomb of cave dwellings carved into the rock for 9,000 years. Sleeping in a cave hotel here is unforgettable.",
+   getting:"Arrive in time to watch the sassi glow at golden hour.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Sextantio Le Grotte della Civita",p:3,d:"The definitive candlelit cave hotel, carved into the cliff."},
+     {n:"Aquatio Cave Luxury Hotel & Spa",p:3,d:"Caves plus a subterranean spa."},
+     {n:"Caveoso Hotel",p:2,d:"Lovely sassi views at a gentler price."}]},
+    {h:"Where to eat",items:[
+     {n:"Trattoria del Caveoso",p:1,d:"Honest Lucanian home cooking in a cave."},
+     {n:"La Lopa",p:2,d:"Famous ferricelli pasta with red-pepper sauce."},
+     {n:"Regiacorte",p:2,d:"Terrace over the sassi for a special dinner."},
+     {n:"Vitantonio Lombardo",p:3,d:"Michelin-starred, for a blow-out."},
+     {n:"Taste",d:"Peperoni cruschi, pane di Matera, fave e cicoria, orecchiette."}]},
+    {h:"What to do",items:[
+     {n:"Sasso Caveoso & Barisano",d:"Wander the two sassi and the rock-cut chiese rupestri with faded frescoes."},
+     {n:"Casa Grotta",d:"A preserved cave home showing how families (and animals) once lived."},
+     {n:"Belvedere Murgia Timone",d:"The postcard panorama across the gorge — magic at sunset. (Bond's No Time to Die filmed here.)"}]},
+    {h:"Practical",items:[
+     {n:"Park at the top",d:"The sassi are a maze of steps, not roads — comfortable shoes essential."}]}]},
+  sorrento:{vibe:"Lemon groves, pastel cliffside towns and turquoise sea — the glamorous counterpoint to the wild south.",
+   getting:"Base in Sorrento: easy parking, ferries, trains and dining — far less white-knuckle than staying on the corniche.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Grand Hotel Excelsior Vittoria",p:3,d:"Cliff-top grande dame with citrus gardens over the bay."},
+     {n:"Maison Tofani",p:3,d:"Chic boutique in Sorrento's old town."},
+     {n:"Hotel Antiche Mura",p:2,d:"Central, garden pool, great value."}]},
+    {h:"Where to eat",items:[
+     {n:"O'Parrucchiano",p:2,d:"Historic lemon-grove trattoria that claims to have invented cannelloni."},
+     {n:"Da Emilia",p:1,d:"Unfussy seafood on the Marina Grande harbor."},
+     {n:"Il Buco",p:3,d:"Michelin-starred, in a former monk's cellar."},
+     {n:"La Tagliata",p:2,d:"No menu — a mountainside family feast above Positano."}]},
+    {h:"What to do",items:[
+     {n:"Ferry-hop the coast",d:"Sorrento → Positano → Amalfi by boat — skip the traffic, and the coast from the water is the definitive view."},
+     {n:"Ravello",d:"Villa Rufolo and Villa Cimbrone's \"Terrace of Infinity,\" high above the sea."},
+     {n:"Path of the Gods",d:"The cliff-top hike Bomerano → Nocelle — one of Italy's great walks."},
+     {n:"Ruins, optionally",d:"Pompeii, Herculaneum and Vesuvius are close if they call."}]},
+    {h:"Practical",items:[
+     {n:"Garage the car",d:"The coast road is slow and stressful, and ZTL rules bite — use ferries and buses."},
+     {n:"Ferry timetables",d:"Confirm the late-September schedule the night before; last boats run early evening."}]}]},
+  rome:{vibe:"The Eternal City to close the loop — ancient ruins, baroque piazzas and the best carbonara of your life, before flying home.",
+   getting:"Arrive early afternoon with the day still ahead of you.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Hotel de Russie",p:3,d:"A secret garden between Piazza del Popolo and the Spanish Steps."},
+     {n:"The Hoxton, Rome",p:2,d:"Stylish and buzzy, near Villa Borghese."},
+     {n:"Hotel Artemide",p:2,d:"Polished and central on Via Nazionale."},
+     {n:"Where to base",d:"Monti or the Centro Storico — walk to almost everything."}]},
+    {h:"Where to eat",items:[
+     {n:"Da Enzo al 29",p:2,d:"The Trastevere classic: cacio e pepe, carbonara, carciofi. Go early or queue."},
+     {n:"Armando al Pantheon",p:2,d:"Roman institution steps from the Pantheon (reserve)."},
+     {n:"Flavio al Velavevodetto",p:2,d:"Roman soul food set into a wall of ancient amphora shards."},
+     {n:"Sweet endings",d:"Supplì at Supplizio; gelato at Giolitti or Fatamorgana."}]},
+    {h:"Arrival afternoon",items:[
+     {n:"The classic loop",d:"Pantheon → Piazza Navona → Trevi → Spanish Steps, then dinner in Trastevere."}]},
+    {h:"Full day",items:[
+     {n:"Morning",d:"Colosseum, Forum & Palatine — timed tickets essential."},
+     {n:"Afternoon",d:"Vatican (pre-book) — or with only 1.5 days, savor Ancient Rome instead of racing both."}]}],
+   callout:"<b>Departure, Fri Oct 2:</b> Leonardo Express from Termini reaches FCO in ~32 min. Your flight is 2:20 PM — leave Termini by ~10:45 to be 3h ahead."}},
+ daytrips:{matera:{title:"Castelmezzano & Pietrapertosa",when:"Day trip · Sunday",cityId:"castelmezzano",
+  vibe:"Two villages wedged into the jagged spires of the Piccole Dolomiti Lucane.",
+  getting:"~1h each way from Matera. Sunday is ideal — the Flight of the Angel runs weekends this late in the season.",
+  blocks:[
+   {h:"What to do",items:[
+    {n:"Volo dell'Angelo",d:"Soar between the villages on a steel cable at up to 120 km/h (~€45 single / €78 pairs; book ahead)."},
+    {n:"Percorso delle 7 Pietre",d:"The \"Path of the 7 Stones\" — a 2h folklore trail linking the villages."},
+    {n:"Gradinata Normanna",d:"Climb the rock-cut Norman steps for the view."}]},
+   {h:"Where to eat",items:[
+    {n:"Al Becco della Civetta",p:2,d:"Beloved inn of mountain Lucanian cooking (also has rooms)."},
+    {n:"La Locanda di Pietra",p:1,d:"Cozy stop in Pietrapertosa across the valley."}]}],
+  callout:"<b>Verify before you go:</b> the zipline's 2026 calendar isn't published far ahead — confirm the Sunday operating day at volodellangelo.com. Not running? The villages and the trail are worth the trip alone."}},
+ gems:[
+  {t:"Duomo rooftop",d:"A forest of marble spires above Milan — your first hour in Italy."},
+  {t:"Burano",d:"A lagoon village of rainbow houses and lace — Venice's most enchanting escape."},
+  {t:"Rocca Calascio",d:"A ruined mountaintop castle at 1,460m — literally a film-set fantasy."},
+  {t:"Matera",d:"A 9,000-year-old cave city glowing gold at dusk; sleep inside the rock."},
+  {t:"Castelmezzano",d:"Houses fused into jagged stone spires — then fly between them by zipline."},
+  {t:"Ravello",d:"Cliff gardens floating above the Amalfi blue at the Terrace of Infinity."}],
+ flex:[
+  {b:"Sleep in Castelmezzano.",d:"Trade your 2nd Matera night for Al Becco della Civetta — the RPG village to yourselves after the day-trippers leave."},
+  {b:"Re-add San Leo.",d:"Trim Venice to 1 night and overnight in the Montefeltro fortress village between Venice and Abruzzo — restores the doc's original arc."},
+  {b:"Keep drives shorter.",d:"Swap the Abruzzo mountains for coastal Termoli to hold every leg near 3h — easier driving, but you lose the trip's most magical castle."},
+  {b:"More beach, less capital.",d:"A 3rd Sorrento night and 1 Rome night is possible, but 2 Rome nights is the safer bet before an international departure."},
+  {b:"A different Italy entirely.",d:"Tuscany/Umbria hill towns (San Gimignano, Orvieto, Civita, Assisi) are an alternate central route — ask your travel agent to redraw it."}],
+ essentials:[
+  {t:"Driving & the car",items:[
+   "Pick up in <b>Venezia Mestre</b>, drop in <b>Naples</b> — one-way domestic drops are routine but carry a fee; Auto Europe / DiscoverCars price them well.",
+   "<b>International Driving Permit</b> required alongside your US license (~$20 at AAA). Police can fine you without it.",
+   "<b>ZTL zones</b> (camera-enforced historic centers): never drive into old centers — park at the edge and walk. Hotel inside a ZTL? Give them your plate.",
+   "<b>Autostrada tolls</b> add up — keep a card handy. Confirm fuel type at pickup.",
+   "<b>Amalfi Coast road</b>: base in Sorrento, garage the car, ride ferries instead."]},
+  {t:"Trains, ferries & booking",items:[
+   "<b>Milan→Venice</b> and <b>Naples→Rome</b>: book Frecciarossa (Trenitalia) or Italo ahead for cheaper reserved seats.",
+   "<b>Amalfi ferries</b> run ~April–October — verify the late-September timetable; they beat road traffic and the views win.",
+   "<b>Timed tickets sell out:</b> Flight of the Angel, St. Mark's, Duomo rooftop, Colosseum, Vatican. Reserve popular dinners too.",
+   "<b>Weather</b> late Sept–early Oct: ~20–25°C days, cool evenings, crisp in Abruzzo; the sea is still swimmable-ish."]}]
+};
+/* concierge checklist — the laptop booking walkthrough, in order */
+const CHECKLIST = [
+ {id:"duomo",     label:"Duomo + rooftop tickets",            sub:"Timed entry for Tue Sep 22 midday — book before you fly", href:"https://www.duomomilano.it/en/"},
+ {id:"stay-milan",label:"Book Milan — 1 night",               sub:"Tue Sep 22 · near the Duomo or Centrale", stay:"milan"},
+ {id:"train-ven", label:"Train Milan → Venice",               sub:"Wed Sep 23 · Frecciarossa or Italo, ~2h15 — early booking = cheap seats", href:"https://www.trenitalia.com/en.html"},
+ {id:"stay-venice",label:"Book Venice — 2 nights",            sub:"Sep 23–24 · Cannaregio, Dorsoduro or Castello", stay:"venice"},
+ {id:"marks",     label:"St. Mark's & Doge's Palace slots",   sub:"Skip-the-line for Thu Sep 24", href:"https://www.basilicasanmarco.it/?lang=en"},
+ {id:"car",       label:"Rental car — Mestre → Naples",       sub:"Pick up Fri Sep 25, drop Wed Sep 30 · one-way within Italy", href:"https://www.autoeurope.com/"},
+ {id:"idp",       label:"International Driving Permits",      sub:"Both drivers · ~$20 at any AAA office — required in Italy", href:"https://www.aaa.com/vacation/idpf.html"},
+ {id:"stay-ss",   label:"Book Santo Stefano — 1 night",       sub:"Fri Sep 25 · Sextantio if you can — the bucket-list stay", stay:"santostefano", href:"https://www.sextantio.it/en/santo-stefano-sessanio/"},
+ {id:"stay-matera",label:"Book a Matera cave hotel — 2 nights",sub:"Sep 26–27 · sleep inside the rock", stay:"matera"},
+ {id:"volo",      label:"Volo dell'Angelo zipline",           sub:"Sun Sep 27 · verify the 2026 weekend calendar, then book", href:"https://www.volodellangelo.com/"},
+ {id:"stay-sorrento",label:"Book Sorrento — 2 nights",        sub:"Sep 28–29 · base here, not on the corniche", stay:"sorrento"},
+ {id:"stay-rome", label:"Book Rome — 2 nights",               sub:"Sep 30 – Oct 1 · Monti or Centro Storico", stay:"rome"},
+ {id:"train-rome",label:"Train Naples → Rome",                sub:"Wed Sep 30 · ~1h10, after dropping the car", href:"https://www.trenitalia.com/en.html"},
+ {id:"colosseum", label:"Colosseum / Forum timed tickets",    sub:"Thu Oct 1 morning — they sell out", href:"https://parcocolosseo.it/en/"},
+ {id:"vatican",   label:"Vatican Museums (optional)",         sub:"Thu Oct 1 afternoon — or savor Ancient Rome only", href:"https://www.museivaticani.va/"}
+];
 </script>
 <script>
 "use strict";
@@ -1047,8 +1363,8 @@ const LBL_LEFT = new Set(["pisa","cinqueterre","sorrento","turin","palermo"]);
 /* ================= STATE ================= */
 const LS_KEY = "pathseeker.v1";
 const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
-const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-25", endDate:"2026-10-09",
-  arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false});
+const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-22", endDate:"2026-10-02",
+  arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{}});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
 let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
 
@@ -1103,6 +1419,13 @@ const TT = {
  "matera|naples":"4h — the direct bus is easiest","lecce|rome":"5h30 by train","lecce|matera":"2h30 via Bari",
  "naples|taormina":"5h30 by train — or fly to Catania","palermo|rome":"1h by air","naples|palermo":"1h by air",
  "palermo|taormina":"4h by train","rome|taormina":"fly to Catania (1h15) + 1h",
+ "santostefano|venice":"4h30 by car — the trip's longest drive; break in Ravenna",
+ "matera|santostefano":"3h30 by car",
+ "castelmezzano|matera":"1h by car",
+ "matera|sorrento":"3h by car — optional Paestum temples en route",
+ "rome|sorrento":"1h drive to Naples (drop the car) + 1h10 by train",
+ "milan|santostefano":"6h by car — break the journey",
+ "castelmezzano|naples":"2h30 by car",
 };
 const travelInfo=(a,b)=> TT[[a,b].sort().join("|")] || null;
 const schedLink=(a,b,d)=> "https://www.google.com/search?q="+encodeURIComponent(
@@ -1569,7 +1892,7 @@ function renderItin(){
 function stopEditorHtml(){
   const seq=sortedStops();
   if(!seq.length)
-    return `<p class="stop-editor-hint">No stops yet — pick cities on the map, then shape the route here.</p>`;
+    return `<p class="stop-editor-hint">No stops yet — pick cities on the map or right here, then shape the route.</p>${addStopPicker()}`;
   const last=seq[seq.length-1], routeEnd=addD(last.arrive, Math.max(0,+last.nights||0));
   const warn = routeEnd>S.trip.endDate
     ? `<p class="stop-warn">⚠ Route checks out ${fmtShort(routeEnd)} — past your flight home ${fmtShort(S.trip.endDate)}.</p>` : "";
@@ -1590,7 +1913,8 @@ function stopEditorHtml(){
       </div>
       <button class="stop-x" data-del aria-label="Remove ${esc(CITY_BY_ID[s.cityId].n)}">✕</button>
     </div>`).join("")+`</div>${warn}
-    <p class="stop-editor-hint">↑↓ reorder · − + nights · tap a city for exact dates — later stops shift automatically.</p>`;
+    <p class="stop-editor-hint">↑↓ reorder · − + nights · tap a city for exact dates — later stops shift automatically.</p>
+    ${addStopPicker()}`;
 }
 function rechain(seq, from){
   for(let j=Math.max(1,from); j<seq.length; j++)
@@ -1628,6 +1952,198 @@ function wireStopEditor(wrap){
       const arr=seq(), i=idx(arr); if(i>=0) openStopDlg(arr[i].cityId);
     });
   });
+  const sel=wrap.querySelector("#add-stop-sel");
+  if(sel) sel.addEventListener("change",()=>{ if(sel.value) openStopDlg(sel.value); sel.value=""; });
+}
+function addStopPicker(){
+  const opts=CITIES.filter(c=>!stopFor(c.id))
+    .map(c=>`<option value="${c.id}">${esc(c.n)} · ${esc(c.region)}</option>`).join("");
+  return `<div class="day-add" style="margin:4px 0 20px;display:flex;gap:10px;align-items:center">
+    <span class="label" style="flex:none">Add a stop</span>
+    <select id="add-stop-sel" style="max-width:280px"><option value="">Choose a city…</option>${opts}</select>
+  </div>`;
+}
+
+/* ================= PLAN TAB (fairy-tale guide + concierge) ================= */
+function stayLinks(cityId){
+  const c=CITY_BY_ID[cityId], st=stopFor(cityId), enc=encodeURIComponent;
+  let ci="",co="";
+  if(st){ ci=st.arrive; co=addD(st.arrive, Math.max(1,st.nights)); }
+  return {
+    bcom:`https://www.booking.com/searchresults.html?ss=${enc(c.n+", Italy")}`+(ci?`&checkin=${ci}&checkout=${co}&group_adults=2`:""),
+    airbnb:`https://www.airbnb.com/s/${enc(c.n+"--Italy")}/homes`+(ci?`?checkin=${ci}&checkout=${co}&adults=2`:"")
+  };
+}
+const PRICE=(p)=> p?`<span class="plan-price${p>1?" p"+p:""}">${"€".repeat(p)}</span>`:"";
+const legMode=(s)=> /car|drive/i.test(s||"")?"car":/train/i.test(s||"")?"train":/ferry/i.test(s||"")?"ferry":"";
+function planDayLabel(st){
+  const d1=Math.round((pD(st.arrive)-pD(S.trip.startDate))/864e5)+1;
+  const n=Math.max(1,+st.nights||1), d2=d1+n-1;
+  const dw1=fmtDow(st.arrive), dw2=fmtDow(addD(st.arrive,n-1));
+  return d1===d2?`Day ${d1} · ${dw1}`:`Days ${d1}–${d2} · ${dw1}–${dw2}`;
+}
+const chkDone=(item)=> item.stay ? (!!lodgingFor(item.stay) || !!S.trip.checklist[item.id])
+                                 : !!S.trip.checklist[item.id];
+function planBlocks(blocks){
+  return `<div class="plan-blocks">${blocks.map(b=>`<div class="plan-block"><h4>${esc(b.h)}</h4><ul>${
+    b.items.map(i=>`<li><b>${esc(i.n)}</b>${PRICE(i.p)} — ${esc(i.d)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+}
+function guideFor(cityId){
+  if(GUIDE.days[cityId]) return GUIDE.days[cityId];
+  /* fallback for cities without hand-written guide content: build from scouted POIs */
+  const c=CITY_BY_ID[cityId], grp={stay:[],eat:[],sight:[]};
+  c.pois.forEach(p=>grp[p.c]&&grp[p.c].push({n:p.n,d:p.d}));
+  return {vibe:c.tag, getting:stripTags(c.note||""), blocks:[
+    grp.stay.length?{h:"Where to stay",items:grp.stay}:null,
+    grp.eat.length?{h:"Where to eat",items:grp.eat}:null,
+    grp.sight.length?{h:"What to do",items:grp.sight}:null].filter(Boolean)};
+}
+function planDayCard(st, prevCityId){
+  const c=CITY_BY_ID[st.cityId], g=guideFor(st.cityId);
+  const n=Math.max(0,+st.nights||0);
+  const co=addD(st.arrive,Math.max(1,n));
+  const tt=prevCityId?travelInfo(prevCityId,st.cityId):null;
+  const note=prevCityId?GUIDE.legNotes[prevCityId+">"+st.cityId]:null;
+  const getting=[tt?`<b>Getting here:</b> ${esc(tt)}.`:"",esc(note||"")||esc(g.getting||"")].filter(Boolean).join(" ");
+  return `<div class="plan-day">
+    <div class="plan-day-head" data-editstop="${st.cityId}" title="Edit dates in ${esc(c.n)}">
+      <div class="dnum">${planDayLabel(st)}</div>
+      <h3 class="serif">${esc(c.n)}</h3>
+      <span class="when">${fmtShort(st.arrive)} → out ${fmtShort(co)}</span>
+      <span class="nights">${n} night${n===1?"":"s"}</span><span class="pencil">✎</span>
+    </div>
+    <div class="plan-day-body">
+      <div class="plan-vibe">${esc(g.vibe||c.tag)}</div>
+      ${getting?`<div class="plan-drive">${getting}</div>`:""}
+      ${planBlocks(g.blocks||[])}
+      ${g.callout?`<div class="plan-callout">${g.callout}</div>`:""}
+    </div></div>`;
+}
+function planDaytripCard(dt){
+  return `<div class="plan-day">
+    <div class="plan-day-head" data-gocity="${dt.cityId}">
+      <div class="dnum">${esc(dt.when)}</div><h3 class="serif">${esc(dt.title)}</h3><span class="pencil">🗺</span>
+    </div>
+    <div class="plan-day-body">
+      <div class="plan-vibe">${esc(dt.vibe)}</div>
+      <div class="plan-drive"><b>Getting there:</b> ${esc(dt.getting)}</div>
+      ${planBlocks(dt.blocks||[])}
+      ${dt.callout?`<div class="plan-callout">${dt.callout}</div>`:""}
+    </div></div>`;
+}
+function agentItemRow(item){
+  const done=chkDone(item), auto=item.stay&&!!lodgingFor(item.stay);
+  let acts="";
+  if(item.stay){
+    const L=stayLinks(item.stay);
+    acts=`<a class="btn btn-sm" href="${L.bcom}" target="_blank" rel="noopener">Booking ↗</a>
+          <a class="btn btn-sm" href="${L.airbnb}" target="_blank" rel="noopener">Airbnb ↗</a>`;
+  }
+  if(item.href) acts+=`<a class="btn btn-sm" href="${item.href}" target="_blank" rel="noopener">${item.stay?"Direct":"Book"} ↗</a>`;
+  return `<div class="agent-item${done?" done":""}">
+    <button class="agent-check" role="checkbox" aria-checked="${done}" data-chk="${item.id}" ${auto?"disabled":""}
+      aria-label="${esc(item.label)}">${done?"✓":""}</button>
+    <div class="t"><strong>${esc(item.label)}</strong><p>${esc(item.sub)}${auto?" · ✓ booked in your journal":""}</p></div>
+    <div class="acts">${acts}</div></div>`;
+}
+function renderPlan(){
+  const wrap=$("#plan-wrap");
+  const seq=sortedStops();
+  const names=seq.map(s=>CITY_BY_ID[s.cityId].short||CITY_BY_ID[s.cityId].n);
+  const title=names.length?names.join(" → "):"Your Italian route";
+  const nightsPlanned=seq.reduce((a,s)=>a+(+s.nights||0),0);
+  let maxDrive=0, anyCar=false;
+  for(let i=1;i<seq.length;i++){
+    const tt=travelInfo(seq[i-1].cityId,seq[i].cityId)||"";
+    if(legMode(tt)==="car"){ anyCar=true;
+      const m=tt.match(/(\d+)h(\d\d?)?/); if(m) maxDrive=Math.max(maxDrive,+m[1]+(m[2]?+m[2]/60:0)); }
+  }
+  const doneCount=CHECKLIST.filter(chkDone).length;
+  /* hero + facts */
+  let h=`<div class="plan-hero">
+      <div class="plan-kicker">${esc(GUIDE.kicker)}</div>
+      <h1 class="serif">${esc(title)}</h1>
+      <div class="sub">${esc(GUIDE.sub)}</div>
+      <div class="dates">${fmtDow(S.trip.startDate)} ${fmtShort(S.trip.startDate)} – ${fmtDow(S.trip.endDate)} ${fmtShort(S.trip.endDate)} · ${Math.max(0,tripDays().length-1)} nights</div>
+    </div>
+    <div class="plan-facts">
+      <div class="plan-fact"><div class="n">${nightsPlanned}</div><div class="l">Nights placed</div></div>
+      <div class="plan-fact"><div class="n">${seq.length}</div><div class="l">Base towns</div></div>
+      <div class="plan-fact"><div class="n">${anyCar?"~"+(maxDrive%1?maxDrive.toFixed(1):maxDrive)+"h":"—"}</div><div class="l">Max daily drive</div></div>
+      <div class="plan-fact"><div class="n">${anyCar?1:0}</div><div class="l">Rented car</div></div>
+    </div>
+    <div class="plan-nav">
+      <a href="#p-agent">Travel agent</a><a href="#p-route">Route</a><a href="#p-days">Day by day</a>
+      <a href="#p-gems">Fairy-tale gems</a><a href="#p-flex">Flex options</a><a href="#p-ess">Essentials</a>
+    </div>`;
+  /* concierge */
+  h+=`<section class="plan-section" id="p-agent">
+    <h2 class="serif">Your travel agent</h2>
+    <div class="plan-panel">
+      <div class="agent-intro"><div class="agent-badge">✈</div>
+        <p>Book the whole trip from this list, top to bottom — every link opens with your dates carried along.
+        Hotel steps check themselves off when a booking lands in your journal (paste the confirmation email
+        anywhere in the app). Want different recommendations or a route change? Tell your travel agent in
+        Claude Code and this page redraws.</p></div>
+      <div class="agent-progress"><i style="width:${Math.round(doneCount/CHECKLIST.length*100)}%"></i></div>
+      <p class="plan-lead" style="margin-bottom:6px">${doneCount} of ${CHECKLIST.length} booked</p>
+      ${CHECKLIST.map(agentItemRow).join("")}
+    </div></section>`;
+  /* route at a glance */
+  let legs=`<div class="plan-leg"><div class="dot">✈</div><div class="body">
+      <span class="place">Fly into ${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")}</span>
+      <div class="meta">Lands ${fmtDow(S.trip.startDate)} ${fmtShort(S.trip.startDate)}.</div></div></div>`;
+  seq.forEach((s,i)=>{
+    if(!i) return;
+    const a=seq[i-1].cityId,b=s.cityId,tt=travelInfo(a,b)||"",mode=legMode(tt);
+    const time=(tt.match(/^~?\d+h\d*|^~?\d+m/)||[""])[0];
+    legs+=`<div class="plan-leg"><div class="dot">${i+1}</div><div class="body">
+      <span class="place">${esc(CITY_BY_ID[a].n)} → ${esc(CITY_BY_ID[b].n)}</span>
+      ${tt?`<span class="plan-tag ${mode}">${esc(mode||"go")}${time?" ~"+esc(time.replace(/^~/,"")):""}</span>`:""}
+      <div class="meta">${esc(GUIDE.legNotes[a+">"+b]||tt||"")} Arrive ${fmtShort(s.arrive)}.</div></div></div>`;
+  });
+  legs+=`<div class="plan-leg"><div class="dot">✈</div><div class="body">
+      <span class="place">Fly home from ${esc(CITY_BY_ID[S.trip.departureCity]?.n||"—")}</span>
+      <div class="meta">${fmtDow(S.trip.endDate)} ${fmtShort(S.trip.endDate)}.</div></div></div>`;
+  h+=`<section class="plan-section" id="p-route">
+    <h2 class="serif">The route at a glance</h2>
+    <p class="plan-lead">This page follows your live trip — tap any day's header to change its dates, or
+      reorder and resize stops in the Itinerary tab and everything here redraws.</p>
+    <div class="plan-route">${seq.length?legs:`<div class="empty">No stops yet — add cities on the map or in the Itinerary tab.</div>`}</div>
+  </section>`;
+  /* day cards */
+  h+=`<section class="plan-section" id="p-days"><h2 class="serif">The journey, day by day</h2>`;
+  if(!seq.length) h+=`<div class="empty">Your day-by-day cards appear as you add stops.</div>`;
+  seq.forEach((s,i)=>{
+    h+=planDayCard(s, i?seq[i-1].cityId:null);
+    const dt=GUIDE.daytrips[s.cityId];
+    if(dt) h+=planDaytripCard(dt);
+  });
+  h+=`</section>`;
+  /* gems, flex, essentials */
+  h+=`<section class="plan-section" id="p-gems">
+    <h2 class="serif">Your fairy-tale highlight reel</h2>
+    <p class="plan-lead">Six wildly different storybook worlds in ten days.</p>
+    <div class="plan-gems">${GUIDE.gems.map(g=>`<div class="plan-gem"><div class="em">◆</div>
+      <h4>${esc(g.t)}</h4><p>${esc(g.d)}</p></div>`).join("")}</div></section>`;
+  h+=`<section class="plan-section" id="p-flex">
+    <h2 class="serif">Flex options &amp; trade-offs</h2>
+    <div class="plan-panel">${GUIDE.flex.map(f=>`<div class="plan-flex-item"><b>${esc(f.b)}</b> ${esc(f.d)}</div>`).join("")}</div></section>`;
+  h+=`<section class="plan-section" id="p-ess">
+    <h2 class="serif">Practical essentials</h2>
+    <div class="plan-grid2">${GUIDE.essentials.map(p=>`<div class="plan-panel"><h3>${esc(p.t)}</h3>
+      <ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")}</div></section>`;
+  wrap.innerHTML=h;
+  /* wiring */
+  wrap.querySelectorAll("[data-chk]").forEach(b=>b.addEventListener("click",()=>{
+    const id=b.dataset.chk;
+    S.trip.checklist[id]=!S.trip.checklist[id];
+    mutate(); renderPlan();
+  }));
+  wrap.querySelectorAll("[data-editstop]").forEach(el=>el.addEventListener("click",()=>openStopDlg(el.dataset.editstop)));
+  wrap.querySelectorAll("[data-gocity]").forEach(el=>el.addEventListener("click",()=>{
+    setView("map"); selectCity(el.dataset.gocity);
+  }));
 }
 
 /* ================= JOURNAL ================= */
@@ -1719,12 +2235,13 @@ const jNoteRow=(j)=>`<div class="j-note"><span class="jd">${fmtShort(j.date)}</s
 /* ================= VIEWS / NAV ================= */
 function setView(v){
   UI.view=v;
-  for(const k of ["map","itin","journal","today","translate"])
+  for(const k of ["map","itin","journal","today","translate","plan"])
     $("#view-"+k).classList.toggle("hidden", v!==k);
   $$(".tab").forEach(t=>t.setAttribute("aria-selected", String(t.dataset.view===v)));
   if(v==="itin") renderItin();
   if(v==="journal") renderJournal();
   if(v==="today") renderToday();
+  if(v==="plan") renderPlan();
   if(v==="translate" && !$("#tr-q")) renderTranslate();
 }
 function renderAll(){
@@ -1732,6 +2249,7 @@ function renderAll(){
   if(UI.view==="itin") renderItin();
   if(UI.view==="journal") renderJournal();
   if(UI.view==="today") renderToday();
+  if(UI.view==="plan") renderPlan();
 }
 function updateTripChip(){
   const n=S.trip.stops.length;

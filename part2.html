@@ -9,7 +9,7 @@
       <span class="label">Destination</span>
       <div class="dest-grid" role="group" aria-label="Destination">
         <button class="dest" id="dest-italy" aria-pressed="true">
-          <strong>Italy</strong><small>19 cities scouted</small>
+          <strong>Italy</strong><small>21 cities scouted</small>
         </button>
         <button class="dest" disabled><strong>France</strong><small>in scouting</small></button>
         <button class="dest" disabled><strong>Spain</strong><small>in scouting</small></button>
@@ -20,11 +20,11 @@
     <div class="field field-row">
       <div>
         <label class="label" for="trip-start">Arrive</label>
-        <input type="date" id="trip-start" value="2026-09-25">
+        <input type="date" id="trip-start" value="2026-09-22">
       </div>
       <div>
         <label class="label" for="trip-end">Depart</label>
-        <input type="date" id="trip-end" value="2026-10-09">
+        <input type="date" id="trip-end" value="2026-10-02">
       </div>
     </div>
 
@@ -58,6 +58,7 @@
     <nav class="tabs" role="tablist" aria-label="Views">
       <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
       <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+      <button class="tab" role="tab" data-view="plan" aria-selected="false">Plan</button>
       <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
       <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
       <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
@@ -105,11 +106,15 @@
 
     <!-- TRANSLATE -->
     <div id="view-translate" class="hidden"><div class="sheet-wrap" id="translate-wrap"></div></div>
+
+    <!-- PLAN (fairy-tale guide + concierge) -->
+    <div id="view-plan" class="hidden"><div class="plan-wrap" id="plan-wrap"></div></div>
   </div>
 
   <nav class="mob-tabs" role="tablist" aria-label="Views">
     <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
     <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+    <button class="tab" role="tab" data-view="plan" aria-selected="false">Plan</button>
     <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
     <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
     <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
@@ -515,7 +520,212 @@ const CITIES = [
   {c:"stay",n:"Politeama / Libertà",d:"Elegant 19th-century Palermo, calmer streets."},
   {c:"eat",n:"Street food crawl",d:"Panelle, arancine, sfincione — and pani ca meusa for the brave."},
   {c:"eat",n:"Cannoli at I Segreti del Chiostro",d:"Convent-recipe cannoli filled to order."},
-  {c:"eat",n:"Antica Focacceria San Francesco",d:"Serving the classics since 1834."}]}
+  {c:"eat",n:"Antica Focacceria San Francesco",d:"Serving the classics since 1834."}]},
+{id:"santostefano", n:"Santo Stefano di Sessanio", short:"Abruzzo", region:"Abruzzo", lat:42.342, lon:13.646,
+ tag:"A restored medieval hamlet at 1,250m — the most storybook stop on the route.",
+ note:"<b>Getting in:</b> By car only — down the A14 then up into the Gran Sasso. Pack a real layer: it's crisp at altitude even in late September.",
+ pois:[
+  {c:"sight",n:"Rocca Calascio",d:"One of Italy's highest castles (1,460m), filmed in Ladyhawke — short steep walk from the car park, unreal at sunset."},
+  {c:"sight",n:"Campo Imperatore",d:"The \"Little Tibet\" plateau with wild horses, 20 minutes away."},
+  {c:"sight",n:"Santo Stefano at dusk",d:"Wander the stone lanes after the day-trippers leave and the hamlet is yours."},
+  {c:"stay",n:"Sextantio Albergo Diffuso",d:"Candlelit rooms scattered through restored village houses, no TVs — a bucket-list stay."},
+  {c:"stay",n:"Locanda Sotto gli Archi",d:"Cozy inn and kitchen in the village."},
+  {c:"eat",n:"Sextantio's Locanda",d:"Candlelit Abruzzese tasting of mountain ingredients."},
+  {c:"eat",n:"Rifugio della Rocca",d:"Simple plates at the foot of the castle."},
+  {c:"eat",n:"Local tastes",d:"Santo Stefano lentils (Slow Food), arrosticini lamb skewers, maccheroni alla chitarra, aged pecorino."}]},
+{id:"castelmezzano", n:"Castelmezzano", region:"Basilicata", lat:40.530, lon:16.078,
+ tag:"Houses fused into jagged stone spires — the purest RPG-town fantasy in Italy.",
+ note:"<b>Getting in:</b> ~1h by car from Matera — best as a day trip. The Flight of the Angel zipline runs weekends in late September; verify the calendar at volodellangelo.com.",
+ pois:[
+  {c:"sight",n:"Volo dell'Angelo",d:"Zipline between the two villages at up to 120 km/h (~€45 single / €78 in pairs; book ahead)."},
+  {c:"sight",n:"Percorso delle 7 Pietre",d:"The \"Path of the 7 Stones\" — a scenic 2h folklore trail to Pietrapertosa."},
+  {c:"sight",n:"Gradinata Normanna",d:"Rock-cut Norman steps above the village for the big view."},
+  {c:"eat",n:"Al Becco della Civetta",d:"Beloved inn of mountain Lucanian cooking; also has rooms if you want the village after dark."},
+  {c:"eat",n:"La Locanda di Pietra",d:"Cozy stop in Pietrapertosa across the valley."}]}
 ];
 const CITY_BY_ID = Object.fromEntries(CITIES.map(c=>[c.id,c]));
+
+/* ================= PLAN TAB: guide content + concierge checklist ================= */
+const GUIDE = {
+ kicker:"A fairy-tale road trip",
+ sub:"Hidden hilltop villages, cave cities, castles & coastline — the storybook route through Italy",
+ legNotes:{
+  "milan>venice":"Frecciarossa or Italo from Milano Centrale to Venezia S. Lucia — you step off the train straight onto the Grand Canal. Stay car-free in Venice; the rental comes later.",
+  "venice>santostefano":"Pick up the car at Venezia Mestre. The trip's longest drive — break it in Ravenna (1.5h in) for the shimmering 6th-century Byzantine mosaics of San Vitale.",
+  "santostefano>matera":"Down from the Gran Sasso, across to Basilicata. Time it to reach the sassi at golden hour.",
+  "matera>sorrento":"Swing west toward the coast; optional detour to the Greek temples of Paestum (~2h from Matera, then ~1.5h on).",
+  "sorrento>rome":"Drive to Naples (~1h), drop the rental there to skip Rome's ZTL maze, then Frecciarossa/Italo to Roma Termini (~1h10)."},
+ days:{
+  milan:{vibe:"One golden evening in the fashion capital — first espresso, first duomo.",
+   getting:"Land MXP 7:30 AM → Malpensa Express to Centrale or Cadorna (~40–50 min, every 30 min, ~€13) → drop bags at the hotel → Duomo by midday. The full step-by-step lives in your Sep 22 itinerary notes.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Room Mate Giulia",p:3,d:"Designer rooms literally next to the Duomo."},
+     {n:"Hotel Gran Duca di York",p:2,d:"Elegant little palazzo five minutes from the Duomo."},
+     {n:"Ostello Bello Grande",p:1,d:"Italy's most-loved hostel — private rooms, near Centrale."}]},
+    {h:"Where to eat",items:[
+     {n:"Luini",p:1,d:"The panzerotto institution behind the Duomo — the perfect first bite of Italy."},
+     {n:"Camparino in Galleria",p:2,d:"The historic bar where Campari was born — aperitivo under the glass dome."},
+     {n:"Trattoria Milanese",p:2,d:"Risotto alla milanese and cotoletta, the two local classics."}]},
+    {h:"What to do",items:[
+     {n:"Duomo rooftop",d:"Walk among the marble spires — your 12:30 timed entry."},
+     {n:"Galleria Vittorio Emanuele II",d:"Spin your heel on the bull mosaic for luck."},
+     {n:"Evening passeggiata",d:"Aperitivo in Brera's lanes or along the Navigli canals."}]},
+    {h:"Why just one night",items:[
+     {n:"The warm-up act",d:"You'll be jet-lagged — one rooftop, one aperitivo, one good sleep, then the lagoon."}]}],
+   callout:"<b>Before you fly:</b> book Duomo + rooftop tickets (duomomilano.it) and tell the hotel you'll drop bags around 10:30 AM."},
+  venice:{vibe:"Floating city of the imagination — get gloriously lost, then escape the crowds to the rainbow island of Burano.",
+   getting:"Train from Milano Centrale, ~2h15 — you'll be dropping bags by early afternoon.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Oltre il Giardino",p:3,d:"Romantic garden villa in quiet San Polo, once Alma Mahler's home."},
+     {n:"Hotel Ai Reali",p:2,d:"Comfortable, central (Castello), small spa."},
+     {n:"Al Ponte Mocenigo",p:1,d:"17th-century palazzo with a courtyard in Santa Croce; wonderful value."},
+     {n:"Where to base",d:"Cannaregio, Dorsoduro or Castello — sleep away from the San Marco crush."}]},
+    {h:"Where to eat",items:[
+     {n:"All'Arco",p:1,d:"Legendary cicchetti near the Rialto market (lunch only)."},
+     {n:"Cantina Do Mori",p:1,d:"Venice's oldest bacaro (since 1462) — standing-room ombre and snacks."},
+     {n:"Osteria al Squero",p:1,d:"Cicchetti facing the gondola boatyard."},
+     {n:"Alle Testiere",p:2,d:"Tiny, superb seafood; reserve well ahead."},
+     {n:"Bacareto Da Lele",p:1,d:"€1 wine and panini with the students; pure local."}]},
+    {h:"What to do",items:[
+     {n:"Wander with no map",d:"Dawn or dusk — the real Venice magic."},
+     {n:"St. Mark's & Doge's Palace",d:"Book skip-the-line slots."},
+     {n:"Rialto market + traghetto",d:"Cross the Grand Canal standing in a €2 gondola."},
+     {n:"Libreria Acqua Alta",d:"The flooded bookshop with a gondola full of books."}]},
+    {h:"Fairy-tale detour",items:[
+     {n:"Burano",d:"Vaporetto ~45 min — candy-colored fishermen's houses and lace. Storybook perfection."},
+     {n:"Torcello",d:"The lagoon's oldest settlement — golden mosaics and Hemingway's haunt."}]}],
+   callout:"<b>Tip:</b> arrive, check in, get lost before dinner. Book the Milan→Venice train ahead for cheap reserved seats."},
+  santostefano:{vibe:"A restored medieval hamlet at 1,250m and a ruined mountaintop castle straight out of a film set — the single most storybook stop of the trip.",
+   getting:"The trip's longest drive (~4.5h from Venezia Mestre, Ravenna break recommended). Worth every kilometer.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Sextantio Albergo Diffuso",p:3,d:"Rooms in restored stone village houses, candlelit, no TVs — a genuine step back in time."},
+     {n:"Locanda Sotto gli Archi",p:2,d:"Cozy inn + kitchen in the village."}]},
+    {h:"Where to eat",items:[
+     {n:"Sextantio's Locanda",p:2,d:"Candlelit Abruzzese tasting of mountain ingredients."},
+     {n:"Rifugio della Rocca",p:1,d:"Simple plates at the foot of the castle."},
+     {n:"Taste",d:"Santo Stefano lentils, arrosticini, maccheroni alla chitarra, aged pecorino."}]},
+    {h:"What to do",items:[
+     {n:"Rocca Calascio",d:"One of Italy's highest castles (1,460m) — Ladyhawke's film set. Short steep walk; unreal at sunset."},
+     {n:"Campo Imperatore",d:"The \"Little Tibet\" plateau with wild horses, 20 min away."},
+     {n:"The hamlet at dusk",d:"When the day-trippers leave, it's yours."}]},
+    {h:"Relaxed alternative",items:[
+     {n:"Termoli",d:"Prefer a ~3h coastal day instead? A walled seaside borgo of pastel lanes — less epic, more easygoing."}]}],
+   callout:"<b>Pack for altitude:</b> Santo Stefano sits at 1,250m — evenings are properly crisp even in September."},
+  matera:{vibe:"The sassi — a honeycomb of cave dwellings carved into the rock for 9,000 years. Sleeping in a cave hotel here is unforgettable.",
+   getting:"Arrive in time to watch the sassi glow at golden hour.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Sextantio Le Grotte della Civita",p:3,d:"The definitive candlelit cave hotel, carved into the cliff."},
+     {n:"Aquatio Cave Luxury Hotel & Spa",p:3,d:"Caves plus a subterranean spa."},
+     {n:"Caveoso Hotel",p:2,d:"Lovely sassi views at a gentler price."}]},
+    {h:"Where to eat",items:[
+     {n:"Trattoria del Caveoso",p:1,d:"Honest Lucanian home cooking in a cave."},
+     {n:"La Lopa",p:2,d:"Famous ferricelli pasta with red-pepper sauce."},
+     {n:"Regiacorte",p:2,d:"Terrace over the sassi for a special dinner."},
+     {n:"Vitantonio Lombardo",p:3,d:"Michelin-starred, for a blow-out."},
+     {n:"Taste",d:"Peperoni cruschi, pane di Matera, fave e cicoria, orecchiette."}]},
+    {h:"What to do",items:[
+     {n:"Sasso Caveoso & Barisano",d:"Wander the two sassi and the rock-cut chiese rupestri with faded frescoes."},
+     {n:"Casa Grotta",d:"A preserved cave home showing how families (and animals) once lived."},
+     {n:"Belvedere Murgia Timone",d:"The postcard panorama across the gorge — magic at sunset. (Bond's No Time to Die filmed here.)"}]},
+    {h:"Practical",items:[
+     {n:"Park at the top",d:"The sassi are a maze of steps, not roads — comfortable shoes essential."}]}]},
+  sorrento:{vibe:"Lemon groves, pastel cliffside towns and turquoise sea — the glamorous counterpoint to the wild south.",
+   getting:"Base in Sorrento: easy parking, ferries, trains and dining — far less white-knuckle than staying on the corniche.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Grand Hotel Excelsior Vittoria",p:3,d:"Cliff-top grande dame with citrus gardens over the bay."},
+     {n:"Maison Tofani",p:3,d:"Chic boutique in Sorrento's old town."},
+     {n:"Hotel Antiche Mura",p:2,d:"Central, garden pool, great value."}]},
+    {h:"Where to eat",items:[
+     {n:"O'Parrucchiano",p:2,d:"Historic lemon-grove trattoria that claims to have invented cannelloni."},
+     {n:"Da Emilia",p:1,d:"Unfussy seafood on the Marina Grande harbor."},
+     {n:"Il Buco",p:3,d:"Michelin-starred, in a former monk's cellar."},
+     {n:"La Tagliata",p:2,d:"No menu — a mountainside family feast above Positano."}]},
+    {h:"What to do",items:[
+     {n:"Ferry-hop the coast",d:"Sorrento → Positano → Amalfi by boat — skip the traffic, and the coast from the water is the definitive view."},
+     {n:"Ravello",d:"Villa Rufolo and Villa Cimbrone's \"Terrace of Infinity,\" high above the sea."},
+     {n:"Path of the Gods",d:"The cliff-top hike Bomerano → Nocelle — one of Italy's great walks."},
+     {n:"Ruins, optionally",d:"Pompeii, Herculaneum and Vesuvius are close if they call."}]},
+    {h:"Practical",items:[
+     {n:"Garage the car",d:"The coast road is slow and stressful, and ZTL rules bite — use ferries and buses."},
+     {n:"Ferry timetables",d:"Confirm the late-September schedule the night before; last boats run early evening."}]}]},
+  rome:{vibe:"The Eternal City to close the loop — ancient ruins, baroque piazzas and the best carbonara of your life, before flying home.",
+   getting:"Arrive early afternoon with the day still ahead of you.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Hotel de Russie",p:3,d:"A secret garden between Piazza del Popolo and the Spanish Steps."},
+     {n:"The Hoxton, Rome",p:2,d:"Stylish and buzzy, near Villa Borghese."},
+     {n:"Hotel Artemide",p:2,d:"Polished and central on Via Nazionale."},
+     {n:"Where to base",d:"Monti or the Centro Storico — walk to almost everything."}]},
+    {h:"Where to eat",items:[
+     {n:"Da Enzo al 29",p:2,d:"The Trastevere classic: cacio e pepe, carbonara, carciofi. Go early or queue."},
+     {n:"Armando al Pantheon",p:2,d:"Roman institution steps from the Pantheon (reserve)."},
+     {n:"Flavio al Velavevodetto",p:2,d:"Roman soul food set into a wall of ancient amphora shards."},
+     {n:"Sweet endings",d:"Supplì at Supplizio; gelato at Giolitti or Fatamorgana."}]},
+    {h:"Arrival afternoon",items:[
+     {n:"The classic loop",d:"Pantheon → Piazza Navona → Trevi → Spanish Steps, then dinner in Trastevere."}]},
+    {h:"Full day",items:[
+     {n:"Morning",d:"Colosseum, Forum & Palatine — timed tickets essential."},
+     {n:"Afternoon",d:"Vatican (pre-book) — or with only 1.5 days, savor Ancient Rome instead of racing both."}]}],
+   callout:"<b>Departure, Fri Oct 2:</b> Leonardo Express from Termini reaches FCO in ~32 min. Your flight is 2:20 PM — leave Termini by ~10:45 to be 3h ahead."}},
+ daytrips:{matera:{title:"Castelmezzano & Pietrapertosa",when:"Day trip · Sunday",cityId:"castelmezzano",
+  vibe:"Two villages wedged into the jagged spires of the Piccole Dolomiti Lucane.",
+  getting:"~1h each way from Matera. Sunday is ideal — the Flight of the Angel runs weekends this late in the season.",
+  blocks:[
+   {h:"What to do",items:[
+    {n:"Volo dell'Angelo",d:"Soar between the villages on a steel cable at up to 120 km/h (~€45 single / €78 pairs; book ahead)."},
+    {n:"Percorso delle 7 Pietre",d:"The \"Path of the 7 Stones\" — a 2h folklore trail linking the villages."},
+    {n:"Gradinata Normanna",d:"Climb the rock-cut Norman steps for the view."}]},
+   {h:"Where to eat",items:[
+    {n:"Al Becco della Civetta",p:2,d:"Beloved inn of mountain Lucanian cooking (also has rooms)."},
+    {n:"La Locanda di Pietra",p:1,d:"Cozy stop in Pietrapertosa across the valley."}]}],
+  callout:"<b>Verify before you go:</b> the zipline's 2026 calendar isn't published far ahead — confirm the Sunday operating day at volodellangelo.com. Not running? The villages and the trail are worth the trip alone."}},
+ gems:[
+  {t:"Duomo rooftop",d:"A forest of marble spires above Milan — your first hour in Italy."},
+  {t:"Burano",d:"A lagoon village of rainbow houses and lace — Venice's most enchanting escape."},
+  {t:"Rocca Calascio",d:"A ruined mountaintop castle at 1,460m — literally a film-set fantasy."},
+  {t:"Matera",d:"A 9,000-year-old cave city glowing gold at dusk; sleep inside the rock."},
+  {t:"Castelmezzano",d:"Houses fused into jagged stone spires — then fly between them by zipline."},
+  {t:"Ravello",d:"Cliff gardens floating above the Amalfi blue at the Terrace of Infinity."}],
+ flex:[
+  {b:"Sleep in Castelmezzano.",d:"Trade your 2nd Matera night for Al Becco della Civetta — the RPG village to yourselves after the day-trippers leave."},
+  {b:"Re-add San Leo.",d:"Trim Venice to 1 night and overnight in the Montefeltro fortress village between Venice and Abruzzo — restores the doc's original arc."},
+  {b:"Keep drives shorter.",d:"Swap the Abruzzo mountains for coastal Termoli to hold every leg near 3h — easier driving, but you lose the trip's most magical castle."},
+  {b:"More beach, less capital.",d:"A 3rd Sorrento night and 1 Rome night is possible, but 2 Rome nights is the safer bet before an international departure."},
+  {b:"A different Italy entirely.",d:"Tuscany/Umbria hill towns (San Gimignano, Orvieto, Civita, Assisi) are an alternate central route — ask your travel agent to redraw it."}],
+ essentials:[
+  {t:"Driving & the car",items:[
+   "Pick up in <b>Venezia Mestre</b>, drop in <b>Naples</b> — one-way domestic drops are routine but carry a fee; Auto Europe / DiscoverCars price them well.",
+   "<b>International Driving Permit</b> required alongside your US license (~$20 at AAA). Police can fine you without it.",
+   "<b>ZTL zones</b> (camera-enforced historic centers): never drive into old centers — park at the edge and walk. Hotel inside a ZTL? Give them your plate.",
+   "<b>Autostrada tolls</b> add up — keep a card handy. Confirm fuel type at pickup.",
+   "<b>Amalfi Coast road</b>: base in Sorrento, garage the car, ride ferries instead."]},
+  {t:"Trains, ferries & booking",items:[
+   "<b>Milan→Venice</b> and <b>Naples→Rome</b>: book Frecciarossa (Trenitalia) or Italo ahead for cheaper reserved seats.",
+   "<b>Amalfi ferries</b> run ~April–October — verify the late-September timetable; they beat road traffic and the views win.",
+   "<b>Timed tickets sell out:</b> Flight of the Angel, St. Mark's, Duomo rooftop, Colosseum, Vatican. Reserve popular dinners too.",
+   "<b>Weather</b> late Sept–early Oct: ~20–25°C days, cool evenings, crisp in Abruzzo; the sea is still swimmable-ish."]}]
+};
+/* concierge checklist — the laptop booking walkthrough, in order */
+const CHECKLIST = [
+ {id:"duomo",     label:"Duomo + rooftop tickets",            sub:"Timed entry for Tue Sep 22 midday — book before you fly", href:"https://www.duomomilano.it/en/"},
+ {id:"stay-milan",label:"Book Milan — 1 night",               sub:"Tue Sep 22 · near the Duomo or Centrale", stay:"milan"},
+ {id:"train-ven", label:"Train Milan → Venice",               sub:"Wed Sep 23 · Frecciarossa or Italo, ~2h15 — early booking = cheap seats", href:"https://www.trenitalia.com/en.html"},
+ {id:"stay-venice",label:"Book Venice — 2 nights",            sub:"Sep 23–24 · Cannaregio, Dorsoduro or Castello", stay:"venice"},
+ {id:"marks",     label:"St. Mark's & Doge's Palace slots",   sub:"Skip-the-line for Thu Sep 24", href:"https://www.basilicasanmarco.it/?lang=en"},
+ {id:"car",       label:"Rental car — Mestre → Naples",       sub:"Pick up Fri Sep 25, drop Wed Sep 30 · one-way within Italy", href:"https://www.autoeurope.com/"},
+ {id:"idp",       label:"International Driving Permits",      sub:"Both drivers · ~$20 at any AAA office — required in Italy", href:"https://www.aaa.com/vacation/idpf.html"},
+ {id:"stay-ss",   label:"Book Santo Stefano — 1 night",       sub:"Fri Sep 25 · Sextantio if you can — the bucket-list stay", stay:"santostefano", href:"https://www.sextantio.it/en/santo-stefano-sessanio/"},
+ {id:"stay-matera",label:"Book a Matera cave hotel — 2 nights",sub:"Sep 26–27 · sleep inside the rock", stay:"matera"},
+ {id:"volo",      label:"Volo dell'Angelo zipline",           sub:"Sun Sep 27 · verify the 2026 weekend calendar, then book", href:"https://www.volodellangelo.com/"},
+ {id:"stay-sorrento",label:"Book Sorrento — 2 nights",        sub:"Sep 28–29 · base here, not on the corniche", stay:"sorrento"},
+ {id:"stay-rome", label:"Book Rome — 2 nights",               sub:"Sep 30 – Oct 1 · Monti or Centro Storico", stay:"rome"},
+ {id:"train-rome",label:"Train Naples → Rome",                sub:"Wed Sep 30 · ~1h10, after dropping the car", href:"https://www.trenitalia.com/en.html"},
+ {id:"colosseum", label:"Colosseum / Forum timed tickets",    sub:"Thu Oct 1 morning — they sell out", href:"https://parcocolosseo.it/en/"},
+ {id:"vatican",   label:"Vatican Museums (optional)",         sub:"Thu Oct 1 afternoon — or savor Ancient Rome only", href:"https://www.museivaticani.va/"}
+];
 </script>
