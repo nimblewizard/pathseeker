@@ -145,7 +145,52 @@ function toast(msg){
 /* ================= MAP ================= */
 const SVGNS = "http://www.w3.org/2000/svg";
 let VB = {x:0,y:0,w:MAP_W,h:MAP_H};
-let mapSvg, routeEl, routeDoneEl, cityLayer;
+let mapSvg, routeEl, routeDoneEl, cityLayer, mapImgEl;
+let CURW=MAP_W, CURH=MAP_H;
+/* practical reference maps (consts in mapsimg.html), switchable from the map HUD */
+const XMAPS=[
+ {id:"story", n:"Storybook"},
+ {id:"rail", n:"🚄 Trains", img:()=>XMAP_RAIL, w:1800, h:2148,
+  credit:"map © @_sci4m4chy_ · CC BY-SA 4.0",
+  links:[["Trenitalia","https://www.trenitalia.com/en.html"],["Italo","https://www.italotreno.com/en"]]},
+ {id:"malp", n:"Airport Train", img:()=>XMAP_MALP, w:1600, h:560,
+  credit:"Wikimedia Commons · CC0",
+  links:[["Malpensa Express","https://www.malpensaexpress.it/en/"],["Trenord","https://www.trenord.it"]]},
+ {id:"metromi", n:"Milano Metro", img:()=>XMAP_METROMI, w:2000, h:1259,
+  credit:"Wikimedia Commons · CC BY-SA 4.0",
+  links:[["ATM Milano (metro+bus)","https://www.atm.it/en"]]},
+ {id:"metrorm", n:"Roma Metro", img:()=>XMAP_METRORM, w:1293, h:656,
+  credit:"Wikimedia Commons · CC0",
+  links:[["ATAC Roma (metro+bus)","https://www.atac.roma.it/en"]]},
+ {id:"auto", n:"Motorways", img:()=>XMAP_AUTO, w:1700, h:2000,
+  credit:"Wikimedia Commons · CC BY-SA 2.5",
+  links:[["Autostrade per l'Italia","https://www.autostrade.it"]]},
+ {id:"circum", n:"Sorrento Line", img:()=>XMAP_CIRCUM, w:2000, h:1508,
+  credit:"Wikimedia Commons · CC BY-SA 4.0",
+  links:[["EAV timetables","https://www.eavsrl.it/web/"],["SITA Amalfi buses","https://www.sitasudtrasporti.it/orari"]]},
+];
+function showXMap(id){
+  const m=XMAPS.find(x=>x.id===id)||XMAPS[0];
+  UI.xmap=m.id;
+  const story=m.id==="story";
+  CURW=story?MAP_W:m.w; CURH=story?MAP_H:m.h;
+  const href=story?MAP_IMG:m.img();
+  mapImgEl.setAttribute("href",href);
+  mapImgEl.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href",href);
+  mapImgEl.setAttribute("width",CURW); mapImgEl.setAttribute("height",CURH);
+  VB={x:0,y:0,w:CURW,h:CURH}; applyVB();
+  $("#map-stage").classList.toggle("xmap",!story);
+  $("#view-map").classList.toggle("xmap",!story);
+  $$("#map-switch .chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.xmap===m.id)));
+  const hint=$("#map-hint");
+  hint.classList.remove("hidden");
+  if(story){
+    hint.textContent="Tap a city to scout it · drag to pan · pinch or scroll to zoom";
+  }else{
+    hint.innerHTML=m.links.map(l=>`<a href="${l[1]}" target="_blank" rel="noopener">${esc(l[0])} ↗</a>`).join(" · ")
+      +` <span style="opacity:.7">· ${esc(m.credit)}</span>`;
+  }
+}
 function panToCity(id){
   const c=CITY_BY_ID[id]; if(!c||!mapSvg) return;
   const [x,y]=ART[c.id]||[MAP_W/2,MAP_H/2];
@@ -164,12 +209,13 @@ function buildMapInto(container, interactive){
   const img = el("image",{x:0,y:0,width:MAP_W,height:MAP_H,preserveAspectRatio:"none"},svg);
   img.setAttribute("href", MAP_IMG);
   img.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href", MAP_IMG);
+  if(interactive) mapImgEl=img;
   container.appendChild(svg);
   return svg;
 }
 function applyVB(){ mapSvg.setAttribute("viewBox", `${VB.x} ${VB.y} ${VB.w} ${VB.h}`); }
 function zoomAt(cx, cy, f){
-  const w=Math.min(Math.max(VB.w*f, 180), MAP_W*1.6);
+  const w=Math.min(Math.max(VB.w*f, 180), CURW*1.6);
   const s=w/VB.w;
   VB.x = cx-(cx-VB.x)*s; VB.y = cy-(cy-VB.y)*s; VB.w=w; VB.h=VB.h*s;
   applyVB();
@@ -245,7 +291,17 @@ function initMap(){
   },{passive:false});
   $("#zoom-in").addEventListener("click",()=> zoomAt(VB.x+VB.w/2,VB.y+VB.h/2,0.7));
   $("#zoom-out").addEventListener("click",()=> zoomAt(VB.x+VB.w/2,VB.y+VB.h/2,1.4));
-  $("#zoom-reset").addEventListener("click",()=>{ VB={x:0,y:0,w:MAP_W,h:MAP_H}; applyVB(); });
+  /* practical-map switcher */
+  const sw=$("#map-switch");
+  XMAPS.forEach(m=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.dataset.xmap=m.id; b.textContent=m.n;
+    b.setAttribute("aria-pressed", String(m.id==="story"));
+    b.addEventListener("click",()=>showXMap(m.id));
+    sw.appendChild(b);
+  });
+  UI.xmap="story";
+  $("#zoom-reset").addEventListener("click",()=>{ VB={x:0,y:0,w:CURW,h:CURH}; applyVB(); });
   const stepDay=(n)=>{
     UI.focusDay=clampDay(addD(focusDayClamped(),n));
     updateMapMarks();
@@ -257,7 +313,10 @@ function initMap(){
   applyVB();
   updateMapMarks();
 }
-function hideHint(){ if(!UI.hintShown){UI.hintShown=true; $("#map-hint").classList.add("hidden");} }
+function hideHint(){
+  if(UI.xmap && UI.xmap!=="story") return; /* keep credit + official links visible */
+  if(!UI.hintShown){UI.hintShown=true; $("#map-hint").classList.add("hidden");}
+}
 function updateMapMarks(){
   const f = S.trip.begun ? focusDayClamped() : null;
   $$(".city").forEach(g=>{
@@ -322,6 +381,7 @@ function updateMapMarks(){
 
 /* ================= CITY PANEL ================= */
 function selectCity(id){
+  if(id && UI.xmap && UI.xmap!=="story") showXMap("story"); /* city focus implies the storybook map */
   UI.selected = (UI.selected===id)? null : id;
   if(id===null) UI.selected=null;
   renderPanel(); updateMapMarks();
