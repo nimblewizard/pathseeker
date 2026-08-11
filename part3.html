@@ -609,7 +609,7 @@ function renderPanel(){
   p.innerHTML = `
     <button class="panel-close" id="panel-close" aria-label="Close">✕</button>
     <div class="panel-head">
-      <div class="label region">${esc(c.region)}</div>
+      <div class="label region">${esc(c.region)} <span class="wx-slot" data-wx="${c.id}|"></span></div>
       <h2 class="serif">${esc(c.n)}</h2>
       <div class="tagline">${esc(c.tag)}</div>
       <div class="panel-status">${pills}</div>
@@ -617,7 +617,7 @@ function renderPanel(){
     <div class="panel-body">
       ${UI.filter==="all" && (CITY_PHOTOS[c.id]||[]).length? `<div class="poi-section"><span class="label">Postcards</span>
         <div class="postcards">${CITY_PHOTOS[c.id].map((ph,i)=>
-          `<button class="postcard" data-pc="${i}" aria-label="View photo of ${esc(c.n)}"><img src="${ph.d}" alt="" loading="lazy"></button>`).join("")}
+          `<button class="postcard" data-pc="${i}" aria-label="View photo of ${esc(c.n)}"><img src="${ph.d}" alt="" loading="lazy" decoding="async"></button>`).join("")}
         </div></div>`:""}
       ${sections || '<p style="color:var(--ink-soft);margin-top:16px">Nothing in this filter here — try another.</p>'}
       ${(UI.filter==="all"||UI.filter==="stay")? bookBlock : ""}
@@ -633,6 +633,7 @@ function renderPanel(){
            : `<button class="btn btn-primary" id="cta-add">Add ${esc(c.n)} to my trip</button>`}
     </div>`;
   p.classList.remove("hidden");
+  fillWxSlots(p);
   $("#panel-close").addEventListener("click",()=>selectCity(null));
   p.querySelectorAll("[data-pc]").forEach(b=>b.addEventListener("click",()=>showPostcard(c.id,+b.dataset.pc)));
   const pp=$("#panel-paste"); if(pp) pp.addEventListener("click",()=>openPasteDlg());
@@ -955,6 +956,43 @@ function guideFor(cityId){
     grp.eat.length?{h:"Where to eat",items:grp.eat}:null,
     grp.sight.length?{h:"What to do",items:grp.sight}:null].filter(Boolean)};
 }
+/* ---- live weather (Open-Meteo, keyless) — hosted site only, silent in the artifact ---- */
+const WX={}, WX_TTL=30*60*1000;
+const WX_ICON=(c)=> c===0?"☀️":c<=2?"🌤":c===3?"☁️":c<=48?"🌫":c<=57?"🌦":c<=67?"🌧":c<=77?"🌨":c<=82?"🌧":c<=86?"🌨":"⛈";
+async function getWx(cityId){
+  const c=CITY_BY_ID[cityId]; if(!c||!c.lat) return null;
+  const w=WX[cityId];
+  if(w!==undefined && (!w || Date.now()-w.at<WX_TTL)) return w;
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}`+
+      `&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min`+
+      `&forecast_days=16&timezone=Europe%2FRome`);
+    if(!r.ok) throw 0;
+    const d=await r.json();
+    WX[cityId]={at:Date.now(), t:Math.round(d.current.temperature_2m), code:d.current.weather_code,
+      days:(d.daily.time||[]).map((t,i)=>({d:t, hi:Math.round(d.daily.temperature_2m_max[i]),
+        lo:Math.round(d.daily.temperature_2m_min[i]), code:d.daily.weather_code[i]}))};
+  }catch(e){ WX[cityId]=null; }
+  return WX[cityId];
+}
+function wxChipHtml(w, date){
+  if(!w) return "";
+  if(date){
+    const day=w.days.find(x=>x.d===date);
+    if(day) return `<span class="wx-chip" title="Forecast for ${date}">${WX_ICON(day.code)} ${day.hi}°/${day.lo}°</span>`;
+  }
+  return `<span class="wx-chip" title="Right now">${WX_ICON(w.code)} ${w.t}° now</span>`;
+}
+function fillWxSlots(root){
+  (root||document).querySelectorAll("[data-wx]").forEach(el=>{
+    const [cityId,date]=el.dataset.wx.split("|");
+    getWx(cityId).then(w=>{
+      if(!w) return;
+      el.innerHTML = (date && wxChipHtml(w,date)) || wxChipHtml(w);
+    });
+  });
+}
+
 /* live timetable lookup via Transitous (open MOTIS instance) — hosted site only;
    the artifact can't reach the internet and shows a pointer to the web version */
 const fmtHM=(iso)=> new Date(iso).toLocaleTimeString("en-GB",
@@ -1057,6 +1095,7 @@ function planDayCard(st, prevCityId){
       <div class="dnum">${planDayLabel(st)}</div>
       <h3 class="serif">${esc(c.n)}</h3>
       <span class="when">${fmtShort(st.arrive)} → out ${fmtShort(co)}</span>
+      <span class="wx-slot" data-wx="${st.cityId}|${st.arrive}"></span>
       <span class="nights">${n} night${n===1?"":"s"}</span><span class="pencil">✎</span>
     </div>
     <div class="plan-day-body">
@@ -1172,6 +1211,15 @@ function wireDocsDlg(){
   });
 }
 
+function dropSeal(id){
+  const idx=CHECKLIST.findIndex(i=>i.id===id); if(idx<0) return;
+  const row=$("#plan-wrap") && $("#plan-wrap").querySelectorAll(".agent-item")[idx];
+  if(!row) return;
+  const s=document.createElement("div");
+  s.className="wax-seal"; s.textContent="✦";
+  row.appendChild(s);
+  setTimeout(()=>s.remove(),1600);
+}
 function agentItemRow(item){
   const s=chkState(item), done=s.st==="booked"||s.st==="paid";
   let acts="";
@@ -1233,6 +1281,7 @@ function renderPlan(){
     <div class="plan-nav">
       <a href="#p-agent">Travel agent</a><a href="#p-route">Route</a><a href="#p-days">Day by day</a>
       <a href="#p-gems">Fairy-tale gems</a><a href="#p-flex">Flex options</a><a href="#p-ess">Essentials</a>
+      <a href="#" id="btn-print" title="Print or save as PDF">🖨 Print</a>
     </div>`;
   /* concierge */
   h+=`<section class="plan-section" id="p-agent">
@@ -1313,10 +1362,13 @@ function renderPlan(){
   wrap.innerHTML=h;
   /* wiring */
   const chkSet=(id,patch)=>{
+    const item=CHECKLIST.find(i=>i.id===id);
+    const wasDone=item? chkDone(item) : false;
     const raw=S.trip.checklist[id];
     const cur = raw===true? {st:"booked"} : (raw && typeof raw==="object"? raw : {});
     S.trip.checklist[id]=Object.assign({},cur,patch);
     mutate(); renderPlan();
+    if(item && !wasDone && chkDone(item)) dropSeal(id);   /* wax-seal the fresh booking */
   };
   wrap.querySelectorAll("[data-chk]").forEach(b=>b.addEventListener("click",()=>{
     const item=CHECKLIST.find(i=>i.id===b.dataset.chk), s=chkState(item);
@@ -1352,6 +1404,8 @@ function renderPlan(){
     const date=dtDate(dateKey,st);
     showTimes(`${b.dataset.tname} · ${fmtShort(date)}`, b.dataset.tfrom.split(",").map(Number), b.dataset.tto.split(",").map(Number), date);
   }));
+  fillWxSlots(wrap);
+  const pr=$("#btn-print"); if(pr) pr.addEventListener("click",e=>{ e.preventDefault(); window.print(); });
   wrap.querySelectorAll("[data-editstop]").forEach(el=>el.addEventListener("click",()=>openStopDlg(el.dataset.editstop)));
   wrap.querySelectorAll("[data-gocity]").forEach(el=>el.addEventListener("click",()=>{
     setView("map"); selectCity(el.dataset.gocity);
@@ -1361,8 +1415,22 @@ function renderPlan(){
 /* ================= JOURNAL ================= */
 function renderJournal(){
   const wrap=$("#journal-wrap");
+  const fDay=S.trip.begun? focusDayClamped() : null;
+  const stamps=sortedStops().map((s,i)=>{
+    const c=CITY_BY_ID[s.cityId]; if(!c) return "";
+    const inked=fDay && s.arrive<=fDay;
+    return `<div class="stamp${inked?" inked":""}" style="--rot:${(i%2?1:-1)*((i*37)%5+2)}deg">
+      <span class="s-city">${esc((c.short||c.n).toUpperCase())}</span>
+      <span class="s-date">${inked?fmtShort(s.arrive):"· · ·"}</span>
+      <span class="s-ital">✦ ITALIA ✦</span>
+    </div>`;
+  }).join("");
   let head=`<h2 class="view-title serif">Travel journal</h2>
     <p class="view-sub">Every booking and note, kept with your route.</p>
+    <div class="journal-form passport">
+      <span class="label">Passport${fDay?"":" — stamps ink themselves as you travel"}</span>
+      <div class="stamp-grid">${stamps}</div>
+    </div>
     <div class="journal-form">
       <span class="label">New note</span>
       <div class="row">
@@ -2254,6 +2322,17 @@ function wirePostcards(){
 function init(){
   loadState();
   renderHome();
+  /* candlelight mode — explicit choice, remembered on this device */
+  const applyTheme=(t)=>{
+    if(t==="dark") document.documentElement.dataset.theme="dark";
+    else delete document.documentElement.dataset.theme;
+    const b=$("#btn-theme"); if(b) b.textContent = t==="dark" ? "☀️" : "🕯";
+  };
+  applyTheme(localStorage.getItem("ps.theme"));
+  $("#btn-theme").addEventListener("click",()=>{
+    const next = document.documentElement.dataset.theme==="dark" ? "light" : "dark";
+    localStorage.setItem("ps.theme",next); applyTheme(next);
+  });
   wirePostcards();
   wireLiveFilter();
   wireDocsDlg();
@@ -2290,7 +2369,11 @@ function init(){
     `background-size:cover;background-position:center 30%}`+
     `.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side`+
-    `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`;
+    `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`+
+    /* candlelight: same parchment, dimmed to lamplight */
+    `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
+    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side)`+
+    `{background-image:linear-gradient(rgba(23,15,7,.87),rgba(23,15,7,.87)),url(${BG_CARD})}`;
   document.head.appendChild(skin);
   $("#btn-start").addEventListener("click",()=>{
     const s=$("#trip-start").value, e=$("#trip-end").value;
