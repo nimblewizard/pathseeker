@@ -795,6 +795,40 @@ const GUIDE = {
    "<b>Paperwork:</b> ETIAS authorization for both travelers + passports valid 3+ months past your return date. IDPs from AAA before you fly.",
    "<b>Weather</b> late Sept–early Oct: ~20–25°C days, cool evenings, crisp in Abruzzo; the sea is still swimmable-ish."]}]
 };
+/* smart packing list — built from the route: 10 nights, mountain evenings, coast, churches, zipline */
+const PACK=[
+ {h:"Papers & money", items:[
+  {id:"pk-pass", n:"Passports", d:"valid 3+ months past Oct 2"},
+  {id:"pk-idp", n:"International Driving Permits ×2", d:"required with your US licenses"},
+  {id:"pk-etias", n:"ETIAS approval", d:"screenshot it + one printout"},
+  {id:"pk-ins", n:"Insurance card / policy number", d:"also tuck it in the document wallet"},
+  {id:"pk-cards", n:"Two credit cards + a debit card", d:"tap-to-pay covers nearly everything"},
+  {id:"pk-cash", n:"~€50 starter cash", d:"markets, small bars, parking meters"},
+  {id:"pk-copies", n:"Passport photocopies", d:"kept separate from the real ones"}]},
+ {h:"Clothing — layers win", items:[
+  {id:"pk-outfits", n:"7–8 day outfits", d:"10 nights — plan one laundry drop in Sorrento"},
+  {id:"pk-layers", n:"Warm layer + light jacket", d:"Abruzzo nights dip toward 10°"},
+  {id:"pk-rain", n:"Packable rain shell", d:"late September can turn"},
+  {id:"pk-modest", n:"Shoulder cover + knee-length option", d:"Duomo, St. Mark's & Vatican dress codes"},
+  {id:"pk-swim", n:"Swimwear", d:"the sea is still warm off Sorrento"},
+  {id:"pk-shoes", n:"Broken-in walking shoes", d:"sassi stairs and cobblestones eat soles"},
+  {id:"pk-nice", n:"One nicer evening outfit", d:"Venice dinner deserves it"},
+  {id:"pk-hat", n:"Sun hat & sunglasses", d:"the light is half the reason you're going"}]},
+ {h:"Tech", items:[
+  {id:"pk-adapter", n:"EU plug adapters ×2 (type C/F/L)", d:"Italian sockets vary — type L is the odd one"},
+  {id:"pk-bank", n:"Power bank", d:"live-map days drain phones fast"},
+  {id:"pk-esim", n:"eSIM / roaming plan", d:"set up before wheels-up"},
+  {id:"pk-offline", n:"Offline maps + Italian language pack", d:"Google Maps areas + Translate offline"},
+  {id:"pk-cables", n:"Cables + car charger", d:"the driving days are long"}]},
+ {h:"Health & misc", items:[
+  {id:"pk-meds", n:"Prescriptions in original packaging", d:"plus a small first-aid kit"},
+  {id:"pk-sun", n:"Sunscreen & after-sun", d:""},
+  {id:"pk-motion", n:"Motion-sickness tabs", d:"the Amalfi road is a corkscrew"},
+  {id:"pk-daypack", n:"Day pack", d:"zipline day and city wandering"},
+  {id:"pk-bottle", n:"Water bottles", d:"Rome's nasoni fountains are free refills"},
+  {id:"pk-laundry", n:"Laundry bag + detergent sheets", d:""}]}
+];
+
 /* concierge checklist — the laptop booking walkthrough, in order */
 const CHECKLIST = [
  {id:"etias",     label:"ETIAS travel authorization",         sub:"Both travelers · required for US passports — apply online, minutes to do, valid 3 years", href:"https://travel-europe.europa.eu/etias_en"},

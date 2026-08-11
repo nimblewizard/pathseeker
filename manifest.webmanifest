@@ -1,0 +1,16 @@
+{
+  "name": "Pathseeker · Italia",
+  "short_name": "Pathseeker",
+  "description": "A fairy-tale road trip through Italy — map, itinerary, journal, and booking concierge.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F1E6",
+  "theme_color": "#120d06",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

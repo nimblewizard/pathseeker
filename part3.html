@@ -58,7 +58,8 @@ const LBL_LEFT = new Set(["pisa","cinqueterre","sorrento","turin","palermo","cas
 const LS_KEY = "pathseeker.v1";
 const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
 const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-22", endDate:"2026-10-02",
-  arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{}});
+  arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{},
+  packing:{}, packCustom:[]});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
 let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
 
@@ -168,7 +169,7 @@ const XMAPS=[
   links:[["Autostrade per l'Italia","https://www.autostrade.it"]]},
  {id:"circum", n:"Sorrento Line", img:()=>XMAP_CIRCUM, w:2000, h:1508,
   credit:"Wikimedia Commons · CC BY-SA 4.0",
-  links:[["EAV timetables","https://www.eavsrl.it/web/"],["SITA Amalfi buses","https://www.sitasudtrasporti.it/orari"]]},
+  links:[["EAV timetables","https://www.eavsrl.it/"],["SITA Amalfi buses","https://www.sitasudtrasporti.it/orari"]]},
 ];
 function showXMap(id){
   const m=XMAPS.find(x=>x.id===id)||XMAPS[0];
@@ -1212,7 +1213,7 @@ const DAY_TRANSPORT={
  sorrento:[
   {n:"Amalfi Coast ferries", links:[["Alilauro ↗","https://www.alilauro.it/en"],["NLG ↗","https://www.navlib.it/eng/"]],
    log:["ticket","Ferry Sorrento → Positano/Amalfi","arrive"]},
-  {n:"Circumvesuviana / Campania Express (Pompeii)", links:[["EAV ↗","https://www.eavsrl.it/web/"]]},
+  {n:"Circumvesuviana / Campania Express (Pompeii)", links:[["EAV ↗","https://www.eavsrl.it/"]]},
  ],
  rome:[
   {n:"Leonardo Express to FCO (fly-home day)", links:[["Trenitalia ↗","https://www.trenitalia.com/en.html"]],
@@ -1432,6 +1433,7 @@ function renderPlan(){
     <div class="plan-nav">
       <a href="#p-agent">Travel agent</a><a href="#p-route">Route</a><a href="#p-days">Day by day</a>
       <a href="#p-gems">Fairy-tale gems</a><a href="#p-flex">Flex options</a><a href="#p-ess">Essentials</a>
+      <a href="#p-pack">Packing</a>
       <a href="#" id="btn-print" title="Print or save as PDF">🖨 Print</a>
     </div>`;
   /* concierge */
@@ -1510,6 +1512,32 @@ function renderPlan(){
     <h2 class="serif">Practical essentials</h2>
     <div class="plan-grid2">${GUIDE.essentials.map(p=>`<div class="plan-panel"><h3>${esc(p.t)}</h3>
       <ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")}</div></section>`;
+  /* packing list — checkboxes persist (and ride the Drive snapshot) */
+  const pkAll=[...PACK.flatMap(g=>g.items), ...(S.trip.packCustom||[])];
+  const pkDone=pkAll.filter(i=>S.trip.packing[i.id]).length;
+  h+=`<section class="plan-section" id="p-pack">
+    <h2 class="serif">Packing list</h2>
+    <p class="plan-lead">Built from your route — mountain evenings, coast days, strict churches and one zipline.
+      <b>${pkDone} of ${pkAll.length} packed.</b></p>
+    <div class="plan-grid2">
+      ${PACK.map(g=>`<div class="plan-panel"><h3>${esc(g.h)}</h3>
+        ${g.items.map(i=>`<div class="pk-row${S.trip.packing[i.id]?" done":""}">
+          <button class="agent-check" role="checkbox" aria-checked="${!!S.trip.packing[i.id]}" data-pk="${i.id}"
+            aria-label="${esc(i.n)}">${S.trip.packing[i.id]?"✓":""}</button>
+          <div class="t"><strong>${esc(i.n)}</strong>${i.d?`<p>${esc(i.d)}</p>`:""}</div></div>`).join("")}
+      </div>`).join("")}
+      <div class="plan-panel"><h3>Your additions</h3>
+        ${(S.trip.packCustom||[]).map(i=>`<div class="pk-row${S.trip.packing[i.id]?" done":""}">
+          <button class="agent-check" role="checkbox" aria-checked="${!!S.trip.packing[i.id]}" data-pk="${i.id}"
+            aria-label="${esc(i.n)}">${S.trip.packing[i.id]?"✓":""}</button>
+          <div class="t"><strong>${esc(i.n)}</strong></div>
+          <button class="icon-btn" data-pkdel="${i.id}" aria-label="Remove ${esc(i.n)}">✕</button></div>`).join("")}
+        <div class="row" style="display:flex;gap:8px;margin-top:8px">
+          <input id="pk-new" placeholder="Add your own — 'Allison's book'…" style="flex:1">
+          <button class="btn btn-sm" id="pk-add">Add</button>
+        </div>
+      </div>
+    </div></section>`;
   wrap.innerHTML=h;
   /* wiring */
   const chkSet=(id,patch)=>{
@@ -1557,6 +1585,25 @@ function renderPlan(){
   }));
   fillWxSlots(wrap);
   const pr=$("#btn-print"); if(pr) pr.addEventListener("click",e=>{ e.preventDefault(); window.print(); });
+  /* packing list */
+  wrap.querySelectorAll("[data-pk]").forEach(b=>b.addEventListener("click",()=>{
+    const id=b.dataset.pk;
+    S.trip.packing[id]=!S.trip.packing[id];
+    mutate(); renderPlan();
+  }));
+  wrap.querySelectorAll("[data-pkdel]").forEach(b=>b.addEventListener("click",()=>{
+    S.trip.packCustom=(S.trip.packCustom||[]).filter(i=>i.id!==b.dataset.pkdel);
+    delete S.trip.packing[b.dataset.pkdel];
+    mutate(); renderPlan();
+  }));
+  const pka=$("#pk-add");
+  if(pka) pka.addEventListener("click",()=>{
+    const inp=$("#pk-new"), v=inp.value.trim();
+    if(!v) return;
+    S.trip.packCustom=(S.trip.packCustom||[]);
+    S.trip.packCustom.push({id:"pkc-"+uid(), n:v});
+    mutate(); renderPlan();
+  });
   wrap.querySelectorAll("[data-editstop]").forEach(el=>el.addEventListener("click",()=>openStopDlg(el.dataset.editstop)));
   wrap.querySelectorAll("[data-gocity]").forEach(el=>el.addEventListener("click",()=>{
     setView("map"); selectCity(el.dataset.gocity);
@@ -1564,6 +1611,14 @@ function renderPlan(){
 }
 
 /* ================= JOURNAL ================= */
+const guessCat=(label)=>{
+  const l=(label||"").toLowerCase();
+  if(/lunch|dinner|breakfast|pizza|pasta|gelato|coffee|caff|aperitivo|wine|bar|restaurant|trattoria|osteria|panin|food/.test(l)) return "food";
+  if(/train|taxi|uber|bus|metro|ferry|vaporetto|parking|toll|fuel|gas|benzina|car/.test(l)) return "transport";
+  if(/ticket|museum|duomo|tour|entry|zipline|volo|basilica|palazzo|gallery/.test(l)) return "sights";
+  if(/hotel|airbnb|room|stay|apartment|b&b/.test(l)) return "lodging";
+  return "other";
+};
 function renderJournal(){
   const wrap=$("#journal-wrap");
   const fDay=S.trip.begun? focusDayClamped() : null;
@@ -1592,16 +1647,56 @@ function renderJournal(){
       <div><button class="btn btn-quiet btn-sm" id="jn-paste">Booked something on Airbnb / VRBO / a hotel site? Paste the confirmation →</button></div>
     </div>`;
   const spent=S.trip.expenses.reduce((a,e)=>a+e.amount,0);
+  /* categories, dollar equivalents, daily burn, and the couple's settle-up ledger */
+  const EXCAT={food:"🍝",transport:"🚄",sights:"🎟",lodging:"🏨",other:"🧾"};
+  const byCat={};
+  S.trip.expenses.forEach(e=>{ const c=e.cat||"other"; byCat[c]=(byCat[c]||0)+e.amount; });
+  let oweA=0, oweC=0;   /* halves owed to the payer */
+  S.trip.expenses.forEach(e=>{
+    if(e.payer==="C") oweA+=e.amount/2;
+    else if(e.payer==="A") oweC+=e.amount/2;
+  });
+  const bal=oweA-oweC;
+  const today=todayISO();
+  const inTrip=today>=S.trip.startDate && today<=S.trip.endDate;
+  const daysIn=inTrip? Math.max(1,Math.round((pD(today)-pD(S.trip.startDate))/864e5)+1) : 0;
+  let exSummary="";
+  if(spent){
+    exSummary=`<div class="ex-summary">
+      <b>${money(spent)}</b> <span class="ex-usd">≈ $${Math.round(spent*FX_RATE).toLocaleString("en-US")}</span>
+      ${inTrip?` · ${money(Math.round(spent/daysIn))}/day over ${daysIn} day${daysIn>1?"s":""}`:""}
+      <div class="ex-cats">${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>
+        `<span class="fx-chip">${EXCAT[c]||"🧾"} ${money(Math.round(v))}</span>`).join("")}</div>
+      ${Math.abs(bal)>=1?`<div class="ex-settle">${bal>0?"Allison owes Christopher":"Christopher owes Allison"}
+        <b>${money(Math.round(Math.abs(bal)))}</b> at settle-up</div>`:""}
+    </div>`;
+  }
   head+=`<div class="journal-form">
       <span class="label">Spending${spent?` — ${money(spent)} so far`:""}</span>
+      ${exSummary}
       <div class="row">
         <input type="date" id="ex-date" value="${esc(todayISO()>=S.trip.startDate&&todayISO()<=S.trip.endDate?todayISO():S.trip.startDate)}">
         <input id="ex-text" placeholder="14.50 lunch in Trastevere" inputmode="decimal">
         <button class="btn btn-sm" id="ex-add">Log it</button>
       </div>
+      <div class="row" style="margin-top:6px">
+        <select id="ex-cat" aria-label="Category">
+          <option value="">Category: auto</option>
+          <option value="food">🍝 Food & drink</option><option value="transport">🚄 Transport</option>
+          <option value="sights">🎟 Sights & fun</option><option value="lodging">🏨 Lodging</option>
+          <option value="other">🧾 Other</option>
+        </select>
+        <select id="ex-payer" aria-label="Who paid">
+          <option value="">Paid: split / shared</option>
+          <option value="C">Christopher paid</option>
+          <option value="A">Allison paid</option>
+        </select>
+      </div>
       ${S.trip.expenses.length?[...S.trip.expenses].sort((a,b)=>a.date<b.date?1:-1).map(e=>
-        `<div class="exp-row"><span class="d">${fmtShort(e.date)}</span><span class="lbl">${esc(e.label)}</span>
-         <span class="amt">${money(e.amount)}</span>
+        `<div class="exp-row"><span class="d">${fmtShort(e.date)}</span>
+         <span class="ex-tag">${EXCAT[e.cat]||"🧾"}${e.payer?` ${e.payer}`:""}</span>
+         <span class="lbl">${esc(e.label)}</span>
+         <span class="amt">${money(e.amount)}<span class="ex-usd"> $${Math.round(e.amount*FX_RATE)}</span></span>
          <button class="btn-quiet" data-exdel="${e.id}" aria-label="Delete expense">✕</button></div>`).join("")
       :""}
     </div>`;
@@ -1647,7 +1742,9 @@ function renderJournal(){
   $("#ex-add").addEventListener("click",()=>{
     const p=parseExpense($("#ex-text").value);
     if(!p){ toast("Start with the amount — e.g. 14.50 lunch"); return; }
-    S.trip.expenses.push(Object.assign({id:uid(), date:$("#ex-date").value||S.trip.startDate}, p));
+    const cat=$("#ex-cat").value||guessCat(p.label);
+    const payer=$("#ex-payer").value||"";
+    S.trip.expenses.push(Object.assign({id:uid(), date:$("#ex-date").value||S.trip.startDate, cat, payer}, p));
     mutate(); renderJournal(); toast(money(p.amount)+" logged");
   });
   $("#ex-text").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#ex-add").click();} });
