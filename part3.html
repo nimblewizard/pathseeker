@@ -955,6 +955,96 @@ function guideFor(cityId){
     grp.eat.length?{h:"Where to eat",items:grp.eat}:null,
     grp.sight.length?{h:"What to do",items:grp.sight}:null].filter(Boolean)};
 }
+/* live timetable lookup via Transitous (open MOTIS instance) — hosted site only;
+   the artifact can't reach the internet and shows a pointer to the web version */
+const fmtHM=(iso)=> new Date(iso).toLocaleTimeString("en-GB",
+  {hour:"2-digit",minute:"2-digit",timeZone:"Europe/Rome"});   /* always Italy local time */
+const RAILY=/RAIL|TRAIN|REGIONAL|INTERCITY|LONG_DISTANCE/i;
+async function fetchPlan(fromLL,toLL,date){
+  const t=encodeURIComponent(date+"T06:00:00+02:00");
+  const url=`https://api.transitous.org/api/v1/plan?fromPlace=${fromLL[0]},${fromLL[1]}&toPlace=${toLL[0]},${toLL[1]}&time=${t}&numItineraries=7`;
+  const r=await fetch(url);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return ((await r.json()).itineraries||[]).filter(it=>(it.legs||[]).some(l=>l.mode && l.mode!=="WALK"));
+}
+/* rail schedules publish ~2–4 months out; when the trip date is dark, show the same weekday soon */
+function sameWeekdaySoon(date){
+  const target=pD(date), d=new Date();
+  d.setDate(d.getDate()+1);
+  while(d.getDay()!==target.getDay()) d.setDate(d.getDate()+1);
+  return d.toISOString().slice(0,10);
+}
+async function showTimes(title, fromLL, toLL, date){
+  const dlg=$("#dlg-times");
+  $("#times-title").textContent=title;
+  $("#times-list").innerHTML='<p class="times-note">Checking timetables…</p>';
+  dlg.returnValue=""; if(!dlg.open) dlg.showModal();
+  try{
+    let its=await fetchPlan(fromLL,toLL,date), fallback=null;
+    if(!its.length){
+      fallback=sameWeekdaySoon(date);
+      its=await fetchPlan(fromLL,toLL,fallback);
+    }
+    if(!its.length){
+      $("#times-list").innerHTML='<p class="times-note">No timetable found — check Trenitalia or Italo directly.</p>';
+      return;
+    }
+    const rows=its.slice(0,7).map(it=>{
+      const all=(it.legs||[]).filter(l=>l.mode && l.mode!=="WALK");
+      const rides=all.filter(l=>RAILY.test(l.mode)).length? all.filter(l=>RAILY.test(l.mode)) : all;
+      const dep=rides[0], arr=rides[rides.length-1];
+      const names=[...new Set(rides.map(l=>l.routeShortName||l.displayName||l.tripShortName||l.mode))].join(" + ");
+      const chg=Math.max(0,rides.length-1);
+      const dur=Math.max(1,Math.round((new Date(arr.endTime)-new Date(dep.startTime))/60000));
+      return `<div class="time-row"><b>${fmtHM(dep.startTime)}</b><span class="time-arr">→ ${fmtHM(arr.endTime)}</span>
+        <span class="time-dur">${Math.floor(dur/60)}h${String(dur%60).padStart(2,"0")}</span>
+        <span class="time-name">${esc(names)}${chg?` · ${chg} change${chg>1?"s":""}`:""}</span></div>
+        <div class="times-note" style="margin:0 0 4px">${esc(dep.from&&dep.from.name||"")} → ${esc(arr.to&&arr.to.name||"")}</div>`;
+    }).join("");
+    $("#times-list").innerHTML =
+      (fallback?`<p class="times-note" style="margin:0 0 8px"><b>${fmtShort(date)} isn't published yet</b> — showing a typical ${fmtDow(fallback)} (${fmtShort(fallback)}). Times barely change week to week.</p>`:"")
+      + rows
+      + '<p class="times-note">Open timetable data via Transitous — verify against the operator when booking.</p>';
+  }catch(e){
+    $("#times-list").innerHTML='<p class="times-note">Timetable lookup needs the web version of Pathseeker (this copy can\'t reach the internet), or the service is briefly busy.<br><br><a href="https://nimblewizard.github.io/pathseeker/" target="_blank" rel="noopener"><b>Open Pathseeker on the web ↗</b></a></p>';
+  }
+}
+
+/* getting-around booking strip per day card: airport trains, ferries, passes */
+const DAY_TRANSPORT={
+ milan:[
+  {n:"Malpensa Express", links:[["Tickets ↗","https://www.malpensaexpress.it/en/"]],
+   log:["train","Malpensa Express → Milano Centrale","start"], times:[[45.630,8.728],"city","start"]},
+ ],
+ venice:[
+  {n:"Vaporetto pass", links:[["Venezia Unica ↗","https://www.veneziaunica.it/en"]],
+   log:["ticket","Vaporetto travel pass","arrive"]},
+ ],
+ sorrento:[
+  {n:"Amalfi Coast ferries", links:[["Alilauro ↗","https://www.alilauro.it/en"],["NLG ↗","https://www.navlib.it/eng/"]],
+   log:["ticket","Ferry Sorrento → Positano/Amalfi","arrive"]},
+  {n:"Circumvesuviana / Campania Express (Pompeii)", links:[["EAV ↗","https://www.eavsrl.it/web/"]]},
+ ],
+ rome:[
+  {n:"Leonardo Express to FCO (fly-home day)", links:[["Trenitalia ↗","https://www.trenitalia.com/en.html"]],
+   log:["train","Leonardo Express Termini → FCO","end"], times:["city",[41.7935,12.2515],"end"]},
+ ],
+};
+const dtDate=(key,st)=> key==="start"? S.trip.startDate : key==="end"? S.trip.endDate : st.arrive;
+function dayTransportStrip(st){
+  const list=DAY_TRANSPORT[st.cityId]; if(!list) return "";
+  const c=CITY_BY_ID[st.cityId];
+  return list.map(t=>{
+    const date=dtDate((t.log&&t.log[2])||(t.times&&t.times[2])||"arrive",st);
+    const ll=(v)=> v==="city"? [c.lat,c.lon] : v;
+    return `<div class="plan-drive transport-line"><b>${esc(t.n)}:</b>
+      <span class="leg-acts" style="display:inline-flex;margin:0 0 0 6px;vertical-align:middle">
+      ${(t.links||[]).map(l=>`<a class="btn btn-sm" href="${l[1]}" target="_blank" rel="noopener">${esc(l[0])}</a>`).join("")}
+      ${t.times?`<button class="btn btn-sm" data-times2="${st.cityId}|${t.times[2]}" data-tfrom="${ll(t.times[0]).join(",")}" data-tto="${ll(t.times[1]).join(",")}" data-tname="${esc(t.n)}">🕐 Times</button>`:""}
+      ${t.log?`<button class="btn btn-sm btn-primary" data-logleg="${st.cityId}|${date}|${t.log[0]}|${esc(t.log[1])}">＋ Log booking</button>`:""}
+      </span></div>`;
+  }).join("");
+}
 function planDayCard(st, prevCityId){
   const c=CITY_BY_ID[st.cityId], g=guideFor(st.cityId);
   const n=Math.max(0,+st.nights||0);
@@ -972,6 +1062,7 @@ function planDayCard(st, prevCityId){
     <div class="plan-day-body">
       <div class="plan-vibe">${esc(g.vibe||c.tag)}</div>
       ${getting?`<div class="plan-drive">${getting}</div>`:""}
+      ${dayTransportStrip(st)}
       ${planBlocks(g.blocks||[])}
       ${g.callout?`<div class="plan-callout">${g.callout}</div>`:""}
     </div></div>`;
@@ -1179,6 +1270,7 @@ function renderPlan(){
     const legName=`${CITY_BY_ID[a].short||CITY_BY_ID[a].n} → ${CITY_BY_ID[b].short||CITY_BY_ID[b].n}`;
     const acts = (links.length||mode) ? `<div class="leg-acts">
         ${links.map(l=>`<a class="btn btn-sm" href="${l[1]}" target="_blank" rel="noopener">${esc(l[0])} ↗</a>`).join("")}
+        ${mode==="train"?`<button class="btn btn-sm" data-times="${a}|${b}|${s.arrive}">🕐 Times</button>`:""}
         <button class="btn btn-sm btn-primary" data-logleg="${b}|${s.arrive}|${mode==="car"?"other":mode||"other"}|${esc(mode==="car"?"Rental car — "+legName:(mode==="train"?"Train ":"")+legName)}">＋ Log booking</button>
       </div>` : "";
     legs+=`<div class="plan-leg"><div class="dot">${i+1}</div><div class="body">
@@ -1248,6 +1340,17 @@ function renderPlan(){
   wrap.querySelectorAll("[data-logleg]").forEach(b=>b.addEventListener("click",()=>{
     const [cityId,date,type,name]=b.dataset.logleg.split("|");
     openBookingDlg({cityId,date,type,name});
+  }));
+  wrap.querySelectorAll("[data-times]").forEach(b=>b.addEventListener("click",()=>{
+    const [a,bb,date]=b.dataset.times.split("|");
+    const A=CITY_BY_ID[a], B=CITY_BY_ID[bb];
+    showTimes(`${A.short||A.n} → ${B.short||B.n} · ${fmtShort(date)}`,[A.lat,A.lon],[B.lat,B.lon],date);
+  }));
+  wrap.querySelectorAll("[data-times2]").forEach(b=>b.addEventListener("click",()=>{
+    const [cityId,dateKey]=b.dataset.times2.split("|");
+    const st=stopFor(cityId)||{arrive:S.trip.startDate};
+    const date=dtDate(dateKey,st);
+    showTimes(`${b.dataset.tname} · ${fmtShort(date)}`, b.dataset.tfrom.split(",").map(Number), b.dataset.tto.split(",").map(Number), date);
   }));
   wrap.querySelectorAll("[data-editstop]").forEach(el=>el.addEventListener("click",()=>openStopDlg(el.dataset.editstop)));
   wrap.querySelectorAll("[data-gocity]").forEach(el=>el.addEventListener("click",()=>{
