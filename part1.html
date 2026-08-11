@@ -551,12 +551,11 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 }
 /* ---- Plan tab (fairy-tale guide + concierge) ---- */
 .plan-wrap{max-width:1000px;margin:0 auto;padding:0 0 80px}
-.plan-hero{background:linear-gradient(135deg,var(--accent) 0%,var(--gold) 100%);color:var(--accent-ink);
-  padding:52px 24px 60px;text-align:center;position:relative;overflow:hidden;
-  background-size:cover;background-position:center 62%;
-  text-shadow:0 1px 3px rgba(24,12,4,.75),0 0 22px rgba(24,12,4,.45)}
-.plan-hero:after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(rgba(28,14,6,.30),rgba(28,14,6,.44))}
+/* brush-edged painting floats straight on the parchment — no box, no scrim */
+.plan-hero{background:none;color:var(--accent-ink);
+  padding:56px 48px 68px;text-align:center;position:relative;overflow:hidden;
+  background-size:100% 100%;background-repeat:no-repeat;background-position:center;
+  text-shadow:0 1px 3px rgba(24,12,4,.8),0 0 24px rgba(24,12,4,.55)}
 .plan-hero>*{position:relative;z-index:1}
 .plan-kicker{letter-spacing:.32em;text-transform:uppercase;font-size:11px;font-weight:700;opacity:.9}
 .plan-hero h1{font-size:clamp(26px,4.4vw,42px);margin:12px 0 6px;font-weight:600;line-height:1.12}
