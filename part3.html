@@ -1775,6 +1775,8 @@ function init(){
   if(location.search.indexOf("tune")>-1){
     const ap=$(".appbar");
     ap.style.backgroundImage=`url(${BG_HDSCENE})`;
+    ap.style.backgroundSize="cover";
+    ap.style.backgroundPosition="center 32%";
     const off=document.createElement("style");
     off.textContent=".appbar::after{display:none}";
     document.head.appendChild(off);
