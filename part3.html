@@ -1770,6 +1770,51 @@ function init(){
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub`+
     `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`;
   document.head.appendChild(skin);
+  /* TEMPORARY logo tuner — open with ?tune=1, values auto-save to localStorage.
+     Remove this whole block when the user locks in their values. */
+  if(location.search.indexOf("tune")>-1){
+    const ap=$(".appbar");
+    ap.style.backgroundImage=`url(${BG_HDSCENE})`;
+    const off=document.createElement("style");
+    off.textContent=".appbar::after{display:none}";
+    document.head.appendChild(off);
+    const img=document.createElement("img");
+    img.src=BG_HDLOGO; img.alt="";
+    img.style.cssText="position:absolute;pointer-events:none;z-index:1;width:auto;";
+    ap.appendChild(img);
+    const V=Object.assign({h:76,w:100,x:24,y:46,skew:0},
+      JSON.parse(localStorage.getItem("pathseeker.logoTune")||"{}"));
+    const out=document.createElement("div");
+    function apply(){
+      img.style.height=V.h+"%";
+      img.style.left=V.x+"%"; img.style.top=V.y+"%";
+      img.style.transform=`translate(-50%,-50%) scaleX(${V.w/100}) skewX(${V.skew}deg)`;
+      out.textContent=JSON.stringify(V);
+      localStorage.setItem("pathseeker.logoTune",JSON.stringify(V));
+    }
+    const panel=document.createElement("div");
+    panel.style.cssText="position:fixed;top:130px;right:12px;z-index:999;background:rgba(20,14,6,.94);"+
+      "color:#EFE3C6;padding:14px 16px;border-radius:12px;font-size:12px;width:250px;font-family:system-ui";
+    panel.innerHTML="<b>Logo tuner</b><br><span style='opacity:.8'>Drag away — values auto-save. Then tell Claude to lock it in.</span><br><br>";
+    [["h","Size (height %)",20,140,1],["w","Width stretch %",50,220,1],
+     ["x","X position %",0,100,0.5],["y","Y position %",0,100,0.5],
+     ["skew","Skew °",-25,25,0.5]].forEach(d=>{
+      const [k,label,min,max,step]=d;
+      const row=document.createElement("label");
+      row.style.cssText="display:block;margin:7px 0";
+      const val=document.createElement("span"); val.style.cssText="float:right;font-family:monospace";
+      val.textContent=V[k];
+      const r=document.createElement("input");
+      r.type="range"; r.min=min; r.max=max; r.step=step; r.value=V[k];
+      r.style.cssText="width:100%";
+      r.addEventListener("input",()=>{ V[k]=+r.value; val.textContent=r.value; apply(); });
+      row.append(label,val,r); panel.appendChild(row);
+    });
+    out.style.cssText="margin-top:8px;font-family:monospace;user-select:all;word-break:break-all;opacity:.9";
+    panel.appendChild(out);
+    document.body.appendChild(panel);
+    apply();
+  }
   $("#btn-start").addEventListener("click",()=>{
     const s=$("#trip-start").value, e=$("#trip-end").value;
     if(!s||!e||e<s){ toast("Check your dates — depart must follow arrive"); return; }
