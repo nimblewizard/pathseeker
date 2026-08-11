@@ -462,6 +462,25 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   .journal-form .row{grid-template-columns:1fr}
   .view-title{font-size:28px}
 }
+/* ---- route editor (itinerary) ---- */
+.stop-editor{display:flex;flex-direction:column;gap:8px;margin:14px 0 22px}
+.stop-card{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.stop-ord{display:flex;flex-direction:column;gap:2px}
+.stop-ord button,.stop-n button,.stop-x{border:1px solid var(--line);background:var(--surface2);
+  color:var(--ink);border-radius:8px;min-width:28px;min-height:24px;font-size:13px;line-height:1;cursor:pointer}
+.stop-ord button:disabled,.stop-n button:disabled{opacity:.35;cursor:default}
+.stop-main{min-width:0}
+.stop-name{background:none;border:none;padding:0;font-weight:600;color:var(--ink);cursor:pointer;
+  font-size:15px;text-align:left}
+.stop-name:hover{color:var(--accent)}
+.stop-dates{display:block;color:var(--ink-soft);font-size:12.5px;margin-top:2px}
+.stop-n{display:flex;align-items:center;gap:7px}
+.stop-n .nn{font-weight:600;font-size:13.5px;min-width:24px;text-align:center}
+.stop-x{color:var(--ink-soft)}
+.stop-x:hover{color:var(--accent);border-color:var(--accent)}
+.stop-warn{color:var(--accent);font-size:13px;margin:2px 0 0}
+.stop-editor-hint{color:var(--ink-soft);font-size:13px;margin:6px 0 0}
 @media (prefers-reduced-motion: reduce){
   *{transition:none !important;animation:none !important}
 }
@@ -1511,6 +1530,7 @@ function renderItin(){
       fly into <b>${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")}</b>, out of <b>${esc(CITY_BY_ID[S.trip.departureCity]?.n||"—")}</b> ·
       ${nightsPlanned}/${totalNights} nights placed</p>`;
   if(!days.length){ wrap.innerHTML=head+`<div class="empty">Set your trip dates on the home screen first.</div>`; return; }
+  head+=stopEditorHtml();
   let rows="";
   for(const d of days){
     const here=stopsOn(d);
@@ -1549,6 +1569,72 @@ function renderItin(){
   wireBkRows(wrap);
   wrap.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",()=>
     openBookingDlg({date:b.dataset.addday, cityId:b.dataset.city})));
+  wireStopEditor(wrap);
+}
+
+/* ---- route editor: reorder / resize stops in place; later dates ripple ---- */
+function stopEditorHtml(){
+  const seq=sortedStops();
+  if(!seq.length)
+    return `<p class="stop-editor-hint">No stops yet — pick cities on the map, then shape the route here.</p>`;
+  const last=seq[seq.length-1], routeEnd=addD(last.arrive, Math.max(0,+last.nights||0));
+  const warn = routeEnd>S.trip.endDate
+    ? `<p class="stop-warn">⚠ Route checks out ${fmtShort(routeEnd)} — past your flight home ${fmtShort(S.trip.endDate)}.</p>` : "";
+  return `<div class="stop-editor">`+seq.map((s,i)=>`
+    <div class="stop-card" data-sid="${s.id}">
+      <div class="stop-ord">
+        <button data-mv="-1" ${i===0?"disabled":""} aria-label="Move ${esc(CITY_BY_ID[s.cityId].n)} earlier">↑</button>
+        <button data-mv="1" ${i===seq.length-1?"disabled":""} aria-label="Move ${esc(CITY_BY_ID[s.cityId].n)} later">↓</button>
+      </div>
+      <div class="stop-main">
+        <button class="stop-name" data-edit>${esc(CITY_BY_ID[s.cityId].n)}</button>
+        <span class="stop-dates">${fmtShort(s.arrive)} → out ${fmtShort(addD(s.arrive, Math.max(0,+s.nights||0)))}</span>
+      </div>
+      <div class="stop-n">
+        <button data-dn="-1" ${(+s.nights||0)<=1?"disabled":""} aria-label="Fewer nights">−</button>
+        <span class="nn">${+s.nights||0}n</span>
+        <button data-dn="1" aria-label="More nights">+</button>
+      </div>
+      <button class="stop-x" data-del aria-label="Remove ${esc(CITY_BY_ID[s.cityId].n)}">✕</button>
+    </div>`).join("")+`</div>${warn}
+    <p class="stop-editor-hint">↑↓ reorder · − + nights · tap a city for exact dates — later stops shift automatically.</p>`;
+}
+function rechain(seq, from){
+  for(let j=Math.max(1,from); j<seq.length; j++)
+    seq[j].arrive = addD(seq[j-1].arrive, Math.max(1, +seq[j-1].nights||1));
+}
+function wireStopEditor(wrap){
+  wrap.querySelectorAll(".stop-card").forEach(card=>{
+    const sid=card.dataset.sid;
+    const seq=()=>sortedStops();
+    const idx=(arr)=>arr.findIndex(s=>s.id===sid);
+    card.querySelectorAll("[data-mv]").forEach(b=>b.addEventListener("click",()=>{
+      const arr=seq(), i=idx(arr), j=i+(+b.dataset.mv);
+      if(i<0||j<0||j>=arr.length) return;
+      const headArrive=arr[0].arrive;
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+      arr[0].arrive=headArrive; rechain(arr,1);
+      mutate(); renderAll(); toast("Route reordered");
+    }));
+    card.querySelectorAll("[data-dn]").forEach(b=>b.addEventListener("click",()=>{
+      const arr=seq(), i=idx(arr); if(i<0) return;
+      const st=arr[i], n=Math.max(1,(+st.nights||0)+(+b.dataset.dn));
+      if(n===st.nights) return;
+      st.nights=n; rechain(arr,i+1);
+      mutate(); renderAll();
+    }));
+    card.querySelector("[data-del]").addEventListener("click",()=>{
+      const arr=seq(), i=idx(arr); if(i<0) return;
+      const name=CITY_BY_ID[arr[i].cityId].n;
+      S.trip.stops=S.trip.stops.filter(s=>s.id!==sid);
+      const rest=sortedStops();
+      if(i<rest.length) rechain(rest, Math.max(1,i));
+      mutate(); renderAll(); toast(`${name} removed`);
+    });
+    card.querySelector("[data-edit]").addEventListener("click",()=>{
+      const arr=seq(), i=idx(arr); if(i>=0) openStopDlg(arr[i].cityId);
+    });
+  });
 }
 
 /* ================= JOURNAL ================= */

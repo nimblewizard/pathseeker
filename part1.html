@@ -462,6 +462,25 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   .journal-form .row{grid-template-columns:1fr}
   .view-title{font-size:28px}
 }
+/* ---- route editor (itinerary) ---- */
+.stop-editor{display:flex;flex-direction:column;gap:8px;margin:14px 0 22px}
+.stop-card{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.stop-ord{display:flex;flex-direction:column;gap:2px}
+.stop-ord button,.stop-n button,.stop-x{border:1px solid var(--line);background:var(--surface2);
+  color:var(--ink);border-radius:8px;min-width:28px;min-height:24px;font-size:13px;line-height:1;cursor:pointer}
+.stop-ord button:disabled,.stop-n button:disabled{opacity:.35;cursor:default}
+.stop-main{min-width:0}
+.stop-name{background:none;border:none;padding:0;font-weight:600;color:var(--ink);cursor:pointer;
+  font-size:15px;text-align:left}
+.stop-name:hover{color:var(--accent)}
+.stop-dates{display:block;color:var(--ink-soft);font-size:12.5px;margin-top:2px}
+.stop-n{display:flex;align-items:center;gap:7px}
+.stop-n .nn{font-weight:600;font-size:13.5px;min-width:24px;text-align:center}
+.stop-x{color:var(--ink-soft)}
+.stop-x:hover{color:var(--accent);border-color:var(--accent)}
+.stop-warn{color:var(--accent);font-size:13px;margin:2px 0 0}
+.stop-editor-hint{color:var(--ink-soft);font-size:13px;margin:6px 0 0}
 @media (prefers-reduced-motion: reduce){
   *{transition:none !important;animation:none !important}
 }
