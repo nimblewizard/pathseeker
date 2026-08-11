@@ -71,16 +71,18 @@
   <div class="main">
     <!-- MAP -->
     <div id="view-map">
-      <div class="map-stage" id="map-stage">
-        <div class="map-hud">
-          <div class="chips" id="map-switch" role="group" aria-label="Choose a map"></div>
-          <div class="chips" id="poi-filter" role="group" aria-label="Filter places">
-            <button class="chip" data-filter="all" aria-pressed="true">Everything</button>
-            <button class="chip" data-filter="sight" aria-pressed="false">Sights</button>
-            <button class="chip" data-filter="stay" aria-pressed="false">Lodging</button>
-            <button class="chip" data-filter="eat" aria-pressed="false">Food</button>
-          </div>
+      <aside class="map-side">
+        <span class="side-label">Charts</span>
+        <div class="chips" id="map-switch" role="group" aria-label="Choose a map"></div>
+        <span class="side-label" id="poi-label">Legend</span>
+        <div class="chips" id="poi-filter" role="group" aria-label="Filter places">
+          <button class="chip" data-filter="all" aria-pressed="true">Everything</button>
+          <button class="chip" data-filter="sight" aria-pressed="false">Sights</button>
+          <button class="chip" data-filter="stay" aria-pressed="false">Lodging</button>
+          <button class="chip" data-filter="eat" aria-pressed="false">Food</button>
         </div>
+      </aside>
+      <div class="map-stage" id="map-stage">
         <div class="zoom-ctl">
           <button id="zoom-in" aria-label="Zoom in">+</button>
           <button id="zoom-out" aria-label="Zoom out">−</button>
@@ -238,6 +240,14 @@
       <p style="margin:0;font-size:12.5px;color:var(--ink-soft)">Photos stay on the device where you added them — they're too heavy for the Drive snapshot. Everything else syncs.</p>
     </div>
     <div class="dlg-foot"><button class="btn" value="close">Done</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-postcard">
+  <form method="dialog">
+    <img id="pc-img" alt="Postcard photo">
+    <div class="dlg-body"><p id="pc-cap" style="margin:0;font-size:12.5px;color:var(--ink-soft)"></p></div>
+    <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
   </form>
 </dialog>
 

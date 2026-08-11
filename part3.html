@@ -442,6 +442,10 @@ function renderPanel(){
       <div class="panel-status">${pills}</div>
     </div>
     <div class="panel-body">
+      ${UI.filter==="all" && (CITY_PHOTOS[c.id]||[]).length? `<div class="poi-section"><span class="label">Postcards</span>
+        <div class="postcards">${CITY_PHOTOS[c.id].map((ph,i)=>
+          `<button class="postcard" data-pc="${i}" aria-label="View photo of ${esc(c.n)}"><img src="${ph.d}" alt="" loading="lazy"></button>`).join("")}
+        </div></div>`:""}
       ${sections || '<p style="color:var(--ink-soft);margin-top:16px">Nothing in this filter here — try another.</p>'}
       ${(UI.filter==="all"||UI.filter==="stay")? bookBlock : ""}
       ${UI.filter==="all"? `<div class="poi-section"><span class="label">Your photos${photosFor(c.id).length?` (${photosFor(c.id).length})`:""}</span>
@@ -457,6 +461,12 @@ function renderPanel(){
     </div>`;
   p.classList.remove("hidden");
   $("#panel-close").addEventListener("click",()=>selectCity(null));
+  p.querySelectorAll("[data-pc]").forEach(b=>b.addEventListener("click",()=>{
+    const ph=CITY_PHOTOS[c.id][+b.dataset.pc];
+    $("#pc-img").src=ph.d;
+    $("#pc-cap").innerHTML=`<b>${esc(ph.c)}</b><br><span style="opacity:.75">${esc(ph.cr)}</span>`;
+    const dlg=$("#dlg-postcard"); dlg.returnValue=""; dlg.showModal();
+  }));
   const pp=$("#panel-paste"); if(pp) pp.addEventListener("click",()=>openPasteDlg());
   const pab=$("#panel-photo"); if(pab) pab.addEventListener("click",()=>promptPhoto({cityId:c.id, date:clampDay(todayISO())}, false));
   wirePhotos(p);
@@ -1770,7 +1780,7 @@ function init(){
     `.map-stage{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
     `.home-card{background-image:url(${BG_SCROLL});background-size:100% 100%;background-repeat:no-repeat}`+
     `.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
-    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub`+
+    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side`+
     `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`;
   document.head.appendChild(skin);
   $("#btn-start").addEventListener("click",()=>{

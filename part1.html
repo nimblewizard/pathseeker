@@ -191,17 +191,31 @@ h1,h2,h3{margin:0;text-wrap:balance}
 }
 .city.gateway text{font-weight:700}
 .city .plane{fill:#F3E7C9;font-size:20px;font-family:inherit;paint-order:stroke;stroke:rgba(26,18,6,.85);stroke-width:5px}
-.map-hud{
-  position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:flex-start;
-  pointer-events:none;z-index:5;flex-wrap:wrap;
+/* dedicated left margin for map controls — stylized list, not pills */
+.map-side{
+  width:178px;flex:none;display:flex;flex-direction:column;gap:2px;
+  padding:20px 12px 20px 18px;overflow-y:auto;z-index:6;
+  background:var(--surface);border-right:1px solid var(--line);
+  box-shadow:2px 0 14px rgba(22,14,4,.25);
 }
-.chips{display:flex;gap:6px;pointer-events:auto;flex-wrap:wrap}
-.chip{
-  padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;
-  background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);
-  box-shadow:var(--shadow-sm);
+.side-label{
+  font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-soft);opacity:.75;margin:10px 0 4px 6px;
 }
-.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.side-label:first-child{margin-top:0}
+.map-side .chips{display:flex;flex-direction:column;gap:1px;pointer-events:auto}
+.map-side .chip{
+  appearance:none;background:none;border:none;box-shadow:none;border-radius:8px;
+  text-align:left;padding:6px 8px 6px 22px;position:relative;
+  font-family:"Bodoni 72",Didot,Georgia,serif;font-size:17px;font-weight:700;
+  letter-spacing:.03em;color:var(--ink-soft);cursor:pointer;
+}
+.map-side .chip:hover{color:var(--ink)}
+.map-side .chip[aria-pressed="true"]{color:#7E1024}
+.map-side .chip[aria-pressed="true"]::before{
+  content:"✦";position:absolute;left:4px;top:50%;transform:translateY(-50%);
+  font-size:12px;color:#7E1024;
+}
 .zoom-ctl{
   position:absolute;right:12px;bottom:14px;display:flex;flex-direction:column;gap:6px;z-index:5;
 }
@@ -218,8 +232,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 /* practical (non-storybook) map showing: hide trip overlay + POI filters */
 .map-stage.xmap .city,.map-stage.xmap .route,.map-stage.xmap .route-done,
 .map-stage.xmap .day-scrub{display:none !important}
-#view-map.xmap #poi-filter{display:none}
-.map-hud{row-gap:6px}
+#view-map.xmap #poi-filter,#view-map.xmap #poi-label{display:none}
 
 /* ---------- city panel ---------- */
 .panel{
@@ -277,6 +290,16 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .book-block .after button{
   color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:2px;
 }
+/* postcards strip — little polaroids of the town */
+.postcards{display:flex;gap:12px;overflow-x:auto;padding:8px 2px 12px;margin-top:6px}
+.postcard{flex:none;width:152px;background:#FBF6E8;border:1px solid var(--line);border-radius:4px;
+  padding:6px 6px 16px;box-shadow:var(--shadow-sm);cursor:pointer;transform:rotate(-1.8deg);
+  transition:transform .15s ease}
+.postcard:nth-child(even){transform:rotate(1.5deg)}
+.postcard:hover{transform:rotate(0) scale(1.04);box-shadow:var(--shadow)}
+.postcard img{width:100%;height:102px;object-fit:cover;display:block}
+#dlg-postcard{width:min(640px,calc(100vw - 24px))}
+#pc-img{width:100%;max-height:60vh;object-fit:contain;display:block;background:#141008;border-radius:16px 16px 0 0}
 .travel-note{
   margin-top:16px;background:var(--surface2);border-radius:10px;padding:11px 13px;
   font-size:13px;color:var(--ink-soft);
@@ -481,6 +504,13 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   }
   .mob-tabs .tab{flex:1;text-align:center;padding:9px 2px;font-size:12.5px}
   #view-map{flex-direction:column}
+  .map-side{
+    width:auto;flex-direction:row;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;
+    padding:8px 12px;border-right:none;border-bottom:1px solid var(--line);
+  }
+  .map-side .chips{flex-direction:row;flex-wrap:nowrap}
+  .map-side .chip{white-space:nowrap;font-size:15px;padding:4px 6px 4px 18px}
+  .side-label{display:none}
   .panel{
     position:absolute;left:0;right:0;bottom:0;top:auto;width:auto;max-height:66%;
     border-left:none;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
