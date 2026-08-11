@@ -261,7 +261,12 @@ function buildLiveMap(){
   btn.className="live-locate"; btn.textContent="📍"; btn.title="Go to my location";
   btn.addEventListener("click",()=>{ startLocate(true); });
   el.appendChild(btn);
-  LIVE.map.on("moveend",()=>{ clearTimeout(LIVE.fetchTimer); LIVE.fetchTimer=setTimeout(fetchPOIs,700); });
+  LIVE.map.on("popupopen",()=>{ LIVE.reading=true; });
+  LIVE.map.on("popupclose",()=>{ LIVE.reading=false; });
+  LIVE.map.on("moveend",()=>{
+    if(LIVE.reading) return;   /* don't wipe the markers out from under an open popup */
+    clearTimeout(LIVE.fetchTimer); LIVE.fetchTimer=setTimeout(fetchPOIs,700);
+  });
   startLocate(false);   /* show the blue dot quietly — never yank the view away from Italy */
 }
 function startLocate(fly){
@@ -287,6 +292,7 @@ const OVERPASS_URLS=["https://overpass-api.de/api/interpreter",
                      "https://overpass.private.coffee/api/interpreter"];
 function fetchPOIs(){
   if(!LIVE.map||!LIVE.cat) return;
+  if(LIVE.reading) return;   /* never redraw markers while the user is reading a popup */
   if(LIVE.map.getZoom()<13){
     $("#map-hint").innerHTML=`Zoom in closer to see ${esc(LIVE_CATS[LIVE.cat].label.toLowerCase())} · map data © OpenStreetMap contributors`;
     LIVE.poiLayer.clearLayers(); return;
@@ -309,10 +315,23 @@ function fetchPOIs(){
       (d.elements||[]).forEach(e=>{
         const lat=e.lat??e.center?.lat, lon=e.lon??e.center?.lon;
         if(lat==null) return;
-        const name=e.tags?.name||cat.label;
+        const t=e.tags||{}, name=t.name||cat.label;
+        /* everything the open data knows about the place */
+        const phone=t.phone||t["contact:phone"], site=t.website||t["contact:website"];
+        const info=[
+          t.cuisine? `🍴 ${esc(t.cuisine.replace(/_/g," ").replace(/;/g,", "))}` : "",
+          (t["addr:street"]||t["addr:housenumber"])? `📍 ${esc([t["addr:street"],t["addr:housenumber"]].filter(Boolean).join(" "))}` : "",
+          t.opening_hours? `🕐 ${esc(t.opening_hours)}` : "",
+          t.stars? `✦ ${esc(t.stars)}-star` : "",
+          phone? `<a href="tel:${esc(phone.replace(/\s/g,""))}">📞 ${esc(phone)}</a>` : "",
+          site? `<a href="${esc(site)}" target="_blank" rel="noopener">🌐 Website ↗</a>` : "",
+        ].filter(Boolean).join("<br>");
+        const gq=encodeURIComponent(t.name? `${t.name} ${lat},${lon}` : `${lat},${lon}`);
         L.circleMarker([lat,lon],{radius:6,color:"#fff",weight:1.5,fillColor:cat.col,fillOpacity:.92})
           .addTo(LIVE.poiLayer)
-          .bindPopup(`<b>${esc(name)}</b><br><span style="opacity:.75">${esc(LIVE.cat)}</span><br><a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`);
+          .bindPopup(`<b>${esc(name)}</b><br><span style="opacity:.75">${esc(LIVE.cat)}</span>`+
+            (info?`<br>${info}`:"")+
+            `<br><a href="https://www.google.com/maps/search/?api=1&query=${gq}" target="_blank" rel="noopener">📷 Photos &amp; reviews ↗</a>`);
         n++;
       });
       LIVE.tries=0;
@@ -600,7 +619,7 @@ function renderPanel(){
       const idx=c.pois.indexOf(it);
       sections+=`<div class="poi"><div class="poi-txt"><strong>${esc(it.n)}</strong><p>${esc(it.d)}</p></div>
         <div class="poi-acts">
-          <a class="icon-btn" target="_blank" rel="noopener" href="${GM(it.n+", "+c.n)}" title="Open in Google Maps" aria-label="Open ${esc(it.n)} in Google Maps">◎</a>
+          <a class="icon-btn" target="_blank" rel="noopener" href="${GM(it.n+", "+c.n)}" title="Photos & reviews on Google Maps" aria-label="Photos and reviews for ${esc(it.n)}">📷</a>
           <button class="icon-btn" data-addbk="${idx}" title="Save as booking" aria-label="Save ${esc(it.n)} as a booking">+</button>
         </div></div>`;
     }
@@ -1073,9 +1092,10 @@ function priceNum(v){
   return m? parseFloat(m[0].replace(",",".")) : 0;
 }
 function chkPrice(s){ return (s.pr!=null && s.pr!=="") ? +s.pr : priceNum(s.bk && s.bk.price); }
-function planBlocks(blocks){
+function planBlocks(blocks, cityName){
   return `<div class="plan-blocks">${blocks.map(b=>`<div class="plan-block"><h4>${esc(b.h)}</h4><ul>${
-    b.items.map(i=>`<li><b>${esc(i.n)}</b>${PRICE(i.p)} — ${esc(i.d)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+    b.items.map(i=>`<li><b>${esc(i.n)}</b>${PRICE(i.p)}${cityName?
+      ` <a class="poi-peek" href="${GM(i.n+", "+cityName)}" target="_blank" rel="noopener" title="Photos & reviews">📷</a>`:""} — ${esc(i.d)}</li>`).join("")}</ul></div>`).join("")}</div>`;
 }
 function guideFor(cityId){
   if(GUIDE.days[cityId]) return GUIDE.days[cityId];
@@ -1233,7 +1253,7 @@ function planDayCard(st, prevCityId){
       <div class="plan-vibe">${esc(g.vibe||c.tag)}</div>
       ${getting?`<div class="plan-drive">${getting}</div>`:""}
       ${dayTransportStrip(st)}
-      ${planBlocks(g.blocks||[])}
+      ${planBlocks(g.blocks||[], c.n)}
       ${g.callout?`<div class="plan-callout">${g.callout}</div>`:""}
     </div></div>`;
 }
@@ -1245,7 +1265,7 @@ function planDaytripCard(dt){
     <div class="plan-day-body">
       <div class="plan-vibe">${esc(dt.vibe)}</div>
       <div class="plan-drive"><b>Getting there:</b> ${esc(dt.getting)}</div>
-      ${planBlocks(dt.blocks||[])}
+      ${planBlocks(dt.blocks||[], CITY_BY_ID[dt.cityId] ? CITY_BY_ID[dt.cityId].n : "")}
       ${dt.callout?`<div class="plan-callout">${dt.callout}</div>`:""}
     </div></div>`;
 }
