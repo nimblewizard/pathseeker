@@ -1,0 +1,2433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pathseeker · Italia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --bg:#F5F1E6; --surface:#FDFBF4; --surface2:#EDE7D6; --ink:#2C281E; --ink-soft:#6F6752;
+  --line:#D9D1BB; --sea:#B7CFD0; --sea-deep:#A3C0C2; --land:#E9E2C9; --land-line:#C6BC9D;
+  --accent:#BE1E3C; --accent-soft:#F3D9DC; --accent-ink:#FFF7EF;
+  --olive:#5F6F3E; --olive-soft:#E3E6D2; --gold:#B8862B;
+  --shadow:0 10px 30px rgba(46,42,32,.16); --shadow-sm:0 2px 8px rgba(46,42,32,.10);
+  --focus:#1D5FA0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181A; --surface:#1C2124; --surface2:#242A2D; --ink:#EAE3D0; --ink-soft:#A79F89;
+    --line:#333B3E; --sea:#152529; --sea-deep:#0F1D21; --land:#2A2E23; --land-line:#4A4F3B;
+    --accent:#E14B64; --accent-soft:#46242B; --accent-ink:#1C0C10;
+    --olive:#99A75F; --olive-soft:#2A3024; --gold:#D2A24E;
+    --shadow:0 10px 30px rgba(0,0,0,.5); --shadow-sm:0 2px 8px rgba(0,0,0,.4);
+    --focus:#6FA8DC;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181A; --surface:#1C2124; --surface2:#242A2D; --ink:#EAE3D0; --ink-soft:#A79F89;
+  --line:#333B3E; --sea:#152529; --sea-deep:#0F1D21; --land:#2A2E23; --land-line:#4A4F3B;
+  --accent:#E14B64; --accent-soft:#46242B; --accent-ink:#1C0C10;
+  --olive:#99A75F; --olive-soft:#2A3024; --gold:#D2A24E;
+  --shadow:0 10px 30px rgba(0,0,0,.5); --shadow-sm:0 2px 8px rgba(0,0,0,.4);
+  --focus:#6FA8DC;
+}
+
+/* ---------- base ---------- */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Avenir Next",Avenir,"Segoe UI",system-ui,sans-serif;
+  font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.serif{font-family:"Bodoni 72",Didot,"Bodoni MT","Playfair Display",Georgia,serif}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
+input,select,textarea{
+  font:inherit;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px;border-radius:6px;
+}
+a{color:var(--accent)}
+h1,h2,h3{margin:0;text-wrap:balance}
+.label{
+  font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-soft);font-weight:600;
+}
+.hidden{display:none !important}
+::placeholder{color:var(--ink-soft);opacity:.7}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.btn:hover{box-shadow:var(--shadow-sm)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn-quiet{border-color:transparent;background:transparent;color:var(--ink-soft)}
+.btn-quiet:hover{color:var(--ink);box-shadow:none;background:var(--surface2)}
+.btn-danger{color:var(--accent);border-color:var(--accent)}
+.btn-sm{padding:6px 12px;font-size:13px;border-radius:8px}
+
+/* ---------- home ---------- */
+#home{
+  min-height:100vh;min-height:100dvh;display:grid;place-items:center;
+  padding:32px 20px;position:relative;overflow:hidden;
+}
+#home-minimap{
+  position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:.5;
+}
+#home-minimap svg{height:min(92vh,900px);width:auto}
+.home-card{
+  position:relative;width:min(430px,100%);
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);padding:32px 30px 28px;
+}
+.wordmark{
+  font-size:44px;line-height:1;font-weight:600;letter-spacing:.01em;margin-bottom:2px;
+}
+.wordmark .path{color:var(--accent)}
+.home-tag{
+  font-style:italic;color:var(--ink-soft);margin:2px 0 24px;
+  font-family:"Bodoni 72",Didot,Georgia,serif;font-size:17px;
+}
+.field{margin-bottom:14px}
+.field .label{display:block;margin-bottom:5px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dest{
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:left;
+  background:var(--surface);display:flex;flex-direction:column;gap:1px;
+}
+.dest strong{font-size:14px}
+.dest small{color:var(--ink-soft);font-size:11.5px}
+.dest[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.dest:disabled{opacity:.45;cursor:default}
+.home-actions{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+.home-resume{
+  margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);
+  font-size:13.5px;color:var(--ink-soft);
+}
+
+/* ---------- app shell ---------- */
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.appbar{
+  display:flex;align-items:center;gap:14px;padding:10px 16px;
+  background:var(--surface);border-bottom:1px solid var(--line);flex:none;z-index:30;
+}
+.appbar .wordmark-sm{font-size:21px;font-weight:600;line-height:1}
+.appbar .wordmark-sm .path{color:var(--accent)}
+.trip-chip{font-size:12px;color:var(--ink-soft);line-height:1.25}
+.tabs{display:flex;gap:2px;margin-left:auto;background:var(--surface2);border-radius:10px;padding:3px}
+.tab{
+  padding:7px 16px;border-radius:8px;font-weight:600;font-size:13.5px;color:var(--ink-soft);
+}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+.sync-btn{
+  display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;
+  padding:8px 13px;border:1px solid var(--line);border-radius:10px;color:var(--ink-soft);
+}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--olive);flex:none}
+.sync-dot.dirty{background:var(--gold)}
+.main{flex:1;min-height:0;position:relative}
+
+/* ---------- map view ---------- */
+#view-map{position:absolute;inset:0;display:flex}
+.map-stage{flex:1;min-width:0;position:relative;background:var(--sea);overflow:hidden}
+.map-stage svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.sea-label{
+  font-family:"Bodoni 72",Didot,Georgia,serif;font-style:italic;
+  fill:var(--sea-deep);letter-spacing:.25em;
+}
+.land{fill:var(--land);stroke:var(--land-line);stroke-width:1.2;stroke-linejoin:round}
+.graticule{stroke:var(--sea-deep);stroke-width:.6;stroke-dasharray:1 5;fill:none;opacity:.8}
+.route{
+  fill:none;stroke:var(--accent);stroke-width:2.4;stroke-dasharray:7 5;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.9;
+}
+@media (prefers-reduced-motion: no-preference){
+  .route{animation:march 40s linear infinite}
+  @keyframes march{to{stroke-dashoffset:-1000}}
+}
+.city{cursor:pointer}
+.city circle.dot{fill:var(--surface);stroke:var(--ink-soft);stroke-width:1.6}
+.city.in-trip circle.dot{fill:var(--accent);stroke:var(--accent)}
+.city.selected circle.halo{fill:none;stroke:var(--accent);stroke-width:1.4}
+.city text{
+  font-family:"Avenir Next",Avenir,system-ui,sans-serif;font-size:11.5px;font-weight:600;
+  fill:var(--ink);paint-order:stroke;stroke:var(--land);stroke-width:3px;stroke-linejoin:round;
+}
+.city.gateway text{font-weight:700}
+.city .plane{fill:var(--ink-soft);font-size:9px;font-family:inherit}
+.map-hud{
+  position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:flex-start;
+  pointer-events:none;z-index:5;flex-wrap:wrap;
+}
+.chips{display:flex;gap:6px;pointer-events:auto;flex-wrap:wrap}
+.chip{
+  padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink-soft);
+  box-shadow:var(--shadow-sm);
+}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.zoom-ctl{
+  position:absolute;right:12px;bottom:14px;display:flex;flex-direction:column;gap:6px;z-index:5;
+}
+.zoom-ctl button{
+  width:38px;height:38px;border-radius:10px;background:var(--surface);border:1px solid var(--line);
+  font-size:18px;font-weight:600;box-shadow:var(--shadow-sm);color:var(--ink);
+}
+.map-hint{
+  position:absolute;left:12px;bottom:14px;z-index:5;font-size:12px;color:var(--ink-soft);
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px;
+  box-shadow:var(--shadow-sm);
+}
+
+/* ---------- city panel ---------- */
+.panel{
+  position:relative;width:390px;flex:none;background:var(--surface);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0;z-index:10;
+}
+.panel-head{padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+.panel-head .region{margin-bottom:2px}
+.panel-head h2{font-size:30px;font-weight:600;line-height:1.05}
+.panel-head .tagline{
+  font-family:"Bodoni 72",Didot,Georgia,serif;font-style:italic;color:var(--ink-soft);
+  font-size:15.5px;margin-top:4px;
+}
+.panel-close{position:absolute;top:14px;right:14px;font-size:20px;color:var(--ink-soft);padding:4px 8px}
+.panel-status{
+  margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;
+}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;
+  font-size:12.5px;font-weight:600;background:var(--olive-soft);color:var(--olive);
+}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+.panel-body{flex:1;overflow-y:auto;padding:8px 20px 20px;overscroll-behavior:contain}
+.poi-section{margin-top:16px}
+.poi-section > .label{display:flex;align-items:center;gap:8px}
+.poi-section > .label::after{content:"";flex:1;border-top:1px solid var(--line)}
+.poi{
+  display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px dotted var(--line);
+}
+.poi:last-child{border-bottom:none}
+.poi-txt{flex:1;min-width:0}
+.poi-txt strong{font-size:14.5px;font-weight:600}
+.poi-txt p{margin:1px 0 0;font-size:13px;color:var(--ink-soft)}
+.poi-txt .cat{font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.poi-acts{display:flex;gap:4px;flex:none;margin-top:2px}
+.icon-btn{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  display:grid;place-items:center;color:var(--ink-soft);font-size:14px;text-decoration:none;
+}
+.icon-btn:hover{color:var(--ink);box-shadow:var(--shadow-sm)}
+.panel-cta{
+  padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;background:var(--surface);
+}
+.panel-cta .btn{flex:1}
+.book-block{
+  margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;
+  background:var(--surface2);
+}
+.book-block .label{display:block;margin-bottom:8px}
+.book-row{display:flex;gap:7px;flex-wrap:wrap}
+.book-row .btn{flex:1;min-width:90px;text-decoration:none;background:var(--surface)}
+.book-block .after{
+  margin:10px 0 0;font-size:12.5px;color:var(--ink-soft);
+}
+.book-block .after button{
+  color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:2px;
+}
+.travel-note{
+  margin-top:16px;background:var(--surface2);border-radius:10px;padding:11px 13px;
+  font-size:13px;color:var(--ink-soft);
+}
+.travel-note b{color:var(--ink)}
+
+/* ---------- itinerary ---------- */
+#view-itin,#view-journal,#view-today,#view-translate{position:absolute;inset:0;overflow-y:auto}
+/* ---------- translate ---------- */
+.phrase{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dotted var(--line)}
+.phrase:last-child{border-bottom:none}
+.phrase .p-txt{flex:1;min-width:0}
+.phrase .p-it{font-weight:700;font-size:15px}
+.phrase .p-en{font-size:12.5px;color:var(--ink-soft)}
+.menu-term{display:flex;gap:10px;padding:6px 0;font-size:13.5px;border-bottom:1px dotted var(--line);align-items:baseline}
+.menu-term:last-child{border-bottom:none}
+.menu-term b{flex:none;min-width:118px}
+.menu-term span{color:var(--ink-soft)}
+.tr-search{margin:14px 0 18px}
+.tr-search input{font-size:16px;padding:12px 14px;border-radius:12px}
+.sheet-wrap{max-width:860px;margin:0 auto;padding:26px 20px 80px}
+.view-title{font-size:34px;font-weight:600;margin-bottom:4px}
+.view-sub{color:var(--ink-soft);margin:0 0 22px;font-size:14.5px}
+.day-row{
+  display:grid;grid-template-columns:86px 1fr;gap:16px;padding:14px 0;
+  border-top:1px solid var(--line);
+}
+.day-date{text-align:right}
+.day-date .dow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.day-date .num{font-size:24px;font-weight:600;line-height:1.1}
+.day-date .mon{font-size:12px;color:var(--ink-soft)}
+.day-city{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:28px}
+.day-city .name{font-weight:700;font-size:15.5px}
+.day-city .transfer{color:var(--accent);font-weight:600;font-size:13px}
+.day-city .unassigned{color:var(--ink-soft);font-style:italic;font-size:13.5px}
+.day-items{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.bk{
+  display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:8px 12px;font-size:13.5px;cursor:pointer;
+}
+.bk:hover{box-shadow:var(--shadow-sm)}
+.bk .type-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bk .bk-name{font-weight:600}
+.bk .bk-meta{color:var(--ink-soft);font-size:12.5px}
+.bk .spacer{flex:1}
+.bk a{color:var(--ink-soft);text-decoration:none;font-size:13px}
+.day-add{margin-top:7px}
+.stop-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+}
+.stop-card .n{font-size:18px;font-weight:700}
+.stop-card .d{color:var(--ink-soft);font-size:13.5px}
+.stop-card .spacer{flex:1}
+.empty{
+  border:1.5px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;
+  color:var(--ink-soft);font-size:14px;
+}
+
+/* ---------- journal ---------- */
+.j-group{margin-bottom:26px}
+.j-city-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.j-city-head h3{font-size:22px;font-weight:600}
+.j-city-head .d{color:var(--ink-soft);font-size:13px}
+.j-note{
+  background:var(--surface2);border-radius:10px;padding:10px 14px;font-size:14px;margin-top:6px;
+  display:flex;gap:10px;align-items:baseline;
+}
+.j-note .jd{flex:none;font-size:12px;color:var(--ink-soft)}
+.j-note .spacer{flex:1}
+.journal-form{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+  margin-bottom:24px;display:grid;gap:10px;
+}
+.journal-form .row{display:grid;grid-template-columns:150px 1fr auto;gap:10px}
+
+/* ---------- today ---------- */
+.t-transfer{
+  background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:12px 16px;
+  font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;
+  font-size:14px;
+}
+.t-transfer a{color:inherit}
+.t-count{font-size:64px;font-weight:600;line-height:1}
+.t-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:14px 0}
+.t-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.t-card .label{display:block;margin-bottom:7px}
+.t-card .big{font-size:19px;font-weight:700}
+.t-card p{margin:3px 0 0;font-size:13px;color:var(--ink-soft)}
+.t-card .t-acts{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+.quick-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.quick-row input{width:auto;flex:1;min-width:150px}
+.ess{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px 18px 10px}
+.ess summary{cursor:pointer;font-weight:700;padding:12px 0;font-size:15px}
+.ess h4{margin:14px 0 4px;font-size:13.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--gold)}
+.ess p,.ess li{font-size:13.5px;color:var(--ink-soft);margin:2px 0}
+.ess ul{margin:4px 0;padding-left:18px}
+.ess b{color:var(--ink)}
+.exp-row{display:flex;gap:10px;font-size:13.5px;padding:6px 0;border-bottom:1px dotted var(--line);align-items:baseline}
+.exp-row .d{color:var(--ink-soft);flex:none;font-size:12px;width:56px}
+.exp-row .lbl{flex:1;min-width:0}
+.exp-row .amt{font-weight:700;font-variant-numeric:tabular-nums}
+.transfer-chip{
+  display:inline-flex;gap:8px;align-items:center;background:var(--accent-soft);color:var(--accent);
+  border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;margin-top:6px;
+}
+.transfer-chip a{color:inherit}
+
+/* ---------- trip mode & photos ---------- */
+.day-nav{display:flex;align-items:center;gap:10px;margin:0 0 18px;flex-wrap:wrap}
+.day-nav .arrow{
+  width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);
+  font-size:17px;font-weight:700;color:var(--ink);
+}
+.day-nav .arrow:disabled{opacity:.35;cursor:default}
+.day-nav .day-sub{color:var(--ink-soft);font-size:14.5px}
+.day-scrub{
+  position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:6;
+  display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--line);
+  border-radius:999px;padding:4px 6px;box-shadow:var(--shadow-sm);
+}
+.day-scrub button{
+  width:30px;height:30px;border-radius:50%;font-size:15px;font-weight:700;color:var(--ink);
+}
+.day-scrub button:disabled{opacity:.3;cursor:default}
+.day-scrub .ds-label{font-size:12.5px;font-weight:700;padding:0 8px;white-space:nowrap}
+.city.visited circle.dot{fill:var(--olive);stroke:var(--olive)}
+.city.current circle.dot{fill:var(--accent);stroke:var(--accent)}
+.city.current circle.halo{fill:none;stroke:var(--accent);stroke-width:1.6}
+@media (prefers-reduced-motion: no-preference){
+  .city.current circle.halo{animation:pulse 2s ease-out infinite}
+  @keyframes pulse{0%{r:7;opacity:.9}70%{r:16;opacity:0}100%{r:16;opacity:0}}
+}
+.route-done{
+  fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;
+}
+.pbadge circle{fill:var(--gold);stroke:var(--surface);stroke-width:1.4}
+.pbadge text{fill:var(--surface);font-size:8.5px;font-weight:700;font-family:inherit;stroke:none}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px;margin-top:8px}
+.photo-thumb{
+  aspect-ratio:1;object-fit:cover;width:100%;border-radius:9px;cursor:pointer;display:block;
+  border:1px solid var(--line);
+}
+#dlg-photo{width:min(560px,calc(100vw - 24px))}
+#ph-img{width:100%;max-height:58vh;object-fit:contain;display:block;background:#101010;border-radius:16px 16px 0 0}
+
+/* ---------- dialogs ---------- */
+dialog{
+  border:none;border-radius:16px;background:var(--surface);color:var(--ink);
+  box-shadow:var(--shadow);padding:0;width:min(430px,calc(100vw - 32px));
+}
+dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
+.dlg-head{padding:18px 22px 0}
+.dlg-head h3{font-size:23px;font-weight:600}
+.dlg-head p{margin:3px 0 0;color:var(--ink-soft);font-size:13.5px}
+.dlg-body{padding:16px 22px;display:grid;gap:12px}
+.dlg-foot{padding:0 22px 20px;display:flex;gap:10px;justify-content:flex-end}
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.type-opt{
+  border:1px solid var(--line);border-radius:9px;padding:7px 4px;font-size:12.5px;font-weight:600;
+  color:var(--ink-soft);display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.type-opt .type-dot{width:10px;height:10px;border-radius:50%}
+.type-opt[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--surface2)}
+.nights-note{font-size:12.5px;color:var(--ink-soft)}
+
+/* ---------- sync modal ---------- */
+.sync-row{
+  display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);
+}
+.sync-row:last-child{border-bottom:none}
+.sync-row .t{flex:1}
+.sync-row .t strong{font-size:14px}
+.sync-row .t p{margin:1px 0 0;font-size:12.5px;color:var(--ink-soft)}
+.sync-msg{font-size:13px;border-radius:9px;padding:9px 12px;background:var(--surface2)}
+.sync-msg.err{background:var(--accent-soft);color:var(--accent)}
+.sync-msg.ok{background:var(--olive-soft);color:var(--olive)}
+.drive-banner{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:60;
+  background:var(--ink);color:var(--bg);border-radius:12px;box-shadow:var(--shadow);
+  padding:12px 16px;display:flex;gap:12px;align-items:center;font-size:13.5px;
+  width:min(480px,calc(100vw - 24px));
+}
+.drive-banner .btn{background:var(--bg);color:var(--ink);border:none;padding:7px 14px;font-size:13px}
+.drive-banner .btn-quiet{background:transparent;color:var(--bg);opacity:.75}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:80;
+  background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:999px;
+  font-size:13.5px;font-weight:600;box-shadow:var(--shadow);opacity:0;
+  transition:opacity .25s ease;pointer-events:none;max-width:calc(100vw - 32px);
+}
+#toast.show{opacity:1}
+
+/* ---------- mobile ---------- */
+.mob-tabs{display:none}
+@media (max-width:820px){
+  .appbar{padding:8px 12px}
+  .appbar .tabs{display:none}
+  .trip-chip{display:none}
+  .mob-tabs{
+    display:flex;flex:none;background:var(--surface);border-top:1px solid var(--line);
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:30;
+  }
+  .mob-tabs .tab{flex:1;text-align:center;padding:9px 2px;font-size:12.5px}
+  #view-map{flex-direction:column}
+  .panel{
+    position:absolute;left:0;right:0;bottom:0;top:auto;width:auto;max-height:66%;
+    border-left:none;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+    box-shadow:0 -8px 30px rgba(0,0,0,.18);
+  }
+  .panel-head{padding-top:10px}
+  .panel-head::before{
+    content:"";display:block;width:40px;height:4px;border-radius:2px;
+    background:var(--line);margin:0 auto 10px;
+  }
+  .day-row{grid-template-columns:64px 1fr;gap:12px}
+  .journal-form .row{grid-template-columns:1fr}
+  .view-title{font-size:28px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+<!-- ================= HOME ================= -->
+<section id="home">
+  <div id="home-minimap" aria-hidden="true"></div>
+  <div class="home-card">
+    <h1 class="wordmark serif"><span class="path">Path</span>seeker</h1>
+    <p class="home-tag">Un viaggio in Italia · plan the route, keep the story.</p>
+
+    <div class="field">
+      <span class="label">Destination</span>
+      <div class="dest-grid" role="group" aria-label="Destination">
+        <button class="dest" id="dest-italy" aria-pressed="true">
+          <strong>Italy</strong><small>19 cities scouted</small>
+        </button>
+        <button class="dest" disabled><strong>France</strong><small>in scouting</small></button>
+        <button class="dest" disabled><strong>Spain</strong><small>in scouting</small></button>
+        <button class="dest" disabled><strong>Greece</strong><small>in scouting</small></button>
+      </div>
+    </div>
+
+    <div class="field field-row">
+      <div>
+        <label class="label" for="trip-start">Arrive</label>
+        <input type="date" id="trip-start" value="2026-09-25">
+      </div>
+      <div>
+        <label class="label" for="trip-end">Depart</label>
+        <input type="date" id="trip-end" value="2026-10-09">
+      </div>
+    </div>
+
+    <div class="field field-row">
+      <div>
+        <label class="label" for="trip-in">Fly into</label>
+        <select id="trip-in"></select>
+      </div>
+      <div>
+        <label class="label" for="trip-out">Fly out of</label>
+        <select id="trip-out"></select>
+      </div>
+    </div>
+
+    <div class="home-actions">
+      <button class="btn btn-primary" id="btn-start">Open the map</button>
+    </div>
+    <div class="home-resume hidden" id="home-resume">
+      <span id="home-resume-txt"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<section id="app" class="hidden">
+  <header class="appbar">
+    <button class="btn-quiet" id="btn-home" title="Back to trip setup" aria-label="Back to trip setup">
+      <span class="wordmark-sm serif"><span class="path">P</span>athseeker</span>
+    </button>
+    <div class="trip-chip" id="trip-chip"></div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
+      <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+      <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
+      <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
+      <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
+    </nav>
+    <button class="sync-btn" id="btn-sync" title="Sync & backup">
+      <span class="sync-dot" id="sync-dot"></span><span id="sync-label">Synced</span>
+    </button>
+  </header>
+
+  <div class="main">
+    <!-- MAP -->
+    <div id="view-map">
+      <div class="map-stage" id="map-stage">
+        <div class="map-hud">
+          <div class="chips" role="group" aria-label="Filter places">
+            <button class="chip" data-filter="all" aria-pressed="true">Everything</button>
+            <button class="chip" data-filter="sight" aria-pressed="false">Sights</button>
+            <button class="chip" data-filter="stay" aria-pressed="false">Lodging</button>
+            <button class="chip" data-filter="eat" aria-pressed="false">Food</button>
+          </div>
+        </div>
+        <div class="zoom-ctl">
+          <button id="zoom-in" aria-label="Zoom in">+</button>
+          <button id="zoom-out" aria-label="Zoom out">−</button>
+          <button id="zoom-reset" aria-label="Reset view" style="font-size:13px">⌂</button>
+        </div>
+        <div class="map-hint" id="map-hint">Tap a city to scout it · drag to pan · pinch or scroll to zoom</div>
+        <div class="day-scrub hidden" id="day-scrub">
+          <button id="ds-prev" aria-label="Previous day">‹</button>
+          <span class="ds-label" id="ds-label"></span>
+          <button id="ds-next" aria-label="Next day">›</button>
+        </div>
+      </div>
+      <aside class="panel hidden" id="panel"></aside>
+    </div>
+
+    <!-- TODAY -->
+    <div id="view-today" class="hidden"><div class="sheet-wrap" id="today-wrap"></div></div>
+
+    <!-- ITINERARY -->
+    <div id="view-itin" class="hidden"><div class="sheet-wrap" id="itin-wrap"></div></div>
+
+    <!-- JOURNAL -->
+    <div id="view-journal" class="hidden"><div class="sheet-wrap" id="journal-wrap"></div></div>
+
+    <!-- TRANSLATE -->
+    <div id="view-translate" class="hidden"><div class="sheet-wrap" id="translate-wrap"></div></div>
+  </div>
+
+  <nav class="mob-tabs" role="tablist" aria-label="Views">
+    <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
+    <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+    <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
+    <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
+    <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
+  </nav>
+</section>
+
+<!-- ================= DIALOGS ================= -->
+<dialog id="dlg-dates">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif" id="dlg-dates-title">Nights in …</h3>
+      <p id="dlg-dates-sub"></p></div>
+    <div class="dlg-body">
+      <div class="field-row">
+        <div>
+          <label class="label" for="stop-arrive">Arrive</label>
+          <input type="date" id="stop-arrive">
+        </div>
+        <div>
+          <label class="label" for="stop-nights">Nights</label>
+          <input type="number" id="stop-nights" min="0" max="30" value="2">
+        </div>
+      </div>
+      <div class="nights-note" id="stop-note"></div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn btn-danger hidden" value="remove" id="stop-remove">Remove stop</button>
+      <button class="btn btn-primary" value="ok" id="stop-ok">Add to trip</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-booking">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif" id="dlg-bk-title">Add a booking</h3>
+      <p>Hotels, tickets, tables, trains — it all lands in your journal.</p>
+      <button type="button" class="btn btn-sm" id="bk-paste" style="margin-top:10px">Paste a confirmation email instead…</button></div>
+    <div class="dlg-body">
+      <div>
+        <span class="label" style="display:block;margin-bottom:6px">Type</span>
+        <div class="type-grid" id="bk-types"></div>
+      </div>
+      <div>
+        <label class="label" for="bk-name">Name</label>
+        <input id="bk-name" placeholder="Hotel Santa Caterina, Uffizi tickets…">
+      </div>
+      <div class="field-row">
+        <div>
+          <label class="label" for="bk-city">City</label>
+          <select id="bk-city"></select>
+        </div>
+        <div>
+          <label class="label" for="bk-date">Date</label>
+          <input type="date" id="bk-date">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label class="label" for="bk-time">Time <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <input type="time" id="bk-time">
+        </div>
+        <div>
+          <label class="label" for="bk-price">Price <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <input id="bk-price" placeholder="€120">
+        </div>
+      </div>
+      <div>
+        <label class="label" for="bk-conf">Confirmation # <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input id="bk-conf" class="mono" placeholder="ABC123">
+      </div>
+      <div>
+        <label class="label" for="bk-link">Link <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input id="bk-link" type="url" placeholder="https://…">
+      </div>
+      <div>
+        <label class="label" for="bk-notes">Notes</label>
+        <textarea id="bk-notes" rows="2" placeholder="Check-in after 15:00, ask for the sea-view room…"></textarea>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn btn-danger hidden" value="remove" id="bk-remove">Delete</button>
+      <button class="btn btn-primary" value="ok">Save booking</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-sync">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif">Sync &amp; backup</h3>
+      <p>Your trip lives on this device and can sync through your Google Drive.</p></div>
+    <div class="dlg-body">
+      <div class="sync-msg hidden" id="sync-msg"></div>
+      <div>
+        <div class="sync-row">
+          <div class="t"><strong>Save to Google Drive</strong>
+            <p id="drive-save-sub">Writes a snapshot other devices can load.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-drive-save">Save</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Load from Google Drive</strong>
+            <p id="drive-load-sub">Fetches the newest snapshot.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-drive-load">Load</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Offline trip sheet</strong><p>Day-by-day plan with every address, code, and train — readable with no signal.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-tripsheet">Download</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Export file</strong><p>Download a .json backup of everything.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-export">Export</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Import file</strong><p>Restore from a .json backup.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-import">Import</button>
+          <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+        </div>
+      </div>
+      <p style="margin:0;font-size:12.5px;color:var(--ink-soft)" id="sync-status-line"></p>
+      <p style="margin:0;font-size:12.5px;color:var(--ink-soft)">Photos stay on the device where you added them — they're too heavy for the Drive snapshot. Everything else syncs.</p>
+    </div>
+    <div class="dlg-foot"><button class="btn" value="close">Done</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-photo">
+  <form method="dialog">
+    <img id="ph-img" alt="Trip photo">
+    <div class="dlg-body">
+      <p id="ph-meta" style="margin:0;font-size:13px;color:var(--ink-soft)"></p>
+      <input id="ph-cap" placeholder="Caption this moment…">
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn-danger" value="remove">Delete</button>
+      <button class="btn btn-primary" value="close">Done</button>
+    </div>
+  </form>
+</dialog>
+<input type="file" id="photo-take" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="photo-import" accept="image/*" multiple class="hidden">
+
+<dialog id="dlg-paste">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif">Import a confirmation</h3>
+      <p>Booked on Airbnb, VRBO, Booking.com, or a hotel site? Paste the confirmation
+      email below — Pathseeker reads out the name, dates, code, and price. Nothing leaves this page.</p></div>
+    <div class="dlg-body">
+      <textarea id="paste-txt" rows="9" placeholder="Paste the whole confirmation email here…"></textarea>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn btn-primary" value="ok">Read it</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+/* ================= DATA ================= */
+const GM = (q) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q + ", Italy");
+const BK_TYPES = [
+  {id:"hotel",    n:"Hotel",      c:"#7A5C9E"},
+  {id:"airbnb",   n:"Airbnb",     c:"#C96A50"},
+  {id:"ticket",   n:"Ticket",     c:"#B8862B"},
+  {id:"restaurant",n:"Restaurant",c:"#5F8F3E"},
+  {id:"train",    n:"Train",      c:"#3E6F8F"},
+  {id:"other",    n:"Other",      c:"#8A8375"},
+];
+/* POI cats: sight | stay | eat */
+const CITIES = [
+{id:"milan", n:"Milan", region:"Lombardy", lat:45.464, lon:9.190, tag:"Fashion, aperitivo, and your first espresso off the plane.",
+ note:"<b>Getting in:</b> Malpensa Express train to Milano Centrale, ~50 min. Centrale is your hub for every train south and east.",
+ pois:[
+  {c:"sight",n:"Duomo di Milano",d:"Climb to the rooftop terraces between the marble spires."},
+  {c:"sight",n:"Galleria Vittorio Emanuele II",d:"The world's most elegant shopping arcade, next to the Duomo."},
+  {c:"sight",n:"The Last Supper (Santa Maria delle Grazie)",d:"Book weeks ahead — timed 15-minute visits."},
+  {c:"sight",n:"Navigli canals",d:"Evening aperitivo along the canal district."},
+  {c:"sight",n:"Brera district",d:"Cobbled lanes, galleries, and the Pinacoteca di Brera."},
+  {c:"stay",n:"Brera / Moscova area",d:"Prettiest central base; boutique hotels and walkable nights."},
+  {c:"stay",n:"Porta Romana area",d:"Quieter, good-value apartments a short metro from the Duomo."},
+  {c:"stay",n:"Room Mate Giulia",d:"Design hotel steps from the Galleria — book early."},
+  {c:"eat",n:"Risotto alla milanese & cotoletta",d:"The two local classics — saffron risotto and veal cutlet."},
+  {c:"eat",n:"Trattoria Milanese",d:"Old-school local cooking near the Duomo."},
+  {c:"eat",n:"Luini",d:"Panzerotti counter — the legendary quick lunch line moves fast."},
+  {c:"eat",n:"Terrazza Aperol / Navigli bars",d:"Aperitivo hour, 6–8pm, spritz with snacks."}]},
+{id:"como", n:"Lake Como", region:"Lombardy", lat:46.010, lon:9.285, tag:"Villas, ferries, and mountains falling into the water.",
+ note:"<b>Getting in:</b> Train Milano Centrale → Varenna-Esino, ~1h10. The mid-lake ferry triangle (Varenna–Bellagio–Menaggio) is the whole point.",
+ pois:[
+  {c:"sight",n:"Varenna old town",d:"Pastel fishing village; the walkway Passeggiata degli Innamorati."},
+  {c:"sight",n:"Bellagio",d:"The 'pearl of the lake' — take the 15-minute ferry across."},
+  {c:"sight",n:"Villa del Balbianello",d:"Film-famous villa on a wooded point near Lenno."},
+  {c:"sight",n:"Villa Monastero, Varenna",d:"Botanic gardens stretched along the shore."},
+  {c:"stay",n:"Varenna",d:"Best base without a car — station + ferry dock in town."},
+  {c:"stay",n:"Hotel du Lac, Varenna",d:"Small lakefront classic with terrace breakfasts."},
+  {c:"stay",n:"Bellagio hillside B&Bs",d:"Views over the lake junction; steps everywhere."},
+  {c:"eat",n:"Lake fish (missoltini, lavarello)",d:"Order the lake catch with local white wine."},
+  {c:"eat",n:"Ristorante La Vista, Varenna",d:"Dinner terrace above the rooftops."},
+  {c:"eat",n:"Gelateria Riva, Varenna",d:"Cone in hand on the ferry dock."}]},
+{id:"turin", n:"Turin", region:"Piedmont", lat:45.070, lon:7.686, tag:"Baroque arcades, chocolate, and Alps on the horizon.",
+ note:"<b>Getting in:</b> Frecciarossa from Milan, ~1h. Elegant, underrated, and cheaper than the big three.",
+ pois:[
+  {c:"sight",n:"Museo Egizio",d:"The finest Egyptian museum outside Cairo."},
+  {c:"sight",n:"Mole Antonelliana",d:"Turin's spire — panoramic lift + national cinema museum."},
+  {c:"sight",n:"Piazza San Carlo",d:"The baroque drawing room of the city."},
+  {c:"sight",n:"Porta Palazzo market",d:"Europe's largest open-air market, mornings."},
+  {c:"stay",n:"Centro / Piazza Castello area",d:"Under the arcades, everything walkable."},
+  {c:"stay",n:"San Salvario",d:"Lively food-and-bars quarter by the station."},
+  {c:"eat",n:"Bicerin at Caffè Al Bicerin",d:"Espresso-chocolate-cream layers since 1763."},
+  {c:"eat",n:"Agnolotti del plin & vitello tonnato",d:"Piedmont's pasta and its famous cold veal."},
+  {c:"eat",n:"Eataly Lingotto",d:"The original — a food hall of the whole region."}]},
+{id:"verona", n:"Verona", region:"Veneto", lat:45.438, lon:10.992, tag:"A Roman arena and pink-marble evenings on the Adige.",
+ note:"<b>Getting in:</b> On the Milan–Venice line, ~1h15 from either. Perfect one-night stop.",
+ pois:[
+  {c:"sight",n:"Arena di Verona",d:"1st-century amphitheatre, still staging opera."},
+  {c:"sight",n:"Piazza delle Erbe",d:"Frescoed facades over the old market square."},
+  {c:"sight",n:"Castelvecchio & bridge",d:"Brick fortress and its crenellated river crossing."},
+  {c:"sight",n:"Castel San Pietro viewpoint",d:"Climb (or funicular) at sunset for the full skyline."},
+  {c:"stay",n:"Città Antica",d:"Inside the river bend — everything on foot."},
+  {c:"stay",n:"Veronetta",d:"Left-bank student quarter, better value."},
+  {c:"eat",n:"Amarone risotto & pastissada",d:"The Valpolicella wines are the local pour."},
+  {c:"eat",n:"Osteria Sottoriva",d:"Wooden benches under the medieval arcade."},
+  {c:"eat",n:"Antica Bottega del Vino",d:"Historic cellar with a monumental wine list."}]},
+{id:"venice", n:"Venice", region:"Veneto", lat:45.438, lon:12.335, tag:"No cars, no hurry — get lost on purpose.",
+ note:"<b>Getting in:</b> Train to Venezia Santa Lucia (not Mestre) — you step out onto the Grand Canal. Vaporetto passes save money if you'll ride 3+ times a day.",
+ pois:[
+  {c:"sight",n:"Basilica di San Marco",d:"Gold mosaics — book the skip-the-line slot."},
+  {c:"sight",n:"Doge's Palace",d:"Gothic seat of the Republic; cross the Bridge of Sighs."},
+  {c:"sight",n:"Rialto market mornings",d:"Fish and produce barges on the Grand Canal."},
+  {c:"sight",n:"Dorsoduro & Accademia",d:"Venice's quieter art quarter."},
+  {c:"sight",n:"Burano",d:"40-min vaporetto — riotously painted lace-makers' island."},
+  {c:"stay",n:"Cannaregio",d:"Local canals, aperitivo fondamente, near the station."},
+  {c:"stay",n:"Dorsoduro",d:"Romantic and quieter after the day-trippers leave."},
+  {c:"stay",n:"Hotel Flora",d:"Garden courtyard hideaway near San Marco."},
+  {c:"eat",n:"Cicchetti crawl",d:"Venetian tapas + a glass of wine (un'ombra) per bar."},
+  {c:"eat",n:"All'Arco",d:"Standing-room cicchetti institution by the Rialto."},
+  {c:"eat",n:"Osteria alle Testiere",d:"Tiny seafood room — reserve days ahead."},
+  {c:"eat",n:"Sarde in saor & nero di seppia",d:"Sweet-sour sardines; squid-ink everything."}]},
+{id:"cinqueterre", n:"Cinque Terre", region:"Liguria", lat:44.135, lon:9.685, tag:"Five villages stitched by cliff paths and train tunnels.",
+ note:"<b>Getting around:</b> Base in Vernazza or Monterosso; the Cinque Terre Card covers trains + trails. Check trail closures — the Sentiero Azzurro sections open and close.",
+ pois:[
+  {c:"sight",n:"Vernazza harbour",d:"The postcard — swim off the breakwater at dusk."},
+  {c:"sight",n:"Manarola viewpoint (Punta Bonfiglio)",d:"The classic sunset photograph."},
+  {c:"sight",n:"Monterosso–Vernazza trail",d:"~2h of terraced vineyards and sea cliffs."},
+  {c:"sight",n:"Riomaggiore at blue hour",d:"Boats stacked in the tiny marina."},
+  {c:"stay",n:"Vernazza rooms & apartments",d:"Small affittacamere — book far ahead for late September."},
+  {c:"stay",n:"Monterosso al Mare",d:"The only village with a real beach and flat streets."},
+  {c:"eat",n:"Trofie al pesto",d:"Liguria invented pesto — eat it at the source."},
+  {c:"eat",n:"Fried anchovies of Monterosso",d:"Paper cones of the local catch."},
+  {c:"eat",n:"Belforte, Vernazza",d:"Tower-top tables above the harbour — reserve."},
+  {c:"eat",n:"Focaccia & sciacchetrà",d:"Ligurian flatbread; sweet cliff-grape wine."}]},
+{id:"bologna", n:"Bologna", region:"Emilia-Romagna", lat:44.494, lon:11.343, tag:"La Grassa — the fat one. Italy's food capital.",
+ note:"<b>Getting in:</b> The rail crossroads of Italy — ~35 min from Florence, ~1h from Milan. Even a food-stop layover is worth it.",
+ pois:[
+  {c:"sight",n:"Le Due Torri",d:"Climb the leaning Asinelli tower's 498 steps."},
+  {c:"sight",n:"Piazza Maggiore & San Petronio",d:"The unfinished-facade basilica on the great square."},
+  {c:"sight",n:"Portico di San Luca",d:"666 arches climbing to the hilltop sanctuary."},
+  {c:"sight",n:"Quadrilatero market lanes",d:"Delis, fish stalls, and hanging mortadella."},
+  {c:"stay",n:"Quadrilatero / Piazza Maggiore",d:"Sleep above the market lanes."},
+  {c:"stay",n:"University quarter (via Zamboni)",d:"Porticoed, lively, cheaper."},
+  {c:"eat",n:"Tagliatelle al ragù",d:"The real 'bolognese' — never on spaghetti here."},
+  {c:"eat",n:"Tortellini in brodo",d:"Navel-shaped pasta in capon broth."},
+  {c:"eat",n:"Osteria dell'Orsa",d:"Student-loved, no-frills, the classics done right."},
+  {c:"eat",n:"Mercato delle Erbe",d:"Market hall turned evening food court."}]},
+{id:"florence", n:"Florence", region:"Tuscany", lat:43.770, lon:11.257, tag:"The Renaissance, wall to wall.",
+ note:"<b>Getting in:</b> Frecciarossa to Firenze S.M.N. Book Uffizi and Accademia timed entries in advance — always.",
+ pois:[
+  {c:"sight",n:"Duomo & Brunelleschi's Dome",d:"Climb the dome (book!) or Giotto's bell tower."},
+  {c:"sight",n:"Uffizi Gallery",d:"Botticelli's Venus and the Medici collection."},
+  {c:"sight",n:"Galleria dell'Accademia",d:"Michelangelo's David, worth the timed slot."},
+  {c:"sight",n:"Ponte Vecchio at dawn",d:"Goldsmiths' bridge before the crowds arrive."},
+  {c:"sight",n:"Piazzale Michelangelo",d:"The sunset panorama over the whole city."},
+  {c:"stay",n:"Oltrarno / Santo Spirito",d:"Artisan left bank — best evenings, short walk to everything."},
+  {c:"stay",n:"Santa Croce area",d:"Central with real neighborhood trattorie."},
+  {c:"stay",n:"Hotel Davanzati",d:"Family-run favorite in a medieval palazzo."},
+  {c:"eat",n:"Bistecca alla fiorentina",d:"Thumb-thick T-bone, shared, always rare."},
+  {c:"eat",n:"Trattoria Mario",d:"Lunch-only counter since 1953 — arrive early."},
+  {c:"eat",n:"All'Antico Vinaio",d:"The famous schiacciata sandwich line."},
+  {c:"eat",n:"Mercato Centrale",d:"Iron-and-glass market; upstairs food hall till late."}]},
+{id:"pisa", n:"Pisa", region:"Tuscany", lat:43.716, lon:10.397, tag:"Yes, it really leans. Two hours is plenty.",
+ note:"<b>Getting in:</b> ~1h regional from Florence. Do it as a half-day, or pair with Lucca.",
+ pois:[
+  {c:"sight",n:"Leaning Tower",d:"Climb the tilt — timed tickets, book online."},
+  {c:"sight",n:"Piazza dei Miracoli",d:"Cathedral, baptistery, and tower on one lawn."},
+  {c:"sight",n:"Borgo Stretto arcades",d:"The town beyond the tourists, 10 minutes away."},
+  {c:"stay",n:"Day trip",d:"Most travelers sleep in Florence or Lucca instead."},
+  {c:"eat",n:"Cecina",d:"Chickpea flatbread, hot from wood ovens."},
+  {c:"eat",n:"I Porci Comodi",d:"Tuscan salumi boards near Borgo Stretto."}]},
+{id:"siena", n:"Siena", region:"Tuscany", lat:43.319, lon:11.331, tag:"Medieval Tuscany's brick-gold heart.",
+ note:"<b>Getting in:</b> Bus from Florence (~1h15) beats the train — it drops you near the walls. Sleep a night; the city empties and glows after the day-trippers go.",
+ pois:[
+  {c:"sight",n:"Piazza del Campo",d:"The shell-shaped square — sit on the warm brick with a coffee."},
+  {c:"sight",n:"Duomo di Siena",d:"Striped marble, inlaid floors, the Piccolomini Library."},
+  {c:"sight",n:"Torre del Mangia",d:"400 steps over the Campo."},
+  {c:"sight",n:"Contrade backstreets",d:"Flag-marked medieval neighborhoods of the Palio."},
+  {c:"stay",n:"Inside the walls",d:"Small palazzo hotels; steep lanes, magic mornings."},
+  {c:"eat",n:"Pici cacio e pepe",d:"Hand-rolled fat spaghetti, Siena's own."},
+  {c:"eat",n:"Osteria Le Logge",d:"Elegant Tuscan classic off the Campo."},
+  {c:"eat",n:"Panforte & ricciarelli",d:"The city's medieval spice-cake and almond biscuits."}]},
+{id:"orvieto", n:"Orvieto", region:"Umbria", lat:42.718, lon:12.111, tag:"A cathedral town on a volcanic cliff, right on the Rome line.",
+ note:"<b>Getting in:</b> On the Florence–Rome slow line (~1h20 from Rome); funicular from station to the clifftop. An easy overnight that breaks the Florence→Rome leg.",
+ pois:[
+  {c:"sight",n:"Duomo di Orvieto",d:"A golden Gothic facade that stuns out of nowhere."},
+  {c:"sight",n:"Pozzo di San Patrizio",d:"Double-helix Renaissance well, 53m deep."},
+  {c:"sight",n:"Orvieto Underground",d:"Etruscan caves and tunnels beneath the town."},
+  {c:"stay",n:"Historic center",d:"Quiet stone lanes; the town is yours by 7pm."},
+  {c:"eat",n:"Umbrichelli al tartufo",d:"Umbrian pasta with black truffle."},
+  {c:"eat",n:"Orvieto Classico",d:"The crisp local white, in the town that names it."}]},
+{id:"rome", n:"Rome", region:"Lazio", lat:41.902, lon:12.496, tag:"Twenty-eight centuries deep. Your grand finale.",
+ note:"<b>Getting out:</b> Leonardo Express to Fiumicino, 32 min from Termini. Book Colosseum, Vatican Museums, and Borghese Gallery well ahead.",
+ pois:[
+  {c:"sight",n:"Colosseum & Forum",d:"One combined timed ticket — go at opening."},
+  {c:"sight",n:"Pantheon",d:"The 2,000-year-old dome, still perfect."},
+  {c:"sight",n:"Vatican Museums & St. Peter's",d:"Sistine Chapel first slot, then the basilica."},
+  {c:"sight",n:"Trastevere evenings",d:"Ivy, lanterns, and piazza life across the river."},
+  {c:"sight",n:"Galleria Borghese",d:"Bernini's marbles — strict 2-hour reserved slots."},
+  {c:"sight",n:"Trevi & the centro passeggiata",d:"Fountain-to-fountain night walk."},
+  {c:"stay",n:"Monti",d:"Village-in-the-city between Termini and the Forum."},
+  {c:"stay",n:"Trastevere",d:"Best nights, cobbled mornings."},
+  {c:"stay",n:"Hotel de' Ricci / Campo de' Fiori area",d:"Small wine-hotel in the Renaissance core."},
+  {c:"eat",n:"The Roman four",d:"Carbonara, cacio e pepe, amatriciana, gricia."},
+  {c:"eat",n:"Roscioli",d:"Deli-restaurant hybrid — book the counter."},
+  {c:"eat",n:"Da Enzo al 29",d:"Tiny Trastevere classic; queue early."},
+  {c:"eat",n:"Supplì & pizza al taglio",d:"Fried rice balls and pizza by the cut, anytime."}]},
+{id:"naples", n:"Naples", region:"Campania", lat:40.852, lon:14.268, tag:"Loud, glorious, and the birthplace of pizza.",
+ note:"<b>Getting in:</b> ~1h10 from Rome by Frecciarossa/Italo. Gateway to Pompeii, Sorrento, and the Amalfi Coast (Circumvesuviana or Campania Express).",
+ pois:[
+  {c:"sight",n:"Spaccanapoli & centro storico",d:"The straight street that splits old Naples."},
+  {c:"sight",n:"Pompeii",d:"40 min out — give it a half day and water."},
+  {c:"sight",n:"Naples Archaeological Museum",d:"Where Pompeii's real treasures live."},
+  {c:"sight",n:"Cappella Sansevero",d:"The Veiled Christ — book the slot."},
+  {c:"stay",n:"Centro storico",d:"In the beautiful chaos."},
+  {c:"stay",n:"Chiaia",d:"Elegant seafront quarter, calmer nights."},
+  {c:"eat",n:"L'Antica Pizzeria da Michele",d:"Margherita or marinara. That's the menu."},
+  {c:"eat",n:"Sorbillo, via dei Tribunali",d:"The other great pizza pilgrimage."},
+  {c:"eat",n:"Sfogliatella & babà",d:"Naples' two pastry obsessions."}]},
+{id:"sorrento", n:"Sorrento", region:"Campania", lat:40.626, lon:14.375, tag:"Lemon groves over the Bay of Naples.",
+ note:"<b>Getting in:</b> Circumvesuviana from Naples (~1h) — an easy, flat base for Capri boats and Amalfi buses.",
+ pois:[
+  {c:"sight",n:"Marina Grande",d:"The old fishing harbour at golden hour."},
+  {c:"sight",n:"Capri day trip",d:"25-min hydrofoil; Gardens of Augustus + chairlift to Monte Solaro."},
+  {c:"sight",n:"Villa Comunale terrace",d:"Sunset over Vesuvius across the bay."},
+  {c:"stay",n:"Sorrento center",d:"Walkable, well-connected — the practical Amalfi base."},
+  {c:"stay",n:"Cliffside hotels (Corso Italia)",d:"Bay-view terraces without Positano prices."},
+  {c:"eat",n:"Gnocchi alla sorrentina",d:"Baked gnocchi, tomato, fior di latte."},
+  {c:"eat",n:"Limoncello & delizia al limone",d:"The lemon in every possible form."},
+  {c:"eat",n:"Da Emilia, Marina Grande",d:"Seafood on the old dock since 1947."}]},
+{id:"amalfi", n:"Amalfi Coast", region:"Campania", lat:40.634, lon:14.602, tag:"The vertical coastline — Positano, Amalfi, Ravello.",
+ note:"<b>Getting around:</b> SITA buses or (better) ferries between towns — boats beat the hairpin traffic. Ferries thin out after early October; late September is perfect.",
+ pois:[
+  {c:"sight",n:"Positano",d:"The pastel amphitheatre town tumbling to the beach."},
+  {c:"sight",n:"Ravello — Villa Rufolo & Cimbrone",d:"Garden terraces 350m above the sea."},
+  {c:"sight",n:"Path of the Gods (Sentiero degli Dei)",d:"Bomerano→Nocelle, the great coastal hike."},
+  {c:"sight",n:"Amalfi Cathedral",d:"Arab-Norman stripes above the piazza."},
+  {c:"stay",n:"Positano",d:"Splurge night — sea-view rooms are the point."},
+  {c:"stay",n:"Amalfi or Ravello",d:"Same coast, gentler prices, quieter nights."},
+  {c:"eat",n:"Scialatielli ai frutti di mare",d:"The coast's own pasta, heaped with shellfish."},
+  {c:"eat",n:"Lo Guarracino, Positano",d:"Vine-covered terrace on the Fornillo path."},
+  {c:"eat",n:"Sal De Riso, Minori",d:"The coast's celebrated pastry maestro."}]},
+{id:"matera", n:"Matera", region:"Basilicata", lat:40.666, lon:16.604, tag:"Cave city — nine thousand years of continuous living.",
+ note:"<b>Getting in:</b> Easiest via Bari (Ferrovie Appulo Lucane, ~1h30). Sleep one night in a cave hotel; the sassi at dawn are unforgettable.",
+ pois:[
+  {c:"sight",n:"Sasso Caveoso & Sasso Barisano",d:"The two cave districts — wander without a map."},
+  {c:"sight",n:"Casa Grotta",d:"A furnished cave home as it was lived in until the 1950s."},
+  {c:"sight",n:"Belvedere Murgia Timone",d:"The across-the-ravine view of the whole city."},
+  {c:"sight",n:"Rock churches (San Pietro Barisano)",d:"Frescoed chapels cut into the tufa."},
+  {c:"stay",n:"Cave hotel in the Sassi",d:"Sextantio Le Grotte della Civita is the famous one."},
+  {c:"eat",n:"Pane di Matera",d:"The horned durum loaf, IGP protected."},
+  {c:"eat",n:"Peperoni cruschi",d:"Crackling sweet dried peppers on everything."},
+  {c:"eat",n:"Vitantonio Lombardo",d:"Michelin-starred cave dining, for the big night."}]},
+{id:"lecce", n:"Lecce", region:"Puglia", lat:40.352, lon:18.169, tag:"The Florence of the South, carved in honey stone.",
+ note:"<b>Getting in:</b> ~1h30 south of Bari. Base for the Salento beaches — Otranto and Gallipoli are short hops.",
+ pois:[
+  {c:"sight",n:"Basilica di Santa Croce",d:"Barocco leccese at full boil."},
+  {c:"sight",n:"Piazza del Duomo",d:"A closed baroque stage-set of a square."},
+  {c:"sight",n:"Roman amphitheatre",d:"Sunk right into the main piazza."},
+  {c:"sight",n:"Otranto day trip",d:"Whitewashed port + the cathedral's floor mosaic."},
+  {c:"stay",n:"Centro storico",d:"Baroque palazzo B&Bs at gentle prices."},
+  {c:"eat",n:"Pasticciotto",d:"Warm custard-filled morning pastry, born here."},
+  {c:"eat",n:"Orecchiette alle cime di rapa",d:"Puglia's ear-shaped pasta with turnip greens."},
+  {c:"eat",n:"Caffè leccese",d:"Iced espresso with almond milk."}]},
+{id:"taormina", n:"Taormina", region:"Sicily", lat:37.853, lon:15.288, tag:"A Greek theatre with Etna smoking behind it.",
+ note:"<b>Getting in:</b> Fly Rome→Catania (~1h15), then bus/train ~1h. Worth it if you can give Sicily 3+ nights.",
+ pois:[
+  {c:"sight",n:"Teatro Antico",d:"Greek theatre framing Etna and the sea."},
+  {c:"sight",n:"Isola Bella",d:"Cable car down to the pebble-beach island."},
+  {c:"sight",n:"Mount Etna excursion",d:"Cable car + jeep toward the summit craters."},
+  {c:"sight",n:"Corso Umberto passeggiata",d:"The evening promenade, granita in hand."},
+  {c:"stay",n:"Taormina center",d:"Views and polish; book far ahead."},
+  {c:"stay",n:"Giardini Naxos",d:"Beach town below at half the price."},
+  {c:"eat",n:"Granita con brioche",d:"Almond or lemon — the Sicilian breakfast."},
+  {c:"eat",n:"Pasta alla Norma",d:"Eggplant, tomato, ricotta salata — a Catania invention."},
+  {c:"eat",n:"Bam Bar",d:"The granita institution."}]},
+{id:"palermo", n:"Palermo", region:"Sicily", lat:38.116, lon:13.362, tag:"Arab-Norman splendor and the best street food in Italy.",
+ note:"<b>Getting in:</b> Fly from Rome or Naples (~1h). A different Italy — give it two nights minimum.",
+ pois:[
+  {c:"sight",n:"Cappella Palatina",d:"A ceiling of gold mosaics in the Norman Palace."},
+  {c:"sight",n:"Monreale Cathedral",d:"The mosaic cycle above the city — half-day trip."},
+  {c:"sight",n:"Ballarò & Capo markets",d:"Shouting vendors, swordfish heads, pure theatre."},
+  {c:"sight",n:"Teatro Massimo",d:"Italy's largest opera house."},
+  {c:"stay",n:"Kalsa district",d:"The arty old quarter near the marina."},
+  {c:"stay",n:"Politeama / Libertà",d:"Elegant 19th-century Palermo, calmer streets."},
+  {c:"eat",n:"Street food crawl",d:"Panelle, arancine, sfincione — and pani ca meusa for the brave."},
+  {c:"eat",n:"Cannoli at I Segreti del Chiostro",d:"Convent-recipe cannoli filled to order."},
+  {c:"eat",n:"Antica Focacceria San Francesco",d:"Serving the classics since 1834."}]}
+];
+const CITY_BY_ID = Object.fromEntries(CITIES.map(c=>[c.id,c]));
+</script>
+<script>
+"use strict";
+/* ================= GEOGRAPHY ================= */
+const MAINLAND = [[7.53,43.79],[8.03,43.88],[8.48,44.31],[8.93,44.40],[9.21,44.30],[9.85,44.08],
+[10.25,43.87],[10.31,43.55],[10.52,42.93],[11.12,42.44],[11.80,42.09],[12.28,41.73],[12.63,41.45],
+[13.25,41.28],[13.57,41.21],[13.95,41.02],[14.27,40.84],[14.33,40.58],[14.77,40.67],[14.99,40.35],
+[15.28,40.03],[15.63,40.07],[15.79,39.81],[16.04,39.36],[16.23,38.93],[15.83,38.62],[15.65,38.11],
+[15.65,37.94],[16.06,37.92],[16.27,38.24],[16.55,38.69],[16.60,38.82],[17.13,39.08],[16.95,39.50],
+[16.45,39.72],[16.65,40.30],[17.25,40.46],[17.99,40.05],[18.36,39.80],[18.49,40.15],[17.95,40.66],
+[17.30,40.95],[16.87,41.13],[16.28,41.32],[15.93,41.63],[16.19,41.88],[15.95,41.94],[15.00,42.00],
+[14.22,42.47],[13.90,42.95],[13.52,43.62],[13.22,43.72],[12.57,44.06],[12.28,44.48],[12.25,44.70],
+[12.53,44.96],[12.28,45.22],[12.30,45.44],[12.89,45.60],[13.40,45.68],[13.77,45.65],[13.72,45.78],
+[13.64,46.18],[13.38,46.56],[12.69,46.68],[12.13,46.96],[11.51,47.01],[10.48,46.85],[10.13,46.57],
+[9.44,46.51],[9.04,45.98],[8.44,46.46],[8.10,46.25],[7.87,45.92],[6.87,45.83],[6.80,45.20],
+[7.10,45.05],[6.93,44.68],[7.00,44.24],[7.56,44.15]];
+const SICILY = [[12.43,37.80],[12.51,38.02],[12.73,38.17],[12.88,38.03],[13.36,38.19],[14.02,38.04],
+[14.74,38.16],[15.24,38.27],[15.65,38.26],[15.57,38.10],[15.29,37.85],[15.09,37.50],[15.30,37.06],
+[15.13,36.68],[14.25,37.07],[13.94,37.09],[13.58,37.26],[13.08,37.50],[12.59,37.65]];
+const SARDINIA = [[9.16,41.24],[9.56,41.14],[9.73,40.92],[9.69,40.42],[9.63,39.86],[9.57,39.13],
+[9.11,39.21],[8.88,38.88],[8.40,38.96],[8.46,39.75],[8.31,40.56],[8.13,40.73],[8.19,40.96],[8.83,40.93]];
+
+const MAP_W=700, MAP_H=870, LON0=6.2, LON1=19.0, LAT0=36.3, LAT1=47.5;
+const px = (lon)=> (lon-LON0)/(LON1-LON0)*MAP_W;
+const py = (lat)=> (LAT1-lat)/(LAT1-LAT0)*MAP_H;
+const P = (c)=> [px(c[0]), py(c[1])];
+
+function smoothPath(coords, close){
+  const p = coords.map(P);
+  if(p.length<2) return "";
+  if(p.length===2) return `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)} L ${p[1][0].toFixed(1)} ${p[1][1].toFixed(1)}`;
+  let d = `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`;
+  const pts = close ? [...p, p[0], p[1]] : p;
+  for(let i=0;i<pts.length-2;i++){
+    const p0=pts[Math.max(0,i-1)], p1=pts[i], p2=pts[i+1], p3=pts[Math.min(pts.length-1,i+2)];
+    const c1=[p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6];
+    const c2=[p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
+    d += ` C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)}, ${c2[0].toFixed(1)} ${c2[1].toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  if(close) d += " Z";
+  return d;
+}
+
+/* label side per city (default right) */
+const LBL_LEFT = new Set(["pisa","cinqueterre","sorrento","turin","palermo"]);
+
+/* ================= STATE ================= */
+const LS_KEY = "pathseeker.v1";
+const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
+const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-25", endDate:"2026-10-09",
+  arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false});
+let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
+let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ const s = JSON.parse(raw);
+      if(s && s.trip){ S = Object.assign(S, s); S.trip = Object.assign(DEFAULT_TRIP(), s.trip); } }
+  }catch(e){}
+}
+function persist(){
+  S.savedAt = new Date().toISOString();
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){}
+}
+function mutate(){ S.dirty = true; persist(); updateSyncUI(); }
+const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+/* date helpers */
+const pD = (s)=>{ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+const isoD = (d)=> `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const addD = (s,n)=>{ const d=pD(s); d.setDate(d.getDate()+n); return isoD(d); };
+const fmtShort = (s)=> pD(s).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+const fmtDow = (s)=> pD(s).toLocaleDateString("en-US",{weekday:"short"});
+function tripDays(){
+  const out=[]; if(!S.trip.startDate||!S.trip.endDate) return out;
+  let d=S.trip.startDate; let guard=0;
+  while(d<=S.trip.endDate && guard++<120){ out.push(d); d=addD(d,1); }
+  return out;
+}
+const sortedStops = ()=> [...S.trip.stops].sort((a,b)=> a.arrive<b.arrive?-1:1);
+function stopsOn(date){
+  return sortedStops().filter(st=> date>=st.arrive && date<=addD(st.arrive, Math.max(0,st.nights-1||0)));
+}
+const stopFor = (cityId)=> S.trip.stops.find(s=>s.cityId===cityId);
+const todayISO = ()=> isoD(new Date());
+const clampDay = (d)=> d<S.trip.startDate?S.trip.startDate:(d>S.trip.endDate?S.trip.endDate:d);
+const focusDayClamped = ()=> clampDay(UI.focusDay || todayISO());
+const lodgingFor = (cityId)=> S.trip.bookings.find(b=>(b.type==="hotel"||b.type==="airbnb") && b.cityId===cityId);
+
+/* typical fastest journey times between scouted cities (key: sorted "a|b") */
+const TT = {
+ "como|milan":"1h10 by train","milan|turin":"1h by train","milan|verona":"1h15 by train",
+ "milan|venice":"2h30 by train","bologna|milan":"1h05 by train","florence|milan":"1h50 by train",
+ "milan|rome":"3h10 by train","cinqueterre|milan":"3h by train","florence|turin":"3h by train",
+ "rome|turin":"4h by train","venice|verona":"1h10 by train","bologna|venice":"1h30 by train",
+ "florence|venice":"2h15 by train","rome|venice":"3h45 by train","bologna|verona":"50m by train",
+ "bologna|florence":"35m by train","bologna|rome":"2h by train","florence|pisa":"1h by train",
+ "florence|siena":"1h30 by bus","florence|rome":"1h30 by train","cinqueterre|florence":"2h30 by train",
+ "cinqueterre|pisa":"1h by train","cinqueterre|rome":"3h30 by train","orvieto|rome":"1h15 by train",
+ "florence|orvieto":"1h40 by train","naples|rome":"1h10 by train","naples|sorrento":"1h05 on the Circumvesuviana",
+ "amalfi|sorrento":"50m by bus or ferry","amalfi|naples":"2h via Sorrento, or ferry",
+ "matera|naples":"4h — the direct bus is easiest","lecce|rome":"5h30 by train","lecce|matera":"2h30 via Bari",
+ "naples|taormina":"5h30 by train — or fly to Catania","palermo|rome":"1h by air","naples|palermo":"1h by air",
+ "palermo|taormina":"4h by train","rome|taormina":"fly to Catania (1h15) + 1h",
+};
+const travelInfo=(a,b)=> TT[[a,b].sort().join("|")] || null;
+const schedLink=(a,b,d)=> "https://www.google.com/search?q="+encodeURIComponent(
+  `train ${CITY_BY_ID[a].n} to ${CITY_BY_ID[b].n} ${d||""}`.trim());
+const stripTags=(s)=> String(s||"").replace(/<[^>]+>/g,"");
+const money=(n)=> "€"+(Math.round(n*100)/100).toLocaleString("en-US",{minimumFractionDigits: n%1?2:0, maximumFractionDigits:2});
+function parseExpense(txt){
+  const m=String(txt).match(/^\s*€?\s*(\d+(?:[.,]\d{1,2})?)\s*(.*)$/);
+  if(!m) return null;
+  return {amount:parseFloat(m[1].replace(",",".")), label:(m[2]||"").trim()||"expense"};
+}
+
+/* ================= DOM helpers ================= */
+const $ = (sel)=> document.querySelector(sel);
+const $$ = (sel)=> [...document.querySelectorAll(sel)];
+const esc = (s)=> String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+let toastT;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* ================= MAP ================= */
+const SVGNS = "http://www.w3.org/2000/svg";
+let VB = {x:0,y:0,w:MAP_W,h:MAP_H};
+let mapSvg, routeEl, routeDoneEl, cityLayer;
+function panToCity(id){
+  const c=CITY_BY_ID[id]; if(!c||!mapSvg) return;
+  const [x,y]=P([c.lon,c.lat]);
+  VB.x=x-VB.w/2; VB.y=y-VB.h/2; applyVB();
+}
+
+function el(tag, attrs, parent){
+  const e=document.createElementNS(SVGNS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function buildMapInto(container, interactive){
+  const svg = el("svg", {viewBox:`0 0 ${MAP_W} ${MAP_H}`, preserveAspectRatio:"xMidYMid meet"});
+  el("rect",{x:-2000,y:-2000,width:5000,height:5000,fill:"var(--sea)"},svg);
+  const grat = el("g",{class:"graticule"},svg);
+  for(let lat=37;lat<=47;lat+=2) el("line",{x1:0,y1:py(lat),x2:MAP_W,y2:py(lat)},grat);
+  for(let lon=8;lon<=18;lon+=2) el("line",{x1:px(lon),y1:0,x2:px(lon),y2:MAP_H},grat);
+  el("path",{class:"land",d:smoothPath(MAINLAND,true)},svg);
+  el("path",{class:"land",d:smoothPath(SICILY,true)},svg);
+  el("path",{class:"land",d:smoothPath(SARDINIA,true)},svg);
+  if(interactive){
+    const t1=el("text",{class:"sea-label","font-size":"17",x:px(11.6),y:py(39.7),"text-anchor":"middle"},svg);
+    t1.textContent="MAR TIRRENO";
+    const ax=px(16.1), ay=py(43.1);
+    const t2=el("text",{class:"sea-label","font-size":"17",x:ax,y:ay,"text-anchor":"middle",
+      transform:`rotate(-52 ${ax} ${ay})`},svg);
+    t2.textContent="MARE ADRIATICO";
+    const t3=el("text",{class:"sea-label","font-size":"13",x:px(8.9),y:py(43.35),"text-anchor":"middle"},svg);
+    t3.textContent="MAR LIGURE";
+  }
+  container.appendChild(svg);
+  return svg;
+}
+function applyVB(){ mapSvg.setAttribute("viewBox", `${VB.x} ${VB.y} ${VB.w} ${VB.h}`); }
+function zoomAt(cx, cy, f){
+  const w=Math.min(Math.max(VB.w*f, 70), MAP_W*1.6);
+  const s=w/VB.w;
+  VB.x = cx-(cx-VB.x)*s; VB.y = cy-(cy-VB.y)*s; VB.w=w; VB.h=VB.h*s;
+  applyVB();
+}
+function clientToMap(x,y){
+  const r=mapSvg.getBoundingClientRect();
+  const scale=Math.max(VB.w/r.width, VB.h/r.height);
+  const ox=(r.width - VB.w/scale)/2, oy=(r.height - VB.h/scale)/2;
+  return [VB.x+(x-r.left-ox)*scale, VB.y+(y-r.top-oy)*scale];
+}
+function initMap(){
+  const stage=$("#map-stage");
+  mapSvg = buildMapInto(stage, true);
+  routeDoneEl = el("path",{class:"route-done",d:""},mapSvg);
+  routeEl = el("path",{class:"route",d:""},mapSvg);
+  cityLayer = el("g",{},mapSvg);
+  for(const c of CITIES){
+    const [x,y]=P([c.lon,c.lat]);
+    const g=el("g",{class:"city","data-city":c.id,transform:`translate(${x.toFixed(1)} ${y.toFixed(1)})`,
+      tabindex:"0",role:"button"},cityLayer);
+    g.setAttribute("aria-label", c.n);
+    el("circle",{class:"halo",r:10.5},g);
+    el("circle",{class:"dot",r:5.2},g);
+    const left = LBL_LEFT.has(c.id);
+    const t=el("text",{x:left?-9:9,y:4,"text-anchor":left?"end":"start"},g);
+    t.textContent=c.n;
+    g.addEventListener("click",(e)=>{ e.stopPropagation(); selectCity(c.id); });
+    g.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();selectCity(c.id);} });
+  }
+  stage.addEventListener("click",()=> selectCity(null));
+  /* pan & pinch via pointer events */
+  const ptrs=new Map(); let panStart=null, pinchStart=null, moved=false;
+  mapSvg.addEventListener("pointerdown",(e)=>{
+    mapSvg.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId,[e.clientX,e.clientY]); moved=false;
+    if(ptrs.size===1) panStart={x:e.clientX,y:e.clientY,vb:{...VB}};
+    if(ptrs.size===2){ const a=[...ptrs.values()]; pinchStart={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),vb:{...VB},
+      mid:clientToMap((a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2)}; panStart=null; }
+  });
+  mapSvg.addEventListener("pointermove",(e)=>{
+    if(!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptrs.size===1 && panStart){
+      const r=mapSvg.getBoundingClientRect();
+      const scale=Math.max(VB.w/r.width, VB.h/r.height);
+      const dx=(e.clientX-panStart.x)*scale, dy=(e.clientY-panStart.y)*scale;
+      if(Math.abs(e.clientX-panStart.x)+Math.abs(e.clientY-panStart.y)>4) moved=true;
+      VB.x=panStart.vb.x-dx; VB.y=panStart.vb.y-dy; applyVB(); hideHint();
+    }else if(ptrs.size===2 && pinchStart){
+      const a=[...ptrs.values()];
+      const d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);
+      const f=pinchStart.d/Math.max(1,d);
+      VB={...pinchStart.vb}; zoomAt(pinchStart.mid[0],pinchStart.mid[1],f); hideHint();
+    }
+  });
+  const up=(e)=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) pinchStart=null; if(ptrs.size<1) panStart=null; };
+  mapSvg.addEventListener("pointerup",up); mapSvg.addEventListener("pointercancel",up);
+  mapSvg.addEventListener("wheel",(e)=>{
+    e.preventDefault();
+    const [mx,my]=clientToMap(e.clientX,e.clientY);
+    zoomAt(mx,my, e.deltaY>0?1.12:0.89); hideHint();
+  },{passive:false});
+  $("#zoom-in").addEventListener("click",()=> zoomAt(VB.x+VB.w/2,VB.y+VB.h/2,0.7));
+  $("#zoom-out").addEventListener("click",()=> zoomAt(VB.x+VB.w/2,VB.y+VB.h/2,1.4));
+  $("#zoom-reset").addEventListener("click",()=>{ VB={x:0,y:0,w:MAP_W,h:MAP_H}; applyVB(); });
+  const stepDay=(n)=>{
+    UI.focusDay=clampDay(addD(focusDayClamped(),n));
+    updateMapMarks();
+    const c=(stopsOn(focusDayClamped())[0]||{}).cityId;
+    if(c) panToCity(c);
+  };
+  $("#ds-prev").addEventListener("click",()=>stepDay(-1));
+  $("#ds-next").addEventListener("click",()=>stepDay(1));
+  applyVB();
+  updateMapMarks();
+}
+function hideHint(){ if(!UI.hintShown){UI.hintShown=true; $("#map-hint").classList.add("hidden");} }
+function updateMapMarks(){
+  const f = S.trip.begun ? focusDayClamped() : null;
+  $$(".city").forEach(g=>{
+    const id=g.dataset.city;
+    const st=stopFor(id);
+    g.classList.toggle("in-trip", !!st);
+    g.classList.toggle("selected", UI.selected===id);
+    let visited=false, current=false;
+    if(f && st){
+      const out=addD(st.arrive, Math.max(0,st.nights-1||0));
+      current = f>=st.arrive && f<=out;
+      visited = f>out;
+    }
+    g.classList.toggle("visited", visited && !current);
+    g.classList.toggle("current", current);
+    const gw = id===S.trip.arrivalCity || id===S.trip.departureCity;
+    g.classList.toggle("gateway", gw);
+    let pl=g.querySelector(".plane");
+    if(gw && !pl){ pl=el("text",{class:"plane",y:-9,x:0,"text-anchor":"middle"},g); pl.textContent="✈"; }
+    if(!gw && pl) pl.remove();
+    /* photo count badge */
+    const n=PHOTOS.filter(p=>p.cityId===id).length;
+    let pb=g.querySelector(".pbadge");
+    if(n){
+      if(!pb){
+        pb=el("g",{class:"pbadge",transform:"translate(9 -9)"},g);
+        el("circle",{r:6.5},pb);
+        el("text",{y:3,"text-anchor":"middle"},pb);
+      }
+      pb.querySelector("text").textContent = n>9? "9+" : n;
+    }else if(pb) pb.remove();
+  });
+  /* route, split into traveled + ahead when trip mode is on */
+  const seq=[];
+  const push=(id,d)=>{ if(id && CITY_BY_ID[id] && (!seq.length || seq[seq.length-1].id!==id)) seq.push({id,d}); };
+  push(S.trip.arrivalCity, S.trip.startDate);
+  sortedStops().forEach(s=>push(s.cityId, s.arrive));
+  push(S.trip.departureCity, S.trip.endDate);
+  if(seq.length>1){
+    const pts=seq.map(s=>[CITY_BY_ID[s.id].lon, CITY_BY_ID[s.id].lat]);
+    if(f){
+      let k=0;
+      for(let i=0;i<seq.length;i++) if(seq[i].d<=f) k=i;
+      routeDoneEl.setAttribute("d", k>0? smoothPath(pts.slice(0,k+1),false) : "");
+      routeEl.setAttribute("d", k<seq.length-1? smoothPath(pts.slice(k),false) : "");
+    }else{
+      routeDoneEl.setAttribute("d","");
+      routeEl.setAttribute("d", smoothPath(pts,false));
+    }
+  }else{ routeEl.setAttribute("d",""); routeDoneEl.setAttribute("d",""); }
+  /* day scrubber */
+  const ds=$("#day-scrub");
+  if(S.trip.begun && S.trip.stops.length){
+    ds.classList.remove("hidden");
+    const t=focusDayClamped(), days=tripDays(), n=days.indexOf(t)+1;
+    const cid=(stopsOn(t)[0]||{}).cityId;
+    $("#ds-label").textContent=`Day ${n||"–"} · ${cid? CITY_BY_ID[cid].n : fmtShort(t)}`;
+    $("#ds-prev").disabled = t<=S.trip.startDate;
+    $("#ds-next").disabled = t>=S.trip.endDate;
+  }else ds.classList.add("hidden");
+}
+
+/* ================= CITY PANEL ================= */
+function selectCity(id){
+  UI.selected = (UI.selected===id)? null : id;
+  if(id===null) UI.selected=null;
+  renderPanel(); updateMapMarks();
+}
+const CAT_META = {sight:{t:"Sights & highlights"}, stay:{t:"Places to stay"}, eat:{t:"Eat & drink"}};
+function renderPanel(){
+  const p=$("#panel");
+  if(!UI.selected){ p.classList.add("hidden"); p.innerHTML=""; return; }
+  const c=CITY_BY_ID[UI.selected];
+  const st=stopFor(c.id);
+  const gwIn = c.id===S.trip.arrivalCity, gwOut = c.id===S.trip.departureCity;
+  let pills="";
+  if(st){
+    const out=addD(st.arrive, st.nights);
+    pills+=`<span class="pill accent">In your trip · ${fmtShort(st.arrive)} → ${fmtShort(out)} · ${st.nights} night${st.nights===1?"":"s"}</span>`;
+  }
+  if(gwIn) pills+=`<span class="pill">✈ You fly in here</span>`;
+  if(gwOut) pills+=`<span class="pill">✈ You fly out from here</span>`;
+  /* deep links to booking platforms, with the stop's dates prefilled when known */
+  let ci="", co="";
+  if(st){ ci=st.arrive; co=addD(st.arrive, Math.max(1,st.nights)); }
+  const enc=encodeURIComponent;
+  const airbnb=`https://www.airbnb.com/s/${enc(c.n+"--Italy")}/homes`+(ci?`?checkin=${ci}&checkout=${co}&adults=2`:"");
+  const vrbo=`https://www.vrbo.com/search?destination=${enc(c.n+", Italy")}`+(ci?`&startDate=${ci}&endDate=${co}&adults=2`:"");
+  const bcom=`https://www.booking.com/searchresults.html?ss=${enc(c.n+", Italy")}`+(ci?`&checkin=${ci}&checkout=${co}&group_adults=2`:"");
+  const bookBlock=`<div class="book-block">
+    <span class="label">Book your stay${ci?` · ${fmtShort(ci)} → ${fmtShort(co)}`:""}</span>
+    <div class="book-row">
+      <a class="btn btn-sm" href="${airbnb}" target="_blank" rel="noopener">Airbnb ↗</a>
+      <a class="btn btn-sm" href="${vrbo}" target="_blank" rel="noopener">Vrbo ↗</a>
+      <a class="btn btn-sm" href="${bcom}" target="_blank" rel="noopener">Booking ↗</a>
+    </div>
+    <p class="after">${ci?"Opens with your dates filled in, in your own logged-in account.":"Add this city to your trip first and these links carry your dates along."}
+      Booked one? <button type="button" id="panel-paste">Paste the confirmation</button> and it lands in your plan.</p>
+  </div>`;
+  const cats = UI.filter==="all" ? ["sight","stay","eat"] : [UI.filter];
+  let sections="";
+  for(const cat of cats){
+    const items=c.pois.filter(x=>x.c===cat);
+    if(!items.length) continue;
+    sections+=`<div class="poi-section"><span class="label">${CAT_META[cat].t}</span>`;
+    for(const it of items){
+      const idx=c.pois.indexOf(it);
+      sections+=`<div class="poi"><div class="poi-txt"><strong>${esc(it.n)}</strong><p>${esc(it.d)}</p></div>
+        <div class="poi-acts">
+          <a class="icon-btn" target="_blank" rel="noopener" href="${GM(it.n+", "+c.n)}" title="Open in Google Maps" aria-label="Open ${esc(it.n)} in Google Maps">◎</a>
+          <button class="icon-btn" data-addbk="${idx}" title="Save as booking" aria-label="Save ${esc(it.n)} as a booking">+</button>
+        </div></div>`;
+    }
+    sections+=`</div>`;
+  }
+  p.innerHTML = `
+    <button class="panel-close" id="panel-close" aria-label="Close">✕</button>
+    <div class="panel-head">
+      <div class="label region">${esc(c.region)}</div>
+      <h2 class="serif">${esc(c.n)}</h2>
+      <div class="tagline">${esc(c.tag)}</div>
+      <div class="panel-status">${pills}</div>
+    </div>
+    <div class="panel-body">
+      ${sections || '<p style="color:var(--ink-soft);margin-top:16px">Nothing in this filter here — try another.</p>'}
+      ${(UI.filter==="all"||UI.filter==="stay")? bookBlock : ""}
+      ${UI.filter==="all"? `<div class="poi-section"><span class="label">Your photos${photosFor(c.id).length?` (${photosFor(c.id).length})`:""}</span>
+        ${photoGrid(photosFor(c.id))}
+        <div style="margin-top:8px"><button class="btn btn-sm" id="panel-photo">+ Add photos of ${esc(c.n)}</button></div>
+      </div>`:""}
+      <div class="travel-note">${c.note}</div>
+    </div>
+    <div class="panel-cta">
+      ${st ? `<button class="btn" id="cta-dates">Edit dates</button>
+              <button class="btn btn-primary" id="cta-book">Add booking</button>`
+           : `<button class="btn btn-primary" id="cta-add">Add ${esc(c.n)} to my trip</button>`}
+    </div>`;
+  p.classList.remove("hidden");
+  $("#panel-close").addEventListener("click",()=>selectCity(null));
+  const pp=$("#panel-paste"); if(pp) pp.addEventListener("click",()=>openPasteDlg());
+  const pab=$("#panel-photo"); if(pab) pab.addEventListener("click",()=>promptPhoto({cityId:c.id, date:clampDay(todayISO())}, false));
+  wirePhotos(p);
+  const add=$("#cta-add"); if(add) add.addEventListener("click",()=>openStopDlg(c.id));
+  const ed=$("#cta-dates"); if(ed) ed.addEventListener("click",()=>openStopDlg(c.id));
+  const bk=$("#cta-book"); if(bk) bk.addEventListener("click",()=>openBookingDlg({cityId:c.id}));
+  $$("#panel [data-addbk]").forEach(b=>b.addEventListener("click",()=>{
+    const it=c.pois[+b.dataset.addbk];
+    const typeMap={stay:"hotel", eat:"restaurant", sight:"ticket"};
+    openBookingDlg({cityId:c.id, name:it.n, type:typeMap[it.c]||"other"});
+  }));
+}
+
+/* ================= STOP DIALOG ================= */
+let stopCity=null;
+function openStopDlg(cityId){
+  stopCity=cityId;
+  const c=CITY_BY_ID[cityId], st=stopFor(cityId);
+  $("#dlg-dates-title").textContent = st? `Dates in ${c.n}` : `Nights in ${c.n}`;
+  $("#dlg-dates-sub").textContent = `Trip window: ${fmtShort(S.trip.startDate)} – ${fmtShort(S.trip.endDate)}`;
+  let defArrive = S.trip.startDate;
+  const ss=sortedStops();
+  if(ss.length && !st){ const last=ss[ss.length-1]; defArrive=addD(last.arrive, Math.max(1,last.nights)); }
+  if(defArrive>S.trip.endDate) defArrive=S.trip.endDate;
+  $("#stop-arrive").value = st? st.arrive : defArrive;
+  $("#stop-nights").value = st? st.nights : 2;
+  $("#stop-remove").classList.toggle("hidden", !st);
+  $("#stop-ok").textContent = st? "Save dates" : "Add to trip";
+  updStopNote();
+  $("#dlg-dates").returnValue="";
+  $("#dlg-dates").showModal();
+}
+function updStopNote(){
+  const a=$("#stop-arrive").value, n=+$("#stop-nights").value||0;
+  if(!a){ $("#stop-note").textContent=""; return; }
+  let msg=`${fmtShort(a)} → check out ${fmtShort(addD(a,n))}`;
+  if(a<S.trip.startDate || addD(a,n)>S.trip.endDate) msg+=" · ⚠ outside your trip dates";
+  const clash=stopsOn(a).find(s=>s.cityId!==stopCity);
+  if(clash) msg+=` · overlaps ${CITY_BY_ID[clash.cityId].n}`;
+  $("#stop-note").textContent=msg;
+}
+function initStopDlg(){
+  $("#stop-arrive").addEventListener("input",updStopNote);
+  $("#stop-nights").addEventListener("input",updStopNote);
+  $("#dlg-dates").addEventListener("close",()=>{
+    const v=$("#dlg-dates").returnValue;
+    if(v==="ok"){
+      const a=$("#stop-arrive").value, n=Math.max(0,+$("#stop-nights").value||0);
+      if(!a){ toast("Pick an arrival date"); return; }
+      const st=stopFor(stopCity);
+      if(st){ st.arrive=a; st.nights=n; toast(`${CITY_BY_ID[stopCity].n} updated`); }
+      else { S.trip.stops.push({id:uid(), cityId:stopCity, arrive:a, nights:n}); toast(`${CITY_BY_ID[stopCity].n} added to your route`); }
+      mutate(); renderAll();
+    }else if(v==="remove"){
+      S.trip.stops=S.trip.stops.filter(s=>s.cityId!==stopCity);
+      toast(`${CITY_BY_ID[stopCity].n} removed`);
+      mutate(); renderAll();
+    }
+  });
+}
+
+/* ================= BOOKING DIALOG ================= */
+let bkEditing=null, bkType="hotel";
+function openBookingDlg(pre){
+  bkEditing = pre && pre.id ? pre : null;
+  const d = bkEditing || Object.assign({cityId:UI.selected||S.trip.arrivalCity, type:"hotel", name:"",
+    date:"", time:"", conf:"", price:"", link:"", notes:""}, pre||{});
+  bkType = d.type||"hotel";
+  $("#dlg-bk-title").textContent = bkEditing? "Edit booking" : "Add a booking";
+  const cs=$("#bk-city");
+  cs.innerHTML = CITIES.map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join("");
+  cs.value = d.cityId in CITY_BY_ID ? d.cityId : S.trip.arrivalCity;
+  if(!d.date){ const st=stopFor(cs.value); d.date = st? st.arrive : S.trip.startDate; }
+  $("#bk-name").value=d.name||""; $("#bk-date").value=d.date||"";
+  $("#bk-time").value=d.time||""; $("#bk-price").value=d.price||"";
+  $("#bk-conf").value=d.conf||""; $("#bk-link").value=d.link||"";
+  $("#bk-notes").value=d.notes||"";
+  $("#bk-remove").classList.toggle("hidden", !bkEditing);
+  renderBkTypes();
+  $("#dlg-booking").returnValue="";
+  $("#dlg-booking").showModal();
+}
+function renderBkTypes(){
+  $("#bk-types").innerHTML = BK_TYPES.map(t=>
+    `<button type="button" class="type-opt" data-t="${t.id}" aria-pressed="${t.id===bkType}">
+      <span class="type-dot" style="background:${t.c}"></span>${t.n}</button>`).join("");
+  $$("#bk-types .type-opt").forEach(b=>b.addEventListener("click",()=>{ bkType=b.dataset.t; renderBkTypes(); }));
+}
+function initBookingDlg(){
+  $("#bk-city").addEventListener("change",()=>{
+    const st=stopFor($("#bk-city").value);
+    if(st && !$("#bk-date").value) $("#bk-date").value=st.arrive;
+  });
+  $("#dlg-booking").addEventListener("close",()=>{
+    const v=$("#dlg-booking").returnValue;
+    if(v==="ok"){
+      const name=$("#bk-name").value.trim();
+      if(!name){ toast("Give the booking a name"); return; }
+      const data={ cityId:$("#bk-city").value, type:bkType, name,
+        date:$("#bk-date").value, time:$("#bk-time").value, conf:$("#bk-conf").value.trim(),
+        price:$("#bk-price").value.trim(), link:$("#bk-link").value.trim(), notes:$("#bk-notes").value.trim() };
+      if(bkEditing){ Object.assign(S.trip.bookings.find(b=>b.id===bkEditing.id)||{}, data); toast("Booking updated"); }
+      else { S.trip.bookings.push(Object.assign({id:uid()},data)); toast("Saved to your journal"); }
+      mutate(); renderAll();
+    }else if(v==="remove" && bkEditing){
+      S.trip.bookings=S.trip.bookings.filter(b=>b.id!==bkEditing.id);
+      toast("Booking deleted"); mutate(); renderAll();
+    }
+  });
+}
+const typeMeta=(id)=> BK_TYPES.find(t=>t.id===id)||BK_TYPES[5];
+function bkRow(b){
+  const t=typeMeta(b.type);
+  const meta=[b.time, b.conf?`#${b.conf}`:"", b.price].filter(Boolean).join(" · ");
+  return `<div class="bk" data-bk="${b.id}" role="button" tabindex="0" aria-label="Edit booking ${esc(b.name)}">
+    <span class="type-dot" style="background:${t.c}"></span>
+    <span class="bk-name">${esc(b.name)}</span>
+    <span class="bk-meta">${esc(t.n)}${meta?" · "+esc(meta):""}</span>
+    <span class="spacer"></span>
+    ${b.link?`<a href="${esc(b.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" aria-label="Open booking link">↗</a>`:""}
+  </div>`;
+}
+function wireBkRows(root){
+  root.querySelectorAll("[data-bk]").forEach(el=>{
+    const open=()=>{ const b=S.trip.bookings.find(x=>x.id===el.dataset.bk); if(b) openBookingDlg(b); };
+    el.addEventListener("click",open);
+    el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();} });
+  });
+}
+
+/* ================= ITINERARY ================= */
+function renderItin(){
+  const wrap=$("#itin-wrap");
+  const days=tripDays();
+  const nightsPlanned=S.trip.stops.reduce((a,s)=>a+(+s.nights||0),0);
+  const totalNights=Math.max(0,days.length-1);
+  let head=`<h2 class="view-title serif">Itinerary</h2>
+    <p class="view-sub">${fmtShort(S.trip.startDate)} – ${fmtShort(S.trip.endDate)} ·
+      fly into <b>${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")}</b>, out of <b>${esc(CITY_BY_ID[S.trip.departureCity]?.n||"—")}</b> ·
+      ${nightsPlanned}/${totalNights} nights placed</p>`;
+  if(!days.length){ wrap.innerHTML=head+`<div class="empty">Set your trip dates on the home screen first.</div>`; return; }
+  let rows="";
+  for(const d of days){
+    const here=stopsOn(d);
+    const arriving=sortedStops().filter(s=>s.arrive===d);
+    let cityHtml;
+    if(here.length){
+      cityHtml=here.map(s=>{
+        const arr=arriving.includes(s);
+        return `${arr?'<span class="transfer">→</span> ':''}<span class="name">${esc(CITY_BY_ID[s.cityId].n)}</span>`;
+      }).join('<span style="color:var(--ink-soft)"> · </span>');
+    }else{
+      cityHtml=`<span class="unassigned">unassigned — pick a city on the map</span>`;
+    }
+    if(d===S.trip.startDate) cityHtml=`<span class="transfer">✈</span> `+cityHtml;
+    if(d===S.trip.endDate) cityHtml+=` <span class="transfer">✈ fly home</span>`;
+    /* train chip on days you change cities */
+    let chips="";
+    const prevCity = d>S.trip.startDate ? (stopsOn(addD(d,-1))[0]||{}).cityId : null;
+    for(const s of arriving){
+      if(prevCity && prevCity!==s.cityId){
+        const tt=travelInfo(prevCity, s.cityId);
+        chips+=`<div><span class="transfer-chip">${esc(CITY_BY_ID[prevCity].n)} → ${esc(CITY_BY_ID[s.cityId].n)}
+          ${tt?` · ~${esc(tt)}`:""} · <a href="${schedLink(prevCity,s.cityId,d)}" target="_blank" rel="noopener">schedules ↗</a></span></div>`;
+      }
+    }
+    const bks=S.trip.bookings.filter(b=>b.date===d).map(bkRow).join("");
+    const cityForAdd = here.length? here[0].cityId : (UI.selected||S.trip.arrivalCity);
+    rows+=`<div class="day-row">
+      <div class="day-date"><div class="dow">${fmtDow(d)}</div><div class="num">${pD(d).getDate()}</div><div class="mon">${pD(d).toLocaleDateString("en-US",{month:"short"})}</div></div>
+      <div><div class="day-city">${cityHtml}</div>${chips}
+        ${bks?`<div class="day-items">${bks}</div>`:""}
+        <div class="day-add"><button class="btn btn-quiet btn-sm" data-addday="${d}" data-city="${cityForAdd}">+ Add booking</button></div>
+      </div></div>`;
+  }
+  wrap.innerHTML=head+rows;
+  wireBkRows(wrap);
+  wrap.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",()=>
+    openBookingDlg({date:b.dataset.addday, cityId:b.dataset.city})));
+}
+
+/* ================= JOURNAL ================= */
+function renderJournal(){
+  const wrap=$("#journal-wrap");
+  let head=`<h2 class="view-title serif">Travel journal</h2>
+    <p class="view-sub">Every booking and note, kept with your route.</p>
+    <div class="journal-form">
+      <span class="label">New note</span>
+      <div class="row">
+        <input type="date" id="jn-date" value="${esc(S.trip.startDate)}" min="${esc(S.trip.startDate)}" max="${esc(S.trip.endDate)}">
+        <input id="jn-text" placeholder="Best carbonara of my life at…">
+        <button class="btn btn-sm" id="jn-add">Add note</button>
+      </div>
+      <div><button class="btn btn-quiet btn-sm" id="jn-paste">Booked something on Airbnb / VRBO / a hotel site? Paste the confirmation →</button></div>
+    </div>`;
+  const spent=S.trip.expenses.reduce((a,e)=>a+e.amount,0);
+  head+=`<div class="journal-form">
+      <span class="label">Spending${spent?` — ${money(spent)} so far`:""}</span>
+      <div class="row">
+        <input type="date" id="ex-date" value="${esc(todayISO()>=S.trip.startDate&&todayISO()<=S.trip.endDate?todayISO():S.trip.startDate)}">
+        <input id="ex-text" placeholder="14.50 lunch in Trastevere" inputmode="decimal">
+        <button class="btn btn-sm" id="ex-add">Log it</button>
+      </div>
+      ${S.trip.expenses.length?[...S.trip.expenses].sort((a,b)=>a.date<b.date?1:-1).map(e=>
+        `<div class="exp-row"><span class="d">${fmtShort(e.date)}</span><span class="lbl">${esc(e.label)}</span>
+         <span class="amt">${money(e.amount)}</span>
+         <button class="btn-quiet" data-exdel="${e.id}" aria-label="Delete expense">✕</button></div>`).join("")
+      :""}
+    </div>`;
+  const seq=sortedStops();
+  let groups="";
+  const usedB=new Set(), usedJ=new Set();
+  for(const st of seq){
+    const c=CITY_BY_ID[st.cityId];
+    const bks=S.trip.bookings.filter(b=>b.cityId===st.cityId); bks.forEach(b=>usedB.add(b.id));
+    const notes=S.trip.journal.filter(j=>{
+      const inDates=j.date>=st.arrive && j.date<=addD(st.arrive,Math.max(0,st.nights-1||0));
+      return inDates && !usedJ.has(j.id);
+    });
+    notes.forEach(j=>usedJ.add(j.id));
+    groups+=`<div class="j-group">
+      <div class="j-city-head"><h3 class="serif">${esc(c.n)}</h3>
+        <span class="d">${fmtShort(st.arrive)} → ${fmtShort(addD(st.arrive,st.nights))}</span></div>
+      ${bks.length?`<div class="day-items">${bks.sort((a,b)=>a.date<b.date?-1:1).map(bkRow).join("")}</div>`:""}
+      ${notes.map(jNoteRow).join("")}
+      ${photoGrid(photosFor(st.cityId))}
+      ${!bks.length&&!notes.length&&!photosFor(st.cityId).length?`<div class="empty" style="padding:14px">Nothing booked here yet.</div>`:""}
+    </div>`;
+  }
+  const leftB=S.trip.bookings.filter(b=>!usedB.has(b.id));
+  const leftJ=S.trip.journal.filter(j=>!usedJ.has(j.id));
+  if(leftB.length||leftJ.length){
+    groups+=`<div class="j-group"><div class="j-city-head"><h3 class="serif">Elsewhere</h3></div>
+      ${leftB.length?`<div class="day-items">${leftB.map(bkRow).join("")}</div>`:""}
+      ${leftJ.map(jNoteRow).join("")}</div>`;
+  }
+  if(!groups) groups=`<div class="empty">Add cities on the map — bookings and notes will gather here, grouped by stop.</div>`;
+  wrap.innerHTML=head+groups;
+  wireBkRows(wrap);
+  wirePhotos(wrap);
+  $("#jn-paste").addEventListener("click",()=>openPasteDlg());
+  $("#jn-add").addEventListener("click",()=>{
+    const txt=$("#jn-text").value.trim();
+    if(!txt){ toast("Write something first"); return; }
+    S.trip.journal.push({id:uid(), date:$("#jn-date").value||S.trip.startDate, text:txt});
+    mutate(); renderJournal(); toast("Noted ✎");
+  });
+  $("#jn-text").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#jn-add").click();} });
+  $("#ex-add").addEventListener("click",()=>{
+    const p=parseExpense($("#ex-text").value);
+    if(!p){ toast("Start with the amount — e.g. 14.50 lunch"); return; }
+    S.trip.expenses.push(Object.assign({id:uid(), date:$("#ex-date").value||S.trip.startDate}, p));
+    mutate(); renderJournal(); toast(money(p.amount)+" logged");
+  });
+  $("#ex-text").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#ex-add").click();} });
+  wrap.querySelectorAll("[data-exdel]").forEach(b=>b.addEventListener("click",()=>{
+    S.trip.expenses=S.trip.expenses.filter(x=>x.id!==b.dataset.exdel);
+    mutate(); renderJournal();
+  }));
+  wrap.querySelectorAll("[data-jdel]").forEach(b=>b.addEventListener("click",()=>{
+    S.trip.journal=S.trip.journal.filter(j=>j.id!==b.dataset.jdel);
+    mutate(); renderJournal();
+  }));
+}
+const jNoteRow=(j)=>`<div class="j-note"><span class="jd">${fmtShort(j.date)}</span><span>${esc(j.text)}</span>
+  <span class="spacer"></span><button class="btn-quiet" data-jdel="${j.id}" aria-label="Delete note" style="font-size:15px">✕</button></div>`;
+
+/* ================= VIEWS / NAV ================= */
+function setView(v){
+  UI.view=v;
+  for(const k of ["map","itin","journal","today","translate"])
+    $("#view-"+k).classList.toggle("hidden", v!==k);
+  $$(".tab").forEach(t=>t.setAttribute("aria-selected", String(t.dataset.view===v)));
+  if(v==="itin") renderItin();
+  if(v==="journal") renderJournal();
+  if(v==="today") renderToday();
+  if(v==="translate" && !$("#tr-q")) renderTranslate();
+}
+function renderAll(){
+  updateMapMarks(); renderPanel(); updateTripChip();
+  if(UI.view==="itin") renderItin();
+  if(UI.view==="journal") renderJournal();
+  if(UI.view==="today") renderToday();
+}
+function updateTripChip(){
+  const n=S.trip.stops.length;
+  $("#trip-chip").innerHTML=`Italia · ${fmtShort(S.trip.startDate)} – ${fmtShort(S.trip.endDate)}<br>${n} stop${n===1?"":"s"} · ${S.trip.bookings.length} booking${S.trip.bookings.length===1?"":"s"}`;
+}
+function showApp(){
+  $("#home").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  if(!mapSvg) initMap();
+  const t=todayISO();
+  if(t>=S.trip.startDate && t<=S.trip.endDate) UI.view="today";
+  renderAll(); setView(UI.view);
+}
+function showHome(){
+  $("#app").classList.add("hidden");
+  $("#home").classList.remove("hidden");
+  renderHome();
+}
+function renderHome(){
+  $("#trip-start").value=S.trip.startDate; $("#trip-end").value=S.trip.endDate;
+  const opts=CITIES.map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join("");
+  $("#trip-in").innerHTML=opts; $("#trip-out").innerHTML=opts;
+  $("#trip-in").value=S.trip.arrivalCity; $("#trip-out").value=S.trip.departureCity;
+  const n=S.trip.stops.length;
+  if(n||S.trip.bookings.length){
+    $("#home-resume").classList.remove("hidden");
+    $("#home-resume-txt").textContent=`Trip in progress — ${n} stop${n===1?"":"s"}, ${S.trip.bookings.length} booking${S.trip.bookings.length===1?"":"s"}. Opening the map keeps everything.`;
+    $("#btn-start").textContent="Continue to the map";
+  }else{
+    $("#home-resume").classList.add("hidden");
+    $("#btn-start").textContent="Open the map";
+  }
+}
+
+/* ================= SYNC ================= */
+function updateSyncUI(){
+  const dot=$("#sync-dot"), lbl=$("#sync-label");
+  dot.classList.toggle("dirty", S.dirty);
+  if(!UI.mcpReady){ lbl.textContent = S.dirty? "Local · unsaved" : "Local"; }
+  else lbl.textContent = S.dirty? "Unsynced" : "Synced";
+}
+function syncMsg(txt, cls){
+  const m=$("#sync-msg"); m.textContent=txt;
+  m.className="sync-msg"+(cls?" "+cls:""); m.classList.remove("hidden");
+}
+const MCP_FIX = {
+  needs_reauth: "Google Drive needs to be reconnected — claude.ai Settings → Connectors.",
+  server_not_connected: "Add the Google Drive connector in claude.ai Settings → Connectors, then reload.",
+  selection_required: "Choose which Google Drive to use when claude.ai asks, then try again.",
+  not_granted: "Drive sync isn't granted in this view — use Export/Import below instead.",
+  capability_disabled: "Drive sync isn't available in this view — use Export/Import below instead.",
+  capability_removed: "Drive sync isn't available in this view — use Export/Import below instead.",
+};
+const errCopy=(e)=> (e && MCP_FIX[e.code]) || (e && e.code==="tool_error" ? ("Drive reported a problem: "+(e.message||"unknown error"))
+  : "Couldn't reach Google Drive just now — your trip is still safe on this device.");
+async function mcpInit(){
+  if(!window.claude || window.claude.mcp===undefined){ UI.mcpReady=false; updateSyncUI(); return; }
+  try{
+    const r=await window.claude.mcp.listTools();
+    const srv=(r.servers||[]).find(s=>s.tools && s.tools.some(t=>/search_files|create_file/.test(t.name))) || (r.servers||[])[0];
+    if(srv){ UI.mcpServer=srv.server; UI.mcpReady=true; }
+  }catch(e){ UI.mcpReady=false; }
+  updateSyncUI();
+  if(UI.mcpReady) checkDriveNewer();
+}
+const drivePayload=()=> JSON.stringify({app:"pathseeker", version:1, savedAt:new Date().toISOString(), trip:S.trip});
+async function driveSearchNewest(){
+  const r=await window.claude.mcp.callTool(UI.mcpServer,"search_files",
+    {query:"title contains 'pathseeker.json'", pageSize:10, excludeContentSnippets:true},{cache:false});
+  const files=(r.payload && r.payload.files)||[];
+  files.sort((a,b)=> (a.modifiedTime<b.modifiedTime?1:-1));
+  return files[0]||null;
+}
+async function driveDownload(fileId){
+  const r=await window.claude.mcp.callTool(UI.mcpServer,"download_file_content",{fileId},{cache:false});
+  const b64=r.payload && r.payload.content;
+  if(!b64) throw {code:"tool_error", message:"empty file"};
+  const txt=new TextDecoder().decode(Uint8Array.from(atob(b64),ch=>ch.charCodeAt(0)));
+  return JSON.parse(txt);
+}
+function adoptTrip(data, sourceLabel){
+  if(!data || data.app!=="pathseeker" || !data.trip){ throw new Error("not a Pathseeker file"); }
+  S.trip=Object.assign(DEFAULT_TRIP(), data.trip);
+  S.dirty=false; S.driveSavedAt=data.savedAt||null;
+  persist(); renderAll(); renderHome(); updateSyncUI();
+  toast("Trip loaded"+(sourceLabel?` from ${sourceLabel}`:""));
+}
+async function driveSave(){
+  const btn=$("#btn-drive-save"); btn.disabled=true; btn.textContent="Saving…";
+  try{
+    const payload=drivePayload();
+    await window.claude.mcp.callTool(UI.mcpServer,"create_file",
+      {title:DRIVE_FILE, textContent:payload, contentMimeType:"text/plain", disableConversionToGoogleType:true});
+    S.dirty=false; S.driveSavedAt=JSON.parse(payload).savedAt; persist(); updateSyncUI();
+    syncMsg("Saved to Google Drive. Open Pathseeker on your other device and hit Load.","ok");
+  }catch(e){ syncMsg(errCopy(e),"err"); }
+  btn.disabled=false; btn.textContent="Save";
+}
+async function driveLoad(){
+  const btn=$("#btn-drive-load"); btn.disabled=true; btn.textContent="Loading…";
+  try{
+    const f=await driveSearchNewest();
+    if(!f){ syncMsg("No Pathseeker save found in this Google Drive yet.","err"); }
+    else{
+      const data=await driveDownload(f.id);
+      adoptTrip(data,"Drive");
+      syncMsg(`Loaded snapshot from ${new Date(f.modifiedTime).toLocaleString()}.`,"ok");
+    }
+  }catch(e){ syncMsg(e && e.code? errCopy(e) : "That file couldn't be read as a Pathseeker trip.","err"); }
+  btn.disabled=false; btn.textContent="Load";
+}
+async function checkDriveNewer(){
+  try{
+    const f=await driveSearchNewest();
+    if(!f) return;
+    const local=S.savedAt||"1970";
+    if(f.modifiedTime > local && (S.trip.stops.length||S.trip.bookings.length||true)){
+      const bn=document.createElement("div");
+      bn.className="drive-banner";
+      bn.innerHTML=`<span style="flex:1">A newer Pathseeker save exists on Drive (${new Date(f.modifiedTime).toLocaleString()}). Load it here?</span>
+        <button class="btn" id="bn-load">Load</button><button class="btn btn-quiet" id="bn-x">Not now</button>`;
+      document.body.appendChild(bn);
+      bn.querySelector("#bn-x").addEventListener("click",()=>bn.remove());
+      bn.querySelector("#bn-load").addEventListener("click",async()=>{
+        try{ adoptTrip(await driveDownload(f.id),"Drive"); }catch(e){ toast("Couldn't load that snapshot"); }
+        bn.remove();
+      });
+    }
+  }catch(e){ /* quiet — banner is best-effort */ }
+}
+async function exportFile(){
+  const data=drivePayload();
+  if(window.claude && window.claude.downloads){
+    try{ await window.claude.downloads.save({filename:"pathseeker-italy.json", data}); syncMsg("Backup exported.","ok"); return; }
+    catch(e){
+      if(e && e.code==="declined") return;
+      if(e && e.code==="rate_limited"){ syncMsg("A download prompt is already open — try again in a moment.","err"); return; }
+    }
+  }
+  try{
+    const url=URL.createObjectURL(new Blob([data],{type:"application/json"}));
+    const a=document.createElement("a"); a.href=url; a.download="pathseeker-italy.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }catch(e){ syncMsg("Export isn't available here — use Save to Drive instead.","err"); }
+}
+function initSync(){
+  $("#btn-sync").addEventListener("click",()=>{
+    $("#sync-msg").classList.add("hidden");
+    const ready=UI.mcpReady;
+    $("#btn-drive-save").disabled=!ready; $("#btn-drive-load").disabled=!ready;
+    if(!ready){
+      $("#drive-save-sub").textContent="Available when Pathseeker is opened on claude.ai with the Google Drive connector.";
+      $("#drive-load-sub").textContent="Until then, Export/Import files below keep devices in step.";
+    }
+    const line=[];
+    if(S.savedAt) line.push(`Saved on this device ${new Date(S.savedAt).toLocaleString()}`);
+    if(S.driveSavedAt) line.push(`last Drive snapshot ${new Date(S.driveSavedAt).toLocaleString()}`);
+    $("#sync-status-line").textContent=line.join(" · ");
+    $("#dlg-sync").showModal();
+  });
+  $("#btn-drive-save").addEventListener("click",driveSave);
+  $("#btn-drive-load").addEventListener("click",driveLoad);
+  $("#btn-export").addEventListener("click",exportFile);
+  $("#btn-tripsheet").addEventListener("click",exportTripSheet);
+  $("#btn-import").addEventListener("click",()=>$("#import-file").click());
+  $("#import-file").addEventListener("change",(e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ try{ adoptTrip(JSON.parse(rd.result),"file"); syncMsg("Backup imported.","ok"); }
+      catch(err){ syncMsg("That file couldn't be read as a Pathseeker trip.","err"); } };
+    rd.readAsText(f); e.target.value="";
+  });
+}
+
+/* ================= PHOTOS (device-local, IndexedDB) ================= */
+let PHOTOS=[], PHOTO_OK=true, photoCtx=null, phOpen=null;
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open("pathseeker",1);
+    r.onupgradeneeded=()=>{ r.result.createObjectStore("photos",{keyPath:"id"}); };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+async function photoLoadAll(){
+  try{
+    const db=await idbOpen();
+    PHOTOS=await new Promise((res,rej)=>{
+      const q=db.transaction("photos").objectStore("photos").getAll();
+      q.onsuccess=()=>res(q.result||[]); q.onerror=()=>rej(q.error);
+    });
+    PHOTOS.sort((a,b)=> a.date<b.date?-1:1);
+  }catch(e){ PHOTO_OK=false; }
+}
+async function photoPut(p){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const q=db.transaction("photos","readwrite").objectStore("photos").put(p);
+    q.onsuccess=res; q.onerror=()=>rej(q.error);
+  });
+}
+async function photoRemove(id){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const q=db.transaction("photos","readwrite").objectStore("photos").delete(id);
+    q.onsuccess=res; q.onerror=()=>rej(q.error);
+  });
+}
+function compressImage(file){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1600, r=Math.min(1, max/Math.max(img.width,img.height));
+      const cv=document.createElement("canvas");
+      cv.width=Math.max(1,Math.round(img.width*r)); cv.height=Math.max(1,Math.round(img.height*r));
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(img.src);
+      res(cv.toDataURL("image/jpeg",0.8));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(img.src); rej(new Error("unreadable image")); };
+    img.src=URL.createObjectURL(file);
+  });
+}
+async function addPhotos(files, ctx){
+  if(!PHOTO_OK){ toast("Photos aren't available in this browser view"); return; }
+  let n=0;
+  for(const f of files){
+    try{
+      const src=await compressImage(f);
+      const p={id:uid(), cityId:ctx.cityId||UI.selected||S.trip.arrivalCity,
+        date:ctx.date||clampDay(todayISO()), caption:"", src};
+      await photoPut(p); PHOTOS.push(p); n++;
+    }catch(e){}
+  }
+  if(n) toast(`${n} photo${n===1?"":"s"} pinned to ${CITY_BY_ID[ctx.cityId]?.n||"your trip"}`);
+  else toast("Couldn't read that image");
+  renderAll();
+}
+const photosFor=(cityId)=> PHOTOS.filter(p=>p.cityId===cityId);
+const photoGrid=(list)=> list.length?
+  `<div class="photo-grid">${list.map(p=>
+    `<img class="photo-thumb" data-photo="${p.id}" src="${p.src}" alt="${esc(p.caption||"trip photo")}" loading="lazy">`).join("")}</div>` : "";
+function wirePhotos(root){
+  root.querySelectorAll("[data-photo]").forEach(im=>
+    im.addEventListener("click",()=>openPhoto(im.dataset.photo)));
+}
+function openPhoto(id){
+  const p=PHOTOS.find(x=>x.id===id); if(!p) return;
+  phOpen=p;
+  $("#ph-img").src=p.src;
+  $("#ph-meta").textContent=`${CITY_BY_ID[p.cityId]?.n||"Somewhere"} · ${fmtShort(p.date)}`;
+  $("#ph-cap").value=p.caption||"";
+  $("#dlg-photo").returnValue="";
+  $("#dlg-photo").showModal();
+}
+function promptPhoto(ctx, camera){
+  photoCtx=ctx;
+  $(camera? "#photo-take" : "#photo-import").click();
+}
+function initPhotos(){
+  $("#dlg-photo").addEventListener("close", async ()=>{
+    if(!phOpen) return;
+    if($("#dlg-photo").returnValue==="remove"){
+      try{ await photoRemove(phOpen.id); }catch(e){}
+      PHOTOS=PHOTOS.filter(x=>x.id!==phOpen.id);
+      toast("Photo deleted"); renderAll();
+    }else{
+      const cap=$("#ph-cap").value.trim();
+      if(cap!==(phOpen.caption||"")){ phOpen.caption=cap; try{ await photoPut(phOpen); }catch(e){} }
+    }
+    phOpen=null;
+  });
+  const onPick=(e)=>{
+    if(e.target.files.length && photoCtx) addPhotos([...e.target.files], photoCtx);
+    e.target.value="";
+  };
+  $("#photo-take").addEventListener("change",onPick);
+  $("#photo-import").addEventListener("change",onPick);
+}
+
+/* ================= TODAY ================= */
+const ESSENTIALS_HTML = `<details class="ess"><summary>Italy essentials — read once, thank yourself later</summary>
+  <h4>Trains</h4>
+  <ul>
+    <li><b>Validate regional (paper) tickets</b> in the small green/white machines before boarding — inspectors fine on the spot. Frecciarossa/Italo tickets have seat reservations and need no validation.</li>
+    <li>Strikes (<b>sciopero</b>) are announced days ahead — on travel days, check the news that morning.</li>
+    <li>Buy fast-train tickets a few days early for better prices; regionals cost the same anytime.</li>
+  </ul>
+  <h4>Coffee &amp; meals</h4>
+  <ul>
+    <li>Espresso <b>standing at the bar</b> is the cheap, local way; table service can cost double.</li>
+    <li>Cappuccino is a <b>morning</b> drink — after lunch, order espresso.</li>
+    <li><b>Coperto</b> (€1–3 per person cover charge) is normal, not a scam. Tipping isn't expected — round up for great service.</li>
+    <li>Lunch ~12:30–14:30, dinner from ~19:30 (later in the south). Kitchens really do close between.</li>
+  </ul>
+  <h4>Money</h4>
+  <ul>
+    <li>Cards work almost everywhere; keep ~€50 cash for small bars, markets, and church entries.</li>
+    <li>Use bank ATMs (<b>bancomat</b>); skip the blue Euronet machines. Always choose to be charged in EUR, never USD.</li>
+  </ul>
+  <h4>Phrases</h4>
+  <ul>
+    <li><b>Buongiorno / Buonasera</b> — hello (day / evening) · <b>Grazie</b> — thank you · <b>Per favore</b> — please</li>
+    <li><b>Il conto, per favore</b> — the check, please · <b>Dov'è…?</b> — where is…? · <b>Un tavolo per due</b> — a table for two</li>
+    <li><b>Parla inglese?</b> — do you speak English? · <b>Posso avere…?</b> — can I have…?</li>
+  </ul>
+  <h4>Good to know</h4>
+  <ul>
+    <li>Emergency number: <b>112</b> (EU-wide). Pharmacies (green cross) handle minor stuff well.</li>
+    <li>Rome's street fountains (<b>nasoni</b>) are free drinking water — carry a bottle.</li>
+    <li>Don't drive into old-town <b>ZTL</b> camera zones — automatic fines follow you home.</li>
+    <li>Many shops close ~13:00–16:00 in smaller towns, and on Sundays.</li>
+    <li>Late Sept/early Oct: north 12–22°C with some rain, Rome ~15–25°C, the south ~17–26°C and still swimmable.</li>
+  </ul>
+</details>`;
+
+function beginTrip(){
+  S.trip.begun=true;
+  UI.focusDay=S.trip.startDate;
+  mutate();
+  setView("today");
+  if(mapSvg){ updateMapMarks(); }
+  toast("Andiamo — Day 1. Step through your route with ‹ ›");
+}
+function renderToday(){
+  const wrap=$("#today-wrap");
+  const real=todayISO(), days=tripDays();
+  if(UI.focusDay===null){
+    if(real<S.trip.startDate && !S.trip.begun){
+      const n=Math.round((pD(S.trip.startDate)-pD(real))/864e5);
+      wrap.innerHTML=`<h2 class="view-title serif">Today</h2>
+        <p class="view-sub">Nothing to do yet but dream.</p>
+        <div class="t-card" style="text-align:center;padding:34px 20px">
+          <div class="t-count serif">${n}</div>
+          <div class="label" style="margin-top:6px">days until Italy</div>
+          <p style="margin-top:10px">${fmtShort(S.trip.startDate)}: fly into ${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")} ·
+          ${S.trip.stops.length} stop${S.trip.stops.length===1?"":"s"} planned · ${S.trip.bookings.length} booking${S.trip.bookings.length===1?"":"s"} made</p>
+          ${S.trip.stops.length?
+            `<div style="margin-top:18px"><button class="btn btn-primary" id="td-begin">Begin your trip — walk it day by day</button></div>`
+            :`<p style="margin-top:12px">Add cities on the map first, then walk the whole route from here.</p>`}
+        </div>${ESSENTIALS_HTML}`;
+      const bb=$("#td-begin"); if(bb) bb.addEventListener("click",beginTrip);
+      return;
+    }
+    if(real>S.trip.endDate){
+      const spent=S.trip.expenses.reduce((a,e)=>a+e.amount,0);
+      wrap.innerHTML=`<h2 class="view-title serif">Today</h2>
+        <p class="view-sub">The trip is done — che bello.</p>
+        <div class="t-card"><span class="label">Afterglow</span>
+          <p>${S.trip.stops.length} cities · ${S.trip.bookings.length} bookings · ${S.trip.journal.length} journal notes · ${PHOTOS.length} photo${PHOTOS.length===1?"":"s"}${spent?` · ${money(spent)} logged`:""}.
+          Your journal keeps the whole story.</p>
+          <div class="t-acts"><button class="btn btn-sm" id="td-to-journal">Open journal</button>
+          <button class="btn btn-sm" id="td-relive">Relive it day by day</button></div></div>`;
+      $("#td-to-journal").addEventListener("click",()=>setView("journal"));
+      $("#td-relive").addEventListener("click",()=>{ UI.focusDay=S.trip.startDate; renderToday(); if(mapSvg) updateMapMarks(); });
+      return;
+    }
+    UI.focusDay=clampDay(real);
+  }
+  const t=UI.focusDay;
+  const isToday = t===real;
+  const dayN=days.indexOf(t)+1;
+  const here=stopsOn(t), city=here[0]? CITY_BY_ID[here[0].cityId] : null;
+  /* transfer banner */
+  let transfer="";
+  const prevCity = t>S.trip.startDate ? (stopsOn(addD(t,-1))[0]||{}).cityId : null;
+  const arrivingToday = here.find(s=>s.arrive===t);
+  if(arrivingToday && prevCity && prevCity!==arrivingToday.cityId){
+    const tt=travelInfo(prevCity, arrivingToday.cityId);
+    transfer=`<div class="t-transfer">Travel day: ${esc(CITY_BY_ID[prevCity].n)} → ${esc(CITY_BY_ID[arrivingToday.cityId].n)}
+      ${tt?`· ~${esc(tt)}`:""} <a href="${schedLink(prevCity,arrivingToday.cityId,t)}" target="_blank" rel="noopener">schedules ↗</a></div>`;
+  }
+  /* tomorrow */
+  const tm=addD(t,1);
+  let tomorrow="";
+  if(tm<=S.trip.endDate){
+    const tmStops=stopsOn(tm), tmArr=tmStops.find(s=>s.arrive===tm);
+    const tmCity=tmStops[0]? CITY_BY_ID[tmStops[0].cityId].n : "unassigned";
+    if(tmArr && city && tmArr.cityId!==city.id){
+      const tt=travelInfo(city.id, tmArr.cityId);
+      tomorrow=`<b>You change cities:</b> checkout, then ${esc(city.n)} → ${esc(CITY_BY_ID[tmArr.cityId].n)}${tt?` (~${esc(tt)})`:""}.`;
+    }else tomorrow=`${esc(tmCity)}${S.trip.bookings.filter(b=>b.date===tm).length?` · ${S.trip.bookings.filter(b=>b.date===tm).length} booking(s)`:""}`;
+    if(tm===S.trip.endDate) tomorrow+=" · ✈ fly home from "+esc(CITY_BY_ID[S.trip.departureCity]?.n||"—");
+  }else tomorrow="✈ Fly home from "+esc(CITY_BY_ID[S.trip.departureCity]?.n||"—");
+  /* tonight's lodging */
+  const lodging = city? lodgingFor(city.id) : null;
+  const dirLink=(q)=>"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(q+", Italy");
+  const lodgingCard = city? `<div class="t-card"><span class="label">Tonight</span>
+    ${lodging? `<div class="big">${esc(lodging.name)}</div>
+      <p>${lodging.conf?`Conf <span class="mono">#${esc(lodging.conf)}</span> · `:""}${esc(city.n)}${lodging.notes?` · ${esc(lodging.notes)}`:""}</p>
+      <div class="t-acts"><a class="btn btn-sm" href="${dirLink(lodging.name+", "+city.n)}" target="_blank" rel="noopener">Directions ↗</a>
+      ${lodging.link?`<a class="btn btn-sm" href="${esc(lodging.link)}" target="_blank" rel="noopener">Booking ↗</a>`:""}</div>`
+    : `<div class="big">No lodging saved for ${esc(city.n)}</div>
+      <p>Add it so tonight's address is one tap away.</p>
+      <div class="t-acts"><button class="btn btn-sm" id="td-add-lodging">+ Add lodging</button></div>`}
+  </div>` : "";
+  /* today's bookings */
+  const todays=S.trip.bookings.filter(b=>b.date===t)
+    .sort((a,b)=> (a.time||"99")<(b.time||"99")?-1:1);
+  const cityCard = `<div class="t-card"><span class="label">Where you are</span>
+    <div class="big serif" style="font-size:24px">${city? esc(city.n) : "Unassigned day"}</div>
+    <p>${city? esc(city.tag) : "Pick a city on the map for today."}</p>
+    <div class="t-acts"><button class="btn btn-sm" id="td-to-map">Open on the map</button></div></div>`;
+  const spentToday=S.trip.expenses.filter(e=>e.date===t).reduce((a,e)=>a+e.amount,0);
+  wrap.innerHTML=`<h2 class="view-title serif">${isToday? "Today" : `Day ${dayN}`}</h2>
+    <div class="day-nav">
+      <button class="arrow" id="dn-prev" ${t<=S.trip.startDate?"disabled":""} aria-label="Previous day">‹</button>
+      <span class="day-sub">Day ${dayN} of ${days.length} · ${fmtDow(t)} ${fmtShort(t)}</span>
+      <button class="arrow" id="dn-next" ${t>=S.trip.endDate?"disabled":""} aria-label="Next day">›</button>
+      ${!isToday && real>=S.trip.startDate && real<=S.trip.endDate?
+        `<button class="btn btn-quiet btn-sm" id="dn-today">Jump to today</button>`:""}
+      ${!S.trip.begun && S.trip.stops.length? `<button class="btn btn-sm" id="td-begin2">Begin trip mode</button>`:""}
+    </div>
+    ${transfer}
+    <div class="t-cards">${cityCard}${lodgingCard}
+      <div class="t-card"><span class="label">Tomorrow</span><p style="font-size:14px;margin-top:2px">${tomorrow}</p></div>
+    </div>
+    <div class="poi-section"><span class="label">On the books today</span></div>
+    ${todays.length?`<div class="day-items" style="margin-top:8px">${todays.map(bkRow).join("")}</div>`
+      :`<div class="empty" style="margin-top:8px">Nothing scheduled — wander well.</div>`}
+    <div class="poi-section" style="margin-top:20px"><span class="label">Photos this day</span></div>
+    ${photoGrid(PHOTOS.filter(p=>p.date===t)) || `<p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0">Nothing pinned to this day yet.</p>`}
+    <div class="quick-row">
+      <button class="btn btn-sm" id="td-photo-take">Take a photo</button>
+      <button class="btn btn-sm" id="td-photo-add">Import photos</button>
+    </div>
+    <div class="quick-row">
+      <button class="btn btn-sm" id="td-add-bk">+ Booking</button>
+      <input id="td-note" placeholder="Journal this moment…">
+      <button class="btn btn-sm" id="td-note-add">Note</button>
+    </div>
+    <div class="quick-row">
+      <input id="td-exp" placeholder="Log spending — e.g. 14.50 lunch" inputmode="decimal">
+      <button class="btn btn-sm" id="td-exp-add">Expense</button>
+      <span style="font-size:12.5px;color:var(--ink-soft)">${spentToday?`today: ${money(spentToday)}`:""}</span>
+    </div>
+    <div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button></div>
+    ${ESSENTIALS_HTML}`;
+  wireBkRows(wrap);
+  $("#td-to-map").addEventListener("click",()=>{ setView("map"); if(city) selectCity(city.id); });
+  const al=$("#td-add-lodging"); if(al) al.addEventListener("click",()=>openBookingDlg({cityId:city.id, type:"hotel", date:t}));
+  $("#td-add-bk").addEventListener("click",()=>openBookingDlg({date:t, cityId:city?city.id:undefined}));
+  $("#td-note-add").addEventListener("click",()=>{
+    const txt=$("#td-note").value.trim(); if(!txt){ toast("Write something first"); return; }
+    S.trip.journal.push({id:uid(), date:t, text:txt}); mutate(); renderToday(); toast("Noted ✎");
+  });
+  $("#td-exp-add").addEventListener("click",()=>{
+    const p=parseExpense($("#td-exp").value);
+    if(!p){ toast("Start with the amount — e.g. 14.50 lunch"); return; }
+    S.trip.expenses.push(Object.assign({id:uid(), date:t}, p)); mutate(); renderToday(); toast(money(p.amount)+" logged");
+  });
+  $("#td-sheet").addEventListener("click",exportTripSheet);
+  $("#td-note").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-note-add").click();} });
+  $("#td-exp").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-exp-add").click();} });
+  const nav=(d)=>{ UI.focusDay=clampDay(d); renderToday(); if(mapSvg) updateMapMarks(); };
+  const pv=$("#dn-prev"); if(pv && !pv.disabled) pv.addEventListener("click",()=>nav(addD(t,-1)));
+  const nx=$("#dn-next"); if(nx && !nx.disabled) nx.addEventListener("click",()=>nav(addD(t,1)));
+  const jt=$("#dn-today"); if(jt) jt.addEventListener("click",()=>nav(real));
+  const bg2=$("#td-begin2"); if(bg2) bg2.addEventListener("click",beginTrip);
+  const phCity = city? city.id : S.trip.arrivalCity;
+  $("#td-photo-take").addEventListener("click",()=>promptPhoto({cityId:phCity, date:t}, true));
+  $("#td-photo-add").addEventListener("click",()=>promptPhoto({cityId:phCity, date:t}, false));
+  wirePhotos(wrap);
+}
+
+/* ================= TRIP SHEET ================= */
+function buildTripSheet(){
+  const L=[];
+  L.push("PATHSEEKER — ITALY TRIP SHEET");
+  L.push(`${fmtShort(S.trip.startDate)} – ${fmtShort(S.trip.endDate)}, ${S.trip.startDate.slice(0,4)}`);
+  L.push(`Fly into ${CITY_BY_ID[S.trip.arrivalCity]?.n||"—"} · out of ${CITY_BY_ID[S.trip.departureCity]?.n||"—"}`);
+  L.push("Emergency 112 (EU-wide) · Validate regional train tickets before boarding");
+  L.push("=".repeat(46));
+  const route=sortedStops().map(s=>`${CITY_BY_ID[s.cityId].n} (${fmtShort(s.arrive)}, ${s.nights}n)`).join(" → ");
+  if(route){ L.push("ROUTE: "+route); L.push("=".repeat(46)); }
+  for(const d of tripDays()){
+    const here=stopsOn(d);
+    const cityNames=here.map(s=>CITY_BY_ID[s.cityId].n).join(" / ")||"(unassigned)";
+    L.push("");
+    L.push(`${fmtDow(d).toUpperCase()} ${fmtShort(d).toUpperCase()} — ${cityNames.toUpperCase()}${d===S.trip.startDate?" (ARRIVE)":""}${d===S.trip.endDate?" (FLY HOME)":""}`);
+    for(const s of here.filter(s=>s.arrive===d)){
+      const prev=(stopsOn(addD(d,-1))[0]||{}).cityId;
+      if(prev && prev!==s.cityId){
+        const tt=travelInfo(prev,s.cityId);
+        L.push(`  TRAVEL: ${CITY_BY_ID[prev].n} -> ${CITY_BY_ID[s.cityId].n}${tt?` (~${tt})`:""}`);
+      }
+      const lg=lodgingFor(s.cityId);
+      if(lg) L.push(`  CHECK-IN: ${lg.name}${lg.conf?` · conf #${lg.conf}`:""}${lg.price?` · ${lg.price}`:""}${lg.notes?` · ${lg.notes}`:""}`);
+      const cn=stripTags(CITY_BY_ID[s.cityId].note).replace(/\s+/g," ").trim();
+      if(cn) L.push(`  NOTE: ${cn}`);
+    }
+    for(const b of S.trip.bookings.filter(b=>b.date===d).sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1)){
+      L.push(`  ${b.time||"--:--"} ${b.name} [${typeMeta(b.type).n}]${b.conf?` · conf #${b.conf}`:""}${b.price?` · ${b.price}`:""}${b.notes?` · ${b.notes}`:""}`);
+    }
+    for(const j of S.trip.journal.filter(j=>j.date===d)) L.push(`  ✎ ${j.text}`);
+  }
+  const spent=S.trip.expenses.reduce((a,e)=>a+e.amount,0);
+  if(spent){ L.push(""); L.push(`SPENDING LOGGED: ${money(spent)}`); }
+  L.push(""); L.push(`Generated ${new Date().toLocaleString()} · Pathseeker`);
+  return L.join("\n");
+}
+async function exportTripSheet(){
+  const data=buildTripSheet();
+  if(window.claude && window.claude.downloads){
+    try{ await window.claude.downloads.save({filename:"pathseeker-tripsheet.txt", data}); toast("Trip sheet saved"); return; }
+    catch(e){
+      if(e && e.code==="declined") return;
+      if(e && e.code==="rate_limited"){ toast("A download prompt is already open — try again shortly"); return; }
+    }
+  }
+  try{
+    const url=URL.createObjectURL(new Blob([data],{type:"text/plain"}));
+    const a=document.createElement("a"); a.href=url; a.download="pathseeker-tripsheet.txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }catch(e){ toast("Couldn't export here"); }
+}
+
+/* ================= TRANSLATE ================= */
+const PHRASES=[
+{c:"Basics",list:[
+ ["Hello / good morning","Buongiorno"],["Good evening","Buonasera"],["Goodbye","Arrivederci"],
+ ["Please","Per favore"],["Thank you so much","Grazie mille"],["You're welcome","Prego"],
+ ["Excuse me (to get attention)","Scusi"],["Excuse me (squeezing past)","Permesso"],
+ ["Yes / No","Sì / No"],["Do you speak English?","Parla inglese?"],
+ ["I don't understand","Non capisco"],["I only speak a little Italian","Parlo solo un po' di italiano"],
+ ["Where is the bathroom?","Dov'è il bagno?"],["How much does it cost?","Quanto costa?"],
+ ["Can you help me?","Può aiutarmi?"],["No problem / all good","Va bene"]]},
+{c:"Getting around",list:[
+ ["Where is the train station?","Dov'è la stazione?"],
+ ["A ticket to Rome, please","Un biglietto per Roma, per favore"],
+ ["Which platform?","Quale binario?"],["Is this the train to…?","È questo il treno per…?"],
+ ["What time does it leave?","A che ora parte?"],
+ ["Where do I validate the ticket?","Dove si convalida il biglietto?"],
+ ["A taxi, please","Un taxi, per favore"],["To this address, please","A questo indirizzo, per favore"],
+ ["Stop here, please","Si fermi qui, per favore"],["Is it far on foot?","È lontano a piedi?"],
+ ["Left / right / straight","Sinistra / destra / dritto"]]},
+{c:"Hotel & lodging",list:[
+ ["I have a reservation","Ho una prenotazione"],["Under the name…","A nome…"],
+ ["What time is checkout?","A che ora è il check-out?"],
+ ["Could you keep our luggage?","Può tenere i bagagli?"],
+ ["The Wi-Fi password, please","La password del Wi-Fi, per favore"],
+ ["The key, please","La chiave, per favore"],["Air conditioning","Aria condizionata"],
+ ["Could you call us a taxi?","Può chiamarci un taxi?"]]},
+{c:"Restaurant",list:[
+ ["A table for two, please","Un tavolo per due, per favore"],
+ ["Do you have an English menu?","Avete un menù in inglese?"],
+ ["What do you recommend?","Cosa consiglia?"],["I'll have this","Prendo questo"],
+ ["Still water / sparkling","Acqua naturale / frizzante"],
+ ["A glass of house wine","Un bicchiere di vino della casa"],
+ ["The check, please","Il conto, per favore"],["Can I pay by card?","Posso pagare con la carta?"],
+ ["I'm allergic to…","Sono allergico a…"],["…nuts / gluten / shellfish","…noci / glutine / frutti di mare"],
+ ["Delicious!","Buonissimo!"],["A little more, please","Ancora un po', per favore"]]},
+{c:"Shopping & paying",list:[
+ ["How much is this?","Quanto costa questo?"],["Too expensive","Troppo caro"],
+ ["Can I try it on?","Posso provarlo?"],["Just looking, thanks","Sto solo guardando, grazie"],
+ ["The receipt, please","Lo scontrino, per favore"],["Do you take cards?","Accettate carte?"]]},
+{c:"Emergency",list:[
+ ["Help!","Aiuto!"],["Call the police","Chiami la polizia"],
+ ["I need a doctor","Ho bisogno di un medico"],["Where is the pharmacy?","Dov'è la farmacia?"],
+ ["I'm lost","Mi sono perso"],["I lost my passport","Ho perso il passaporto"],["It's urgent","È urgente"]]},
+{c:"Numbers & time",list:[
+ ["One, two, three, four, five","Uno, due, tre, quattro, cinque"],
+ ["Six, seven, eight, nine, ten","Sei, sette, otto, nove, dieci"],
+ ["Twenty / fifty / one hundred","Venti / cinquanta / cento"],
+ ["Today / tomorrow","Oggi / domani"],["Morning / evening","Mattina / sera"],
+ ["What time is it?","Che ore sono?"],["Open / closed","Aperto / chiuso"]]}
+];
+const MENU_TERMS=[
+{c:"How a menu works",list:[
+ ["antipasto","starter"],["primo","first course — pasta, risotto, soup"],
+ ["secondo","main — meat or fish, sides sold separately"],["contorno","side dish"],
+ ["dolce","dessert"],["coperto","cover charge per person (€1–3, normal)"],
+ ["al taglio","by the slice"],["all'etto","priced per 100 g — mind fish & truffle prices"],
+ ["s.q. / prezzo al mercato","market price — ask before ordering"],["della casa","house-made / of the house"]]},
+{c:"Meat & salumi",list:[
+ ["manzo","beef"],["vitello","veal"],["maiale","pork"],["agnello","lamb"],["cinghiale","wild boar"],
+ ["pollo","chicken"],["anatra","duck"],["coniglio","rabbit"],["prosciutto crudo","cured ham"],
+ ["prosciutto cotto","cooked ham"],["salsiccia","sausage"],["guanciale","cured pork cheek"],
+ ["pancetta","cured pork belly"],["tagliata","sliced grilled steak"],["ossobuco","braised veal shank"],
+ ["porchetta","herbed roast pork"],["trippa","tripe"],["fegato","liver"],["carpaccio","raw, thinly sliced"]]},
+{c:"Fish & seafood",list:[
+ ["pesce","fish"],["frutti di mare","seafood / shellfish"],["vongole","clams"],["cozze","mussels"],
+ ["gamberi","shrimp"],["gamberoni","king prawns"],["calamari","squid"],["polpo","octopus"],
+ ["seppia","cuttlefish"],["branzino / spigola","sea bass"],["orata","sea bream"],["tonno","tuna"],
+ ["pesce spada","swordfish"],["acciughe / alici","anchovies"],["baccalà","salt cod"],
+ ["astice","lobster"],["allo scoglio","with mixed seafood"]]},
+{c:"Pasta & sauces",list:[
+ ["ragù","slow meat sauce"],["al pomodoro","tomato"],["aglio e olio","garlic & olive oil"],
+ ["cacio e pepe","pecorino & black pepper"],["carbonara","egg, guanciale, pecorino"],
+ ["amatriciana","tomato & guanciale"],["arrabbiata","spicy tomato"],
+ ["al nero di seppia","squid ink"],["al tartufo","truffle"],["ai funghi porcini","porcini mushrooms"],
+ ["gnocchi","potato dumplings"],["ravioli / tortellini","filled pasta"],
+ ["pici","thick hand-rolled spaghetti"],["orecchiette","ear-shaped pasta"],
+ ["trofie","short Ligurian twists"],["pappardelle","wide ribbons"]]},
+{c:"Cooking words",list:[
+ ["alla griglia","grilled"],["al forno","baked"],["fritto","fried"],["arrosto","roasted"],
+ ["crudo","raw"],["ripieno","stuffed"],["brasato","braised"],["affumicato","smoked"],
+ ["al vapore","steamed"],["ben cotto","well done"],["al sangue","rare"]]},
+{c:"Vegetables & sides",list:[
+ ["insalata","salad"],["verdure","vegetables"],["melanzane","eggplant"],["zucchine","zucchini"],
+ ["carciofi","artichokes"],["peperoni","bell peppers (not pepperoni!)"],["patate","potatoes"],
+ ["fagioli","beans"],["ceci","chickpeas"],["spinaci","spinach"],["rucola","arugula"],["funghi","mushrooms"]]},
+{c:"Dessert & the bar",list:[
+ ["gelato","the good stuff — look for 'artigianale'"],["granita","Sicilian flaked ice"],
+ ["tiramisù","'pick-me-up' — espresso-soaked classic"],["panna cotta","cooked-cream pudding"],
+ ["cannolo","crisp shell, ricotta filling"],["sfogliatella","Naples' shell-shaped pastry"],
+ ["babà","rum-soaked sponge"],["caffè","an espresso (that's the default)"],
+ ["macchiato","espresso 'stained' with milk"],["corretto","espresso 'corrected' with liquor"],
+ ["amaro","herbal digestif"],["spremuta","fresh-squeezed juice"],["secco / dolce","dry / sweet (wine)"]]}
+];
+let SPEECH_OK = typeof speechSynthesis!=="undefined";
+let voiceIt=null;
+function pickVoice(){
+  try{ voiceIt=(speechSynthesis.getVoices()||[]).find(v=>/^it([-_]|$)/i.test(v.lang))||null; }catch(e){}
+}
+if(SPEECH_OK){ pickVoice(); try{ speechSynthesis.onvoiceschanged=pickVoice; }catch(e){} }
+function speakIt(txt){
+  if(!SPEECH_OK){ toast("Speech isn't available here"); return; }
+  try{
+    const u=new SpeechSynthesisUtterance(txt.replace(/…/g,""));
+    u.lang="it-IT"; if(voiceIt) u.voice=voiceIt; u.rate=.9;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){ toast("Speech isn't available here"); }
+}
+const phraseRow=([en,it])=>`<div class="phrase">
+  <div class="p-txt"><div class="p-it">${esc(it)}</div><div class="p-en">${esc(en)}</div></div>
+  ${SPEECH_OK?`<button class="icon-btn" data-say="${esc(it)}" title="Hear it" aria-label="Hear ${esc(it)}">▷</button>`:""}
+</div>`;
+const menuRow=([it,en])=>`<div class="menu-term"><b>${esc(it)}</b><span>${esc(en)}</span></div>`;
+function trResults(q){
+  q=q.trim().toLowerCase();
+  if(!q){
+    return PHRASES.map((g,i)=>`<details class="ess" ${i===0?"open":""}><summary>${esc(g.c)}</summary>
+        ${g.list.map(phraseRow).join("")}</details>`).join("")
+      +`<h3 class="serif" style="font-size:22px;margin:26px 0 4px">Menu decoder</h3>
+       <p style="font-size:13px;color:var(--ink-soft);margin:0 0 6px">Search any word you see on a menu, or browse:</p>`
+      +MENU_TERMS.map(g=>`<details class="ess"><summary>${esc(g.c)}</summary>${g.list.map(menuRow).join("")}</details>`).join("");
+  }
+  const ph=PHRASES.flatMap(g=>g.list).filter(([en,it])=>en.toLowerCase().includes(q)||it.toLowerCase().includes(q));
+  const mt=MENU_TERMS.flatMap(g=>g.list).filter(([it,en])=>it.toLowerCase().includes(q)||en.toLowerCase().includes(q));
+  let out="";
+  if(ph.length) out+=`<div class="poi-section"><span class="label">Phrases</span></div>`+ph.map(phraseRow).join("");
+  if(mt.length) out+=`<div class="poi-section"><span class="label">On the menu</span></div>`+mt.map(menuRow).join("");
+  if(!out) out=`<div class="empty">No match here — try Google Translate below for anything else.</div>
+    <p style="text-align:center;margin-top:10px"><a href="https://translate.google.com/?sl=en&tl=it&text=${encodeURIComponent(q)}" target="_blank" rel="noopener">Translate "${esc(q)}" on Google Translate ↗</a></p>`;
+  return out;
+}
+function renderTranslate(){
+  const wrap=$("#translate-wrap");
+  wrap.innerHTML=`<h2 class="view-title serif">Translate</h2>
+    <p class="view-sub">A pocket phrasebook that speaks — plus the words on every menu.</p>
+    <div class="t-card" style="margin-bottom:4px"><span class="label">Live camera translation</span>
+      <p>For pointing your camera at menus and signs, the <b>Google Translate app</b> is the right tool —
+      install it before you fly and download the <b>Italian offline pack</b> so it works with no signal.
+      This tab covers everything you'll want to say or decode yourself.</p>
+      <div class="t-acts">
+        <a class="btn btn-sm" href="https://translate.google.com/?sl=en&tl=it" target="_blank" rel="noopener">Open Google Translate ↗</a>
+      </div></div>
+    <div class="tr-search"><input id="tr-q" placeholder="Search — try 'check please' or 'vongole'…" autocomplete="off"></div>
+    <div id="tr-body">${trResults("")}</div>`;
+  const q=$("#tr-q");
+  q.addEventListener("input",()=>{ $("#tr-body").innerHTML=trResults(q.value); });
+  wrap.addEventListener("click",(e)=>{
+    const b=e.target.closest("[data-say]");
+    if(b) speakIt(b.dataset.say);
+  });
+}
+
+/* ================= CONFIRMATION PASTE-IMPORT ================= */
+const MONTHS={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function extractDates(txt){
+  const yr=+(S.trip.startDate||"2026-01-01").slice(0,4);
+  const found=[]; const push=(y,m,d)=>{
+    if(m>=1&&m<=12&&d>=1&&d<=31) found.push(`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+  };
+  const seen=new Set(); const scan=(re,fn)=>{ for(const m of txt.matchAll(re)){ if(!seen.has(m.index)){ seen.add(m.index); fn(m); } } };
+  scan(/\b(20\d{2})-(\d{2})-(\d{2})\b/g, m=>push(+m[1],+m[2],+m[3]));
+  scan(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(20\d{2}))?/gi,
+    m=>push(m[3]?+m[3]:yr, MONTHS[m[1].slice(0,3).toLowerCase()], +m[2]));
+  scan(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:\s+(20\d{2}))?/gi,
+    m=>push(m[3]?+m[3]:yr, MONTHS[m[2].slice(0,3).toLowerCase()], +m[1]));
+  scan(/\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/g, m=>push(+m[3],+m[1],+m[2]));
+  return [...new Set(found)].sort();
+}
+function parseConfirmation(txt){
+  const lower=txt.toLowerCase();
+  let type="hotel";
+  if(lower.includes("airbnb")) type="airbnb";
+  else if(lower.includes("vrbo")||lower.includes("booking.com")||lower.includes("hotel")||lower.includes("check-in")) type="hotel";
+  else if(lower.includes("trenitalia")||lower.includes("italo")||lower.includes("train")) type="train";
+  else if(lower.includes("museum")||lower.includes("tour")||lower.includes("ticket")||lower.includes("entry")) type="ticket";
+  else if(lower.includes("restaurant")||lower.includes("table")||lower.includes("dinner")) type="restaurant";
+  let cityId=null;
+  for(const c of CITIES){ if(lower.includes(c.n.toLowerCase())){ cityId=c.id; break; } }
+  if(!cityId){ if(lower.includes("positano")||lower.includes("ravello")||lower.includes("amalfi")) cityId="amalfi";
+    else if(lower.includes("vernazza")||lower.includes("monterosso")||lower.includes("riomaggiore")||lower.includes("manarola")) cityId="cinqueterre";
+    else if(lower.includes("varenna")||lower.includes("bellagio")||lower.includes("como")) cityId="como"; }
+  let conf="";
+  let m=txt.match(/(?:confirmation|reservation|booking|itinerary|PNR)[^\S\n]*(?:code|number|reference|#|no\.?|:)?[^\S\n]*[:#]?[^\S\n]*([A-Z0-9][A-Z0-9-]{4,13})(?![a-z])/i);
+  if(m) conf=m[1]; else { m=txt.match(/\bHM[A-Z0-9]{6,10}\b/); if(m) conf=m[0]; }
+  let price="";
+  m=txt.match(/total[^\n]{0,40}?((?:€|EUR\s?|\$|USD\s?|£)\s?\d[\d.,]*)/i);
+  if(m) price=m[1].trim();
+  else { m=txt.match(/(?:€|\$|£)\s?\d[\d.,]*/); if(m) price=m[0]; }
+  let name="";
+  for(const line of txt.split(/\n/)){
+    const t=line.trim();
+    if(t.length>3 && t.length<80 && /[a-zA-Z]{3}/.test(t) &&
+       !/confirm|reservation|receipt|thank|dear|hello|hi |total|http|@|check.?in|check.?out/i.test(t)){ name=t; break; }
+  }
+  const dates=extractDates(txt);
+  const out={type, name, conf, price};
+  if(cityId) out.cityId=cityId;
+  if(dates.length) out.date=dates[0];
+  if(dates.length>1) out.notes=`Check-out ${fmtShort(dates[dates.length-1])} (imported from confirmation)`;
+  return out;
+}
+function openPasteDlg(){ $("#paste-txt").value=""; $("#dlg-paste").returnValue=""; $("#dlg-paste").showModal(); }
+function initPasteDlg(){
+  $("#bk-paste").addEventListener("click",()=>{ $("#dlg-booking").close("cancel"); openPasteDlg(); });
+  $("#dlg-paste").addEventListener("close",()=>{
+    if($("#dlg-paste").returnValue!=="ok") return;
+    const txt=$("#paste-txt").value.trim();
+    if(!txt){ toast("Nothing pasted"); return; }
+    const p=parseConfirmation(txt);
+    if(!p.name && !p.date && !p.conf){
+      toast("Couldn't read details — fill it in manually");
+      openBookingDlg({});
+    }else{
+      toast("Details read — check and save");
+      openBookingDlg(p);
+    }
+  });
+}
+
+/* ================= BOOT ================= */
+function init(){
+  loadState();
+  renderHome();
+  buildMapInto($("#home-minimap"), false);
+  $("#btn-start").addEventListener("click",()=>{
+    const s=$("#trip-start").value, e=$("#trip-end").value;
+    if(!s||!e||e<s){ toast("Check your dates — depart must follow arrive"); return; }
+    S.trip.startDate=s; S.trip.endDate=e;
+    S.trip.arrivalCity=$("#trip-in").value; S.trip.departureCity=$("#trip-out").value;
+    mutate(); showApp();
+  });
+  $("#btn-home").addEventListener("click",showHome);
+  $$(".tab").forEach(t=>t.addEventListener("click",()=>setView(t.dataset.view)));
+  $$(".chip").forEach(ch=>ch.addEventListener("click",()=>{
+    UI.filter=ch.dataset.filter;
+    $$(".chip").forEach(c=>c.setAttribute("aria-pressed", String(c===ch)));
+    renderPanel();
+  }));
+  initStopDlg(); initBookingDlg(); initPasteDlg(); initPhotos(); initSync();
+  updateSyncUI();
+  mcpInit();
+  photoLoadAll().then(()=>{
+    if(!$("#app").classList.contains("hidden")) renderAll();
+  });
+}
+init();
+</script>
+<script>
+/* Offline support on real hosting only — the artifact runtime serves a single page (sw.js
+   would 404) and localhost is plain http. */
+if ("serviceWorker" in navigator && !window.claude && location.protocol === "https:")
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+</script>
+</body>
+</html>

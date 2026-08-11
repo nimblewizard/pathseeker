@@ -1,0 +1,521 @@
+<!-- ================= HOME ================= -->
+<section id="home">
+  <div id="home-minimap" aria-hidden="true"></div>
+  <div class="home-card">
+    <h1 class="wordmark serif"><span class="path">Path</span>seeker</h1>
+    <p class="home-tag">Un viaggio in Italia · plan the route, keep the story.</p>
+
+    <div class="field">
+      <span class="label">Destination</span>
+      <div class="dest-grid" role="group" aria-label="Destination">
+        <button class="dest" id="dest-italy" aria-pressed="true">
+          <strong>Italy</strong><small>19 cities scouted</small>
+        </button>
+        <button class="dest" disabled><strong>France</strong><small>in scouting</small></button>
+        <button class="dest" disabled><strong>Spain</strong><small>in scouting</small></button>
+        <button class="dest" disabled><strong>Greece</strong><small>in scouting</small></button>
+      </div>
+    </div>
+
+    <div class="field field-row">
+      <div>
+        <label class="label" for="trip-start">Arrive</label>
+        <input type="date" id="trip-start" value="2026-09-25">
+      </div>
+      <div>
+        <label class="label" for="trip-end">Depart</label>
+        <input type="date" id="trip-end" value="2026-10-09">
+      </div>
+    </div>
+
+    <div class="field field-row">
+      <div>
+        <label class="label" for="trip-in">Fly into</label>
+        <select id="trip-in"></select>
+      </div>
+      <div>
+        <label class="label" for="trip-out">Fly out of</label>
+        <select id="trip-out"></select>
+      </div>
+    </div>
+
+    <div class="home-actions">
+      <button class="btn btn-primary" id="btn-start">Open the map</button>
+    </div>
+    <div class="home-resume hidden" id="home-resume">
+      <span id="home-resume-txt"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<section id="app" class="hidden">
+  <header class="appbar">
+    <button class="btn-quiet" id="btn-home" title="Back to trip setup" aria-label="Back to trip setup">
+      <span class="wordmark-sm serif"><span class="path">P</span>athseeker</span>
+    </button>
+    <div class="trip-chip" id="trip-chip"></div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
+      <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+      <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
+      <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
+      <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
+    </nav>
+    <button class="sync-btn" id="btn-sync" title="Sync & backup">
+      <span class="sync-dot" id="sync-dot"></span><span id="sync-label">Synced</span>
+    </button>
+  </header>
+
+  <div class="main">
+    <!-- MAP -->
+    <div id="view-map">
+      <div class="map-stage" id="map-stage">
+        <div class="map-hud">
+          <div class="chips" role="group" aria-label="Filter places">
+            <button class="chip" data-filter="all" aria-pressed="true">Everything</button>
+            <button class="chip" data-filter="sight" aria-pressed="false">Sights</button>
+            <button class="chip" data-filter="stay" aria-pressed="false">Lodging</button>
+            <button class="chip" data-filter="eat" aria-pressed="false">Food</button>
+          </div>
+        </div>
+        <div class="zoom-ctl">
+          <button id="zoom-in" aria-label="Zoom in">+</button>
+          <button id="zoom-out" aria-label="Zoom out">−</button>
+          <button id="zoom-reset" aria-label="Reset view" style="font-size:13px">⌂</button>
+        </div>
+        <div class="map-hint" id="map-hint">Tap a city to scout it · drag to pan · pinch or scroll to zoom</div>
+        <div class="day-scrub hidden" id="day-scrub">
+          <button id="ds-prev" aria-label="Previous day">‹</button>
+          <span class="ds-label" id="ds-label"></span>
+          <button id="ds-next" aria-label="Next day">›</button>
+        </div>
+      </div>
+      <aside class="panel hidden" id="panel"></aside>
+    </div>
+
+    <!-- TODAY -->
+    <div id="view-today" class="hidden"><div class="sheet-wrap" id="today-wrap"></div></div>
+
+    <!-- ITINERARY -->
+    <div id="view-itin" class="hidden"><div class="sheet-wrap" id="itin-wrap"></div></div>
+
+    <!-- JOURNAL -->
+    <div id="view-journal" class="hidden"><div class="sheet-wrap" id="journal-wrap"></div></div>
+
+    <!-- TRANSLATE -->
+    <div id="view-translate" class="hidden"><div class="sheet-wrap" id="translate-wrap"></div></div>
+  </div>
+
+  <nav class="mob-tabs" role="tablist" aria-label="Views">
+    <button class="tab" role="tab" data-view="today" aria-selected="false">Today</button>
+    <button class="tab" role="tab" data-view="map" aria-selected="true">Map</button>
+    <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
+    <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
+    <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
+  </nav>
+</section>
+
+<!-- ================= DIALOGS ================= -->
+<dialog id="dlg-dates">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif" id="dlg-dates-title">Nights in …</h3>
+      <p id="dlg-dates-sub"></p></div>
+    <div class="dlg-body">
+      <div class="field-row">
+        <div>
+          <label class="label" for="stop-arrive">Arrive</label>
+          <input type="date" id="stop-arrive">
+        </div>
+        <div>
+          <label class="label" for="stop-nights">Nights</label>
+          <input type="number" id="stop-nights" min="0" max="30" value="2">
+        </div>
+      </div>
+      <div class="nights-note" id="stop-note"></div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn btn-danger hidden" value="remove" id="stop-remove">Remove stop</button>
+      <button class="btn btn-primary" value="ok" id="stop-ok">Add to trip</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-booking">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif" id="dlg-bk-title">Add a booking</h3>
+      <p>Hotels, tickets, tables, trains — it all lands in your journal.</p>
+      <button type="button" class="btn btn-sm" id="bk-paste" style="margin-top:10px">Paste a confirmation email instead…</button></div>
+    <div class="dlg-body">
+      <div>
+        <span class="label" style="display:block;margin-bottom:6px">Type</span>
+        <div class="type-grid" id="bk-types"></div>
+      </div>
+      <div>
+        <label class="label" for="bk-name">Name</label>
+        <input id="bk-name" placeholder="Hotel Santa Caterina, Uffizi tickets…">
+      </div>
+      <div class="field-row">
+        <div>
+          <label class="label" for="bk-city">City</label>
+          <select id="bk-city"></select>
+        </div>
+        <div>
+          <label class="label" for="bk-date">Date</label>
+          <input type="date" id="bk-date">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label class="label" for="bk-time">Time <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <input type="time" id="bk-time">
+        </div>
+        <div>
+          <label class="label" for="bk-price">Price <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <input id="bk-price" placeholder="€120">
+        </div>
+      </div>
+      <div>
+        <label class="label" for="bk-conf">Confirmation # <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input id="bk-conf" class="mono" placeholder="ABC123">
+      </div>
+      <div>
+        <label class="label" for="bk-link">Link <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input id="bk-link" type="url" placeholder="https://…">
+      </div>
+      <div>
+        <label class="label" for="bk-notes">Notes</label>
+        <textarea id="bk-notes" rows="2" placeholder="Check-in after 15:00, ask for the sea-view room…"></textarea>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn btn-danger hidden" value="remove" id="bk-remove">Delete</button>
+      <button class="btn btn-primary" value="ok">Save booking</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-sync">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif">Sync &amp; backup</h3>
+      <p>Your trip lives on this device and can sync through your Google Drive.</p></div>
+    <div class="dlg-body">
+      <div class="sync-msg hidden" id="sync-msg"></div>
+      <div>
+        <div class="sync-row">
+          <div class="t"><strong>Save to Google Drive</strong>
+            <p id="drive-save-sub">Writes a snapshot other devices can load.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-drive-save">Save</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Load from Google Drive</strong>
+            <p id="drive-load-sub">Fetches the newest snapshot.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-drive-load">Load</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Offline trip sheet</strong><p>Day-by-day plan with every address, code, and train — readable with no signal.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-tripsheet">Download</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Export file</strong><p>Download a .json backup of everything.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-export">Export</button>
+        </div>
+        <div class="sync-row">
+          <div class="t"><strong>Import file</strong><p>Restore from a .json backup.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-import">Import</button>
+          <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+        </div>
+      </div>
+      <p style="margin:0;font-size:12.5px;color:var(--ink-soft)" id="sync-status-line"></p>
+      <p style="margin:0;font-size:12.5px;color:var(--ink-soft)">Photos stay on the device where you added them — they're too heavy for the Drive snapshot. Everything else syncs.</p>
+    </div>
+    <div class="dlg-foot"><button class="btn" value="close">Done</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-photo">
+  <form method="dialog">
+    <img id="ph-img" alt="Trip photo">
+    <div class="dlg-body">
+      <p id="ph-meta" style="margin:0;font-size:13px;color:var(--ink-soft)"></p>
+      <input id="ph-cap" placeholder="Caption this moment…">
+    </div>
+    <div class="dlg-foot">
+      <button class="btn btn-danger" value="remove">Delete</button>
+      <button class="btn btn-primary" value="close">Done</button>
+    </div>
+  </form>
+</dialog>
+<input type="file" id="photo-take" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="photo-import" accept="image/*" multiple class="hidden">
+
+<dialog id="dlg-paste">
+  <form method="dialog">
+    <div class="dlg-head"><h3 class="serif">Import a confirmation</h3>
+      <p>Booked on Airbnb, VRBO, Booking.com, or a hotel site? Paste the confirmation
+      email below — Pathseeker reads out the name, dates, code, and price. Nothing leaves this page.</p></div>
+    <div class="dlg-body">
+      <textarea id="paste-txt" rows="9" placeholder="Paste the whole confirmation email here…"></textarea>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn btn-primary" value="ok">Read it</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<script>
+"use strict";
+/* ================= DATA ================= */
+const GM = (q) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q + ", Italy");
+const BK_TYPES = [
+  {id:"hotel",    n:"Hotel",      c:"#7A5C9E"},
+  {id:"airbnb",   n:"Airbnb",     c:"#C96A50"},
+  {id:"ticket",   n:"Ticket",     c:"#B8862B"},
+  {id:"restaurant",n:"Restaurant",c:"#5F8F3E"},
+  {id:"train",    n:"Train",      c:"#3E6F8F"},
+  {id:"other",    n:"Other",      c:"#8A8375"},
+];
+/* POI cats: sight | stay | eat */
+const CITIES = [
+{id:"milan", n:"Milan", region:"Lombardy", lat:45.464, lon:9.190, tag:"Fashion, aperitivo, and your first espresso off the plane.",
+ note:"<b>Getting in:</b> Malpensa Express train to Milano Centrale, ~50 min. Centrale is your hub for every train south and east.",
+ pois:[
+  {c:"sight",n:"Duomo di Milano",d:"Climb to the rooftop terraces between the marble spires."},
+  {c:"sight",n:"Galleria Vittorio Emanuele II",d:"The world's most elegant shopping arcade, next to the Duomo."},
+  {c:"sight",n:"The Last Supper (Santa Maria delle Grazie)",d:"Book weeks ahead — timed 15-minute visits."},
+  {c:"sight",n:"Navigli canals",d:"Evening aperitivo along the canal district."},
+  {c:"sight",n:"Brera district",d:"Cobbled lanes, galleries, and the Pinacoteca di Brera."},
+  {c:"stay",n:"Brera / Moscova area",d:"Prettiest central base; boutique hotels and walkable nights."},
+  {c:"stay",n:"Porta Romana area",d:"Quieter, good-value apartments a short metro from the Duomo."},
+  {c:"stay",n:"Room Mate Giulia",d:"Design hotel steps from the Galleria — book early."},
+  {c:"eat",n:"Risotto alla milanese & cotoletta",d:"The two local classics — saffron risotto and veal cutlet."},
+  {c:"eat",n:"Trattoria Milanese",d:"Old-school local cooking near the Duomo."},
+  {c:"eat",n:"Luini",d:"Panzerotti counter — the legendary quick lunch line moves fast."},
+  {c:"eat",n:"Terrazza Aperol / Navigli bars",d:"Aperitivo hour, 6–8pm, spritz with snacks."}]},
+{id:"como", n:"Lake Como", region:"Lombardy", lat:46.010, lon:9.285, tag:"Villas, ferries, and mountains falling into the water.",
+ note:"<b>Getting in:</b> Train Milano Centrale → Varenna-Esino, ~1h10. The mid-lake ferry triangle (Varenna–Bellagio–Menaggio) is the whole point.",
+ pois:[
+  {c:"sight",n:"Varenna old town",d:"Pastel fishing village; the walkway Passeggiata degli Innamorati."},
+  {c:"sight",n:"Bellagio",d:"The 'pearl of the lake' — take the 15-minute ferry across."},
+  {c:"sight",n:"Villa del Balbianello",d:"Film-famous villa on a wooded point near Lenno."},
+  {c:"sight",n:"Villa Monastero, Varenna",d:"Botanic gardens stretched along the shore."},
+  {c:"stay",n:"Varenna",d:"Best base without a car — station + ferry dock in town."},
+  {c:"stay",n:"Hotel du Lac, Varenna",d:"Small lakefront classic with terrace breakfasts."},
+  {c:"stay",n:"Bellagio hillside B&Bs",d:"Views over the lake junction; steps everywhere."},
+  {c:"eat",n:"Lake fish (missoltini, lavarello)",d:"Order the lake catch with local white wine."},
+  {c:"eat",n:"Ristorante La Vista, Varenna",d:"Dinner terrace above the rooftops."},
+  {c:"eat",n:"Gelateria Riva, Varenna",d:"Cone in hand on the ferry dock."}]},
+{id:"turin", n:"Turin", region:"Piedmont", lat:45.070, lon:7.686, tag:"Baroque arcades, chocolate, and Alps on the horizon.",
+ note:"<b>Getting in:</b> Frecciarossa from Milan, ~1h. Elegant, underrated, and cheaper than the big three.",
+ pois:[
+  {c:"sight",n:"Museo Egizio",d:"The finest Egyptian museum outside Cairo."},
+  {c:"sight",n:"Mole Antonelliana",d:"Turin's spire — panoramic lift + national cinema museum."},
+  {c:"sight",n:"Piazza San Carlo",d:"The baroque drawing room of the city."},
+  {c:"sight",n:"Porta Palazzo market",d:"Europe's largest open-air market, mornings."},
+  {c:"stay",n:"Centro / Piazza Castello area",d:"Under the arcades, everything walkable."},
+  {c:"stay",n:"San Salvario",d:"Lively food-and-bars quarter by the station."},
+  {c:"eat",n:"Bicerin at Caffè Al Bicerin",d:"Espresso-chocolate-cream layers since 1763."},
+  {c:"eat",n:"Agnolotti del plin & vitello tonnato",d:"Piedmont's pasta and its famous cold veal."},
+  {c:"eat",n:"Eataly Lingotto",d:"The original — a food hall of the whole region."}]},
+{id:"verona", n:"Verona", region:"Veneto", lat:45.438, lon:10.992, tag:"A Roman arena and pink-marble evenings on the Adige.",
+ note:"<b>Getting in:</b> On the Milan–Venice line, ~1h15 from either. Perfect one-night stop.",
+ pois:[
+  {c:"sight",n:"Arena di Verona",d:"1st-century amphitheatre, still staging opera."},
+  {c:"sight",n:"Piazza delle Erbe",d:"Frescoed facades over the old market square."},
+  {c:"sight",n:"Castelvecchio & bridge",d:"Brick fortress and its crenellated river crossing."},
+  {c:"sight",n:"Castel San Pietro viewpoint",d:"Climb (or funicular) at sunset for the full skyline."},
+  {c:"stay",n:"Città Antica",d:"Inside the river bend — everything on foot."},
+  {c:"stay",n:"Veronetta",d:"Left-bank student quarter, better value."},
+  {c:"eat",n:"Amarone risotto & pastissada",d:"The Valpolicella wines are the local pour."},
+  {c:"eat",n:"Osteria Sottoriva",d:"Wooden benches under the medieval arcade."},
+  {c:"eat",n:"Antica Bottega del Vino",d:"Historic cellar with a monumental wine list."}]},
+{id:"venice", n:"Venice", region:"Veneto", lat:45.438, lon:12.335, tag:"No cars, no hurry — get lost on purpose.",
+ note:"<b>Getting in:</b> Train to Venezia Santa Lucia (not Mestre) — you step out onto the Grand Canal. Vaporetto passes save money if you'll ride 3+ times a day.",
+ pois:[
+  {c:"sight",n:"Basilica di San Marco",d:"Gold mosaics — book the skip-the-line slot."},
+  {c:"sight",n:"Doge's Palace",d:"Gothic seat of the Republic; cross the Bridge of Sighs."},
+  {c:"sight",n:"Rialto market mornings",d:"Fish and produce barges on the Grand Canal."},
+  {c:"sight",n:"Dorsoduro & Accademia",d:"Venice's quieter art quarter."},
+  {c:"sight",n:"Burano",d:"40-min vaporetto — riotously painted lace-makers' island."},
+  {c:"stay",n:"Cannaregio",d:"Local canals, aperitivo fondamente, near the station."},
+  {c:"stay",n:"Dorsoduro",d:"Romantic and quieter after the day-trippers leave."},
+  {c:"stay",n:"Hotel Flora",d:"Garden courtyard hideaway near San Marco."},
+  {c:"eat",n:"Cicchetti crawl",d:"Venetian tapas + a glass of wine (un'ombra) per bar."},
+  {c:"eat",n:"All'Arco",d:"Standing-room cicchetti institution by the Rialto."},
+  {c:"eat",n:"Osteria alle Testiere",d:"Tiny seafood room — reserve days ahead."},
+  {c:"eat",n:"Sarde in saor & nero di seppia",d:"Sweet-sour sardines; squid-ink everything."}]},
+{id:"cinqueterre", n:"Cinque Terre", region:"Liguria", lat:44.135, lon:9.685, tag:"Five villages stitched by cliff paths and train tunnels.",
+ note:"<b>Getting around:</b> Base in Vernazza or Monterosso; the Cinque Terre Card covers trains + trails. Check trail closures — the Sentiero Azzurro sections open and close.",
+ pois:[
+  {c:"sight",n:"Vernazza harbour",d:"The postcard — swim off the breakwater at dusk."},
+  {c:"sight",n:"Manarola viewpoint (Punta Bonfiglio)",d:"The classic sunset photograph."},
+  {c:"sight",n:"Monterosso–Vernazza trail",d:"~2h of terraced vineyards and sea cliffs."},
+  {c:"sight",n:"Riomaggiore at blue hour",d:"Boats stacked in the tiny marina."},
+  {c:"stay",n:"Vernazza rooms & apartments",d:"Small affittacamere — book far ahead for late September."},
+  {c:"stay",n:"Monterosso al Mare",d:"The only village with a real beach and flat streets."},
+  {c:"eat",n:"Trofie al pesto",d:"Liguria invented pesto — eat it at the source."},
+  {c:"eat",n:"Fried anchovies of Monterosso",d:"Paper cones of the local catch."},
+  {c:"eat",n:"Belforte, Vernazza",d:"Tower-top tables above the harbour — reserve."},
+  {c:"eat",n:"Focaccia & sciacchetrà",d:"Ligurian flatbread; sweet cliff-grape wine."}]},
+{id:"bologna", n:"Bologna", region:"Emilia-Romagna", lat:44.494, lon:11.343, tag:"La Grassa — the fat one. Italy's food capital.",
+ note:"<b>Getting in:</b> The rail crossroads of Italy — ~35 min from Florence, ~1h from Milan. Even a food-stop layover is worth it.",
+ pois:[
+  {c:"sight",n:"Le Due Torri",d:"Climb the leaning Asinelli tower's 498 steps."},
+  {c:"sight",n:"Piazza Maggiore & San Petronio",d:"The unfinished-facade basilica on the great square."},
+  {c:"sight",n:"Portico di San Luca",d:"666 arches climbing to the hilltop sanctuary."},
+  {c:"sight",n:"Quadrilatero market lanes",d:"Delis, fish stalls, and hanging mortadella."},
+  {c:"stay",n:"Quadrilatero / Piazza Maggiore",d:"Sleep above the market lanes."},
+  {c:"stay",n:"University quarter (via Zamboni)",d:"Porticoed, lively, cheaper."},
+  {c:"eat",n:"Tagliatelle al ragù",d:"The real 'bolognese' — never on spaghetti here."},
+  {c:"eat",n:"Tortellini in brodo",d:"Navel-shaped pasta in capon broth."},
+  {c:"eat",n:"Osteria dell'Orsa",d:"Student-loved, no-frills, the classics done right."},
+  {c:"eat",n:"Mercato delle Erbe",d:"Market hall turned evening food court."}]},
+{id:"florence", n:"Florence", region:"Tuscany", lat:43.770, lon:11.257, tag:"The Renaissance, wall to wall.",
+ note:"<b>Getting in:</b> Frecciarossa to Firenze S.M.N. Book Uffizi and Accademia timed entries in advance — always.",
+ pois:[
+  {c:"sight",n:"Duomo & Brunelleschi's Dome",d:"Climb the dome (book!) or Giotto's bell tower."},
+  {c:"sight",n:"Uffizi Gallery",d:"Botticelli's Venus and the Medici collection."},
+  {c:"sight",n:"Galleria dell'Accademia",d:"Michelangelo's David, worth the timed slot."},
+  {c:"sight",n:"Ponte Vecchio at dawn",d:"Goldsmiths' bridge before the crowds arrive."},
+  {c:"sight",n:"Piazzale Michelangelo",d:"The sunset panorama over the whole city."},
+  {c:"stay",n:"Oltrarno / Santo Spirito",d:"Artisan left bank — best evenings, short walk to everything."},
+  {c:"stay",n:"Santa Croce area",d:"Central with real neighborhood trattorie."},
+  {c:"stay",n:"Hotel Davanzati",d:"Family-run favorite in a medieval palazzo."},
+  {c:"eat",n:"Bistecca alla fiorentina",d:"Thumb-thick T-bone, shared, always rare."},
+  {c:"eat",n:"Trattoria Mario",d:"Lunch-only counter since 1953 — arrive early."},
+  {c:"eat",n:"All'Antico Vinaio",d:"The famous schiacciata sandwich line."},
+  {c:"eat",n:"Mercato Centrale",d:"Iron-and-glass market; upstairs food hall till late."}]},
+{id:"pisa", n:"Pisa", region:"Tuscany", lat:43.716, lon:10.397, tag:"Yes, it really leans. Two hours is plenty.",
+ note:"<b>Getting in:</b> ~1h regional from Florence. Do it as a half-day, or pair with Lucca.",
+ pois:[
+  {c:"sight",n:"Leaning Tower",d:"Climb the tilt — timed tickets, book online."},
+  {c:"sight",n:"Piazza dei Miracoli",d:"Cathedral, baptistery, and tower on one lawn."},
+  {c:"sight",n:"Borgo Stretto arcades",d:"The town beyond the tourists, 10 minutes away."},
+  {c:"stay",n:"Day trip",d:"Most travelers sleep in Florence or Lucca instead."},
+  {c:"eat",n:"Cecina",d:"Chickpea flatbread, hot from wood ovens."},
+  {c:"eat",n:"I Porci Comodi",d:"Tuscan salumi boards near Borgo Stretto."}]},
+{id:"siena", n:"Siena", region:"Tuscany", lat:43.319, lon:11.331, tag:"Medieval Tuscany's brick-gold heart.",
+ note:"<b>Getting in:</b> Bus from Florence (~1h15) beats the train — it drops you near the walls. Sleep a night; the city empties and glows after the day-trippers go.",
+ pois:[
+  {c:"sight",n:"Piazza del Campo",d:"The shell-shaped square — sit on the warm brick with a coffee."},
+  {c:"sight",n:"Duomo di Siena",d:"Striped marble, inlaid floors, the Piccolomini Library."},
+  {c:"sight",n:"Torre del Mangia",d:"400 steps over the Campo."},
+  {c:"sight",n:"Contrade backstreets",d:"Flag-marked medieval neighborhoods of the Palio."},
+  {c:"stay",n:"Inside the walls",d:"Small palazzo hotels; steep lanes, magic mornings."},
+  {c:"eat",n:"Pici cacio e pepe",d:"Hand-rolled fat spaghetti, Siena's own."},
+  {c:"eat",n:"Osteria Le Logge",d:"Elegant Tuscan classic off the Campo."},
+  {c:"eat",n:"Panforte & ricciarelli",d:"The city's medieval spice-cake and almond biscuits."}]},
+{id:"orvieto", n:"Orvieto", region:"Umbria", lat:42.718, lon:12.111, tag:"A cathedral town on a volcanic cliff, right on the Rome line.",
+ note:"<b>Getting in:</b> On the Florence–Rome slow line (~1h20 from Rome); funicular from station to the clifftop. An easy overnight that breaks the Florence→Rome leg.",
+ pois:[
+  {c:"sight",n:"Duomo di Orvieto",d:"A golden Gothic facade that stuns out of nowhere."},
+  {c:"sight",n:"Pozzo di San Patrizio",d:"Double-helix Renaissance well, 53m deep."},
+  {c:"sight",n:"Orvieto Underground",d:"Etruscan caves and tunnels beneath the town."},
+  {c:"stay",n:"Historic center",d:"Quiet stone lanes; the town is yours by 7pm."},
+  {c:"eat",n:"Umbrichelli al tartufo",d:"Umbrian pasta with black truffle."},
+  {c:"eat",n:"Orvieto Classico",d:"The crisp local white, in the town that names it."}]},
+{id:"rome", n:"Rome", region:"Lazio", lat:41.902, lon:12.496, tag:"Twenty-eight centuries deep. Your grand finale.",
+ note:"<b>Getting out:</b> Leonardo Express to Fiumicino, 32 min from Termini. Book Colosseum, Vatican Museums, and Borghese Gallery well ahead.",
+ pois:[
+  {c:"sight",n:"Colosseum & Forum",d:"One combined timed ticket — go at opening."},
+  {c:"sight",n:"Pantheon",d:"The 2,000-year-old dome, still perfect."},
+  {c:"sight",n:"Vatican Museums & St. Peter's",d:"Sistine Chapel first slot, then the basilica."},
+  {c:"sight",n:"Trastevere evenings",d:"Ivy, lanterns, and piazza life across the river."},
+  {c:"sight",n:"Galleria Borghese",d:"Bernini's marbles — strict 2-hour reserved slots."},
+  {c:"sight",n:"Trevi & the centro passeggiata",d:"Fountain-to-fountain night walk."},
+  {c:"stay",n:"Monti",d:"Village-in-the-city between Termini and the Forum."},
+  {c:"stay",n:"Trastevere",d:"Best nights, cobbled mornings."},
+  {c:"stay",n:"Hotel de' Ricci / Campo de' Fiori area",d:"Small wine-hotel in the Renaissance core."},
+  {c:"eat",n:"The Roman four",d:"Carbonara, cacio e pepe, amatriciana, gricia."},
+  {c:"eat",n:"Roscioli",d:"Deli-restaurant hybrid — book the counter."},
+  {c:"eat",n:"Da Enzo al 29",d:"Tiny Trastevere classic; queue early."},
+  {c:"eat",n:"Supplì & pizza al taglio",d:"Fried rice balls and pizza by the cut, anytime."}]},
+{id:"naples", n:"Naples", region:"Campania", lat:40.852, lon:14.268, tag:"Loud, glorious, and the birthplace of pizza.",
+ note:"<b>Getting in:</b> ~1h10 from Rome by Frecciarossa/Italo. Gateway to Pompeii, Sorrento, and the Amalfi Coast (Circumvesuviana or Campania Express).",
+ pois:[
+  {c:"sight",n:"Spaccanapoli & centro storico",d:"The straight street that splits old Naples."},
+  {c:"sight",n:"Pompeii",d:"40 min out — give it a half day and water."},
+  {c:"sight",n:"Naples Archaeological Museum",d:"Where Pompeii's real treasures live."},
+  {c:"sight",n:"Cappella Sansevero",d:"The Veiled Christ — book the slot."},
+  {c:"stay",n:"Centro storico",d:"In the beautiful chaos."},
+  {c:"stay",n:"Chiaia",d:"Elegant seafront quarter, calmer nights."},
+  {c:"eat",n:"L'Antica Pizzeria da Michele",d:"Margherita or marinara. That's the menu."},
+  {c:"eat",n:"Sorbillo, via dei Tribunali",d:"The other great pizza pilgrimage."},
+  {c:"eat",n:"Sfogliatella & babà",d:"Naples' two pastry obsessions."}]},
+{id:"sorrento", n:"Sorrento", region:"Campania", lat:40.626, lon:14.375, tag:"Lemon groves over the Bay of Naples.",
+ note:"<b>Getting in:</b> Circumvesuviana from Naples (~1h) — an easy, flat base for Capri boats and Amalfi buses.",
+ pois:[
+  {c:"sight",n:"Marina Grande",d:"The old fishing harbour at golden hour."},
+  {c:"sight",n:"Capri day trip",d:"25-min hydrofoil; Gardens of Augustus + chairlift to Monte Solaro."},
+  {c:"sight",n:"Villa Comunale terrace",d:"Sunset over Vesuvius across the bay."},
+  {c:"stay",n:"Sorrento center",d:"Walkable, well-connected — the practical Amalfi base."},
+  {c:"stay",n:"Cliffside hotels (Corso Italia)",d:"Bay-view terraces without Positano prices."},
+  {c:"eat",n:"Gnocchi alla sorrentina",d:"Baked gnocchi, tomato, fior di latte."},
+  {c:"eat",n:"Limoncello & delizia al limone",d:"The lemon in every possible form."},
+  {c:"eat",n:"Da Emilia, Marina Grande",d:"Seafood on the old dock since 1947."}]},
+{id:"amalfi", n:"Amalfi Coast", region:"Campania", lat:40.634, lon:14.602, tag:"The vertical coastline — Positano, Amalfi, Ravello.",
+ note:"<b>Getting around:</b> SITA buses or (better) ferries between towns — boats beat the hairpin traffic. Ferries thin out after early October; late September is perfect.",
+ pois:[
+  {c:"sight",n:"Positano",d:"The pastel amphitheatre town tumbling to the beach."},
+  {c:"sight",n:"Ravello — Villa Rufolo & Cimbrone",d:"Garden terraces 350m above the sea."},
+  {c:"sight",n:"Path of the Gods (Sentiero degli Dei)",d:"Bomerano→Nocelle, the great coastal hike."},
+  {c:"sight",n:"Amalfi Cathedral",d:"Arab-Norman stripes above the piazza."},
+  {c:"stay",n:"Positano",d:"Splurge night — sea-view rooms are the point."},
+  {c:"stay",n:"Amalfi or Ravello",d:"Same coast, gentler prices, quieter nights."},
+  {c:"eat",n:"Scialatielli ai frutti di mare",d:"The coast's own pasta, heaped with shellfish."},
+  {c:"eat",n:"Lo Guarracino, Positano",d:"Vine-covered terrace on the Fornillo path."},
+  {c:"eat",n:"Sal De Riso, Minori",d:"The coast's celebrated pastry maestro."}]},
+{id:"matera", n:"Matera", region:"Basilicata", lat:40.666, lon:16.604, tag:"Cave city — nine thousand years of continuous living.",
+ note:"<b>Getting in:</b> Easiest via Bari (Ferrovie Appulo Lucane, ~1h30). Sleep one night in a cave hotel; the sassi at dawn are unforgettable.",
+ pois:[
+  {c:"sight",n:"Sasso Caveoso & Sasso Barisano",d:"The two cave districts — wander without a map."},
+  {c:"sight",n:"Casa Grotta",d:"A furnished cave home as it was lived in until the 1950s."},
+  {c:"sight",n:"Belvedere Murgia Timone",d:"The across-the-ravine view of the whole city."},
+  {c:"sight",n:"Rock churches (San Pietro Barisano)",d:"Frescoed chapels cut into the tufa."},
+  {c:"stay",n:"Cave hotel in the Sassi",d:"Sextantio Le Grotte della Civita is the famous one."},
+  {c:"eat",n:"Pane di Matera",d:"The horned durum loaf, IGP protected."},
+  {c:"eat",n:"Peperoni cruschi",d:"Crackling sweet dried peppers on everything."},
+  {c:"eat",n:"Vitantonio Lombardo",d:"Michelin-starred cave dining, for the big night."}]},
+{id:"lecce", n:"Lecce", region:"Puglia", lat:40.352, lon:18.169, tag:"The Florence of the South, carved in honey stone.",
+ note:"<b>Getting in:</b> ~1h30 south of Bari. Base for the Salento beaches — Otranto and Gallipoli are short hops.",
+ pois:[
+  {c:"sight",n:"Basilica di Santa Croce",d:"Barocco leccese at full boil."},
+  {c:"sight",n:"Piazza del Duomo",d:"A closed baroque stage-set of a square."},
+  {c:"sight",n:"Roman amphitheatre",d:"Sunk right into the main piazza."},
+  {c:"sight",n:"Otranto day trip",d:"Whitewashed port + the cathedral's floor mosaic."},
+  {c:"stay",n:"Centro storico",d:"Baroque palazzo B&Bs at gentle prices."},
+  {c:"eat",n:"Pasticciotto",d:"Warm custard-filled morning pastry, born here."},
+  {c:"eat",n:"Orecchiette alle cime di rapa",d:"Puglia's ear-shaped pasta with turnip greens."},
+  {c:"eat",n:"Caffè leccese",d:"Iced espresso with almond milk."}]},
+{id:"taormina", n:"Taormina", region:"Sicily", lat:37.853, lon:15.288, tag:"A Greek theatre with Etna smoking behind it.",
+ note:"<b>Getting in:</b> Fly Rome→Catania (~1h15), then bus/train ~1h. Worth it if you can give Sicily 3+ nights.",
+ pois:[
+  {c:"sight",n:"Teatro Antico",d:"Greek theatre framing Etna and the sea."},
+  {c:"sight",n:"Isola Bella",d:"Cable car down to the pebble-beach island."},
+  {c:"sight",n:"Mount Etna excursion",d:"Cable car + jeep toward the summit craters."},
+  {c:"sight",n:"Corso Umberto passeggiata",d:"The evening promenade, granita in hand."},
+  {c:"stay",n:"Taormina center",d:"Views and polish; book far ahead."},
+  {c:"stay",n:"Giardini Naxos",d:"Beach town below at half the price."},
+  {c:"eat",n:"Granita con brioche",d:"Almond or lemon — the Sicilian breakfast."},
+  {c:"eat",n:"Pasta alla Norma",d:"Eggplant, tomato, ricotta salata — a Catania invention."},
+  {c:"eat",n:"Bam Bar",d:"The granita institution."}]},
+{id:"palermo", n:"Palermo", region:"Sicily", lat:38.116, lon:13.362, tag:"Arab-Norman splendor and the best street food in Italy.",
+ note:"<b>Getting in:</b> Fly from Rome or Naples (~1h). A different Italy — give it two nights minimum.",
+ pois:[
+  {c:"sight",n:"Cappella Palatina",d:"A ceiling of gold mosaics in the Norman Palace."},
+  {c:"sight",n:"Monreale Cathedral",d:"The mosaic cycle above the city — half-day trip."},
+  {c:"sight",n:"Ballarò & Capo markets",d:"Shouting vendors, swordfish heads, pure theatre."},
+  {c:"sight",n:"Teatro Massimo",d:"Italy's largest opera house."},
+  {c:"stay",n:"Kalsa district",d:"The arty old quarter near the marina."},
+  {c:"stay",n:"Politeama / Libertà",d:"Elegant 19th-century Palermo, calmer streets."},
+  {c:"eat",n:"Street food crawl",d:"Panelle, arancine, sfincione — and pani ca meusa for the brave."},
+  {c:"eat",n:"Cannoli at I Segreti del Chiostro",d:"Convent-recipe cannoli filled to order."},
+  {c:"eat",n:"Antica Focacceria San Francesco",d:"Serving the classics since 1834."}]}
+];
+const CITY_BY_ID = Object.fromEntries(CITIES.map(c=>[c.id,c]));
+</script>

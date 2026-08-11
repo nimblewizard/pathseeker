@@ -1,0 +1,6 @@
+<script>
+/* Offline support on real hosting only — the artifact runtime serves a single page (sw.js
+   would 404) and localhost is plain http. */
+if ("serviceWorker" in navigator && !window.claude && location.protocol === "https:")
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+</script>
