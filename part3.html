@@ -205,7 +205,7 @@ function el(tag, attrs, parent){
 }
 function buildMapInto(container, interactive){
   const svg = el("svg", {viewBox:`0 0 ${MAP_W} ${MAP_H}`, preserveAspectRatio:"xMidYMid meet"});
-  el("rect",{x:-4000,y:-4000,width:10000,height:10000,fill:"#171208"},svg);
+  /* no backdrop rect — the stage's parchment desk (BG_MAPDESK) shows around the map */
   const img = el("image",{x:0,y:0,width:MAP_W,height:MAP_H,preserveAspectRatio:"none"},svg);
   img.setAttribute("href", MAP_IMG);
   img.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href", MAP_IMG);
@@ -1752,6 +1752,7 @@ function init(){
   const skin=document.createElement("style");
   skin.textContent =
     `.appbar{background-image:url(${BG_BANNER})}`+
+    `.map-stage{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
     `.home-card,.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub`+
     `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`;
