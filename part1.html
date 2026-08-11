@@ -164,7 +164,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 #view-map{position:absolute;inset:0;display:flex}
 /* the map is fixed hand-painted artwork — stage chrome is art-toned in both themes */
 .map-stage{flex:1;min-width:0;position:relative;background:#171208;overflow:hidden}
-.map-stage svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.map-stage > svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 .sea-label{
   font-family:"Bodoni 72",Didot,Georgia,serif;font-style:italic;
   fill:var(--sea-deep);letter-spacing:.25em;
@@ -233,6 +233,17 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .map-stage.xmap .city,.map-stage.xmap .route,.map-stage.xmap .route-done,
 .map-stage.xmap .day-scrub{display:none !important}
 #view-map.xmap #poi-filter,#view-map.xmap #poi-label{display:none}
+/* live GPS map (Leaflet on the hosted site; graceful note in the artifact) */
+#live-map{position:absolute;inset:0;z-index:4;background:#E8E0CE}
+.map-stage.livemap > svg,.map-stage.livemap .zoom-ctl{display:none !important}
+.live-note{max-width:420px;margin:80px auto 0;padding:22px 26px;border-radius:14px;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);
+  font-size:14.5px;line-height:1.55;color:var(--ink)}
+#live-map .leaflet-container{font:inherit}
+.live-locate{
+  position:absolute;right:12px;bottom:64px;z-index:1000;width:38px;height:38px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--line);font-size:17px;box-shadow:var(--shadow-sm);cursor:pointer;
+}
 
 /* ---------- city panel ---------- */
 .panel{
@@ -299,7 +310,20 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .postcard:hover{transform:rotate(0) scale(1.04);box-shadow:var(--shadow)}
 .postcard img{width:100%;height:102px;object-fit:cover;display:block}
 #dlg-postcard{width:min(640px,calc(100vw - 24px))}
-#pc-img{width:100%;max-height:60vh;object-fit:contain;display:block;background:#141008;border-radius:16px 16px 0 0}
+.pc-frame{position:relative;border-radius:16px 16px 0 0;overflow:hidden}
+#pc-img{width:100%;max-height:60vh;object-fit:contain;display:block;background:#141008;cursor:pointer}
+.pc-nav{
+  position:absolute;top:50%;transform:translateY(-50%);width:42px;height:60px;border:none;
+  border-radius:10px;background:rgba(20,14,6,.45);color:#F3E7C9;font-size:32px;line-height:1;
+  font-family:Georgia,serif;cursor:pointer;
+}
+.pc-nav:hover{background:rgba(20,14,6,.72)}
+#pc-prev{left:10px}
+#pc-next{right:10px}
+.pc-count{
+  position:absolute;right:12px;bottom:10px;font-size:12px;font-weight:700;color:#F3E7C9;
+  background:rgba(20,14,6,.55);padding:3px 10px;border-radius:999px;pointer-events:none;
+}
 .travel-note{
   margin-top:16px;background:var(--surface2);border-radius:10px;padding:11px 13px;
   font-size:13px;color:var(--ink-soft);
@@ -528,9 +552,12 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 /* ---- Plan tab (fairy-tale guide + concierge) ---- */
 .plan-wrap{max-width:1000px;margin:0 auto;padding:0 0 80px}
 .plan-hero{background:linear-gradient(135deg,var(--accent) 0%,var(--gold) 100%);color:var(--accent-ink);
-  padding:52px 24px 60px;text-align:center;position:relative;overflow:hidden}
+  padding:52px 24px 60px;text-align:center;position:relative;overflow:hidden;
+  background-size:cover;background-position:center 62%;
+  text-shadow:0 1px 3px rgba(24,12,4,.75),0 0 22px rgba(24,12,4,.45)}
 .plan-hero:after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(circle at 20% 20%,rgba(255,255,255,.15),transparent 45%)}
+  background:linear-gradient(rgba(28,14,6,.30),rgba(28,14,6,.44))}
+.plan-hero>*{position:relative;z-index:1}
 .plan-kicker{letter-spacing:.32em;text-transform:uppercase;font-size:11px;font-weight:700;opacity:.9}
 .plan-hero h1{font-size:clamp(26px,4.4vw,42px);margin:12px 0 6px;font-weight:600;line-height:1.12}
 .plan-hero .sub{font-style:italic;font-size:16px;opacity:.95}

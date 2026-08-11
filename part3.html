@@ -150,6 +150,7 @@ let CURW=MAP_W, CURH=MAP_H;
 /* practical reference maps (consts in mapsimg.html), switchable from the map HUD */
 const XMAPS=[
  {id:"story", n:"Storybook"},
+ {id:"live", n:"🧭 Live Map", live:true},
  {id:"rail", n:"🚄 Trains", img:()=>XMAP_RAIL, w:1800, h:2148,
   credit:"map © @_sci4m4chy_ · CC BY-SA 4.0",
   links:[["Trenitalia","https://www.trenitalia.com/en.html"],["Italo","https://www.italotreno.com/en"]]},
@@ -172,6 +173,21 @@ const XMAPS=[
 function showXMap(id){
   const m=XMAPS.find(x=>x.id===id)||XMAPS[0];
   UI.xmap=m.id;
+  const live=!!m.live;
+  $("#live-map").classList.toggle("hidden",!live);
+  $("#live-filter").classList.toggle("hidden",!live);
+  $("#live-label").classList.toggle("hidden",!live);
+  $("#map-stage").classList.toggle("livemap",live);
+  $("#view-map").classList.toggle("livemap",live);
+  if(live){
+    $("#map-stage").classList.add("xmap"); $("#view-map").classList.add("xmap");
+    $$("#map-switch .chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.xmap==="live")));
+    $("#map-hint").classList.remove("hidden");
+    $("#map-hint").innerHTML='map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+    initLiveMap();
+    return;
+  }
+  if(LIVE.map && LIVE.watch!==null){ navigator.geolocation.clearWatch(LIVE.watch); LIVE.watch=null; }
   const story=m.id==="story";
   CURW=story?MAP_W:m.w; CURH=story?MAP_H:m.h;
   const href=story?MAP_IMG:m.img();
@@ -191,6 +207,126 @@ function showXMap(id){
       +` <span style="opacity:.7">· ${esc(m.credit)}</span>`;
   }
 }
+/* ---- live GPS map (Leaflet + OpenStreetMap + Overpass nearby search) ----
+   External resources are blocked inside the claude.ai artifact, so this only
+   fully works on the hosted site; the artifact shows a note instead. */
+const LIVE={map:null,loading:false,failed:false,watch:null,meDot:null,meRing:null,
+            poiLayer:null,cat:null,fetchTimer:null,ctl:null};
+const LIVE_CATS={
+  food:   {q:'["amenity"~"restaurant|cafe|bar|fast_food|ice_cream"]', col:"#C8202F", label:"Food & Drink"},
+  hotel:  {q:'["tourism"~"hotel|guest_house|hostel|bed_and_breakfast|apartment"]', col:"#7A5C2E", label:"Hotels"},
+  sight:  {q:'["tourism"~"attraction|museum|viewpoint|gallery|artwork"]', col:"#5B7A2E", label:"Attractions"},
+  park:   {q:'["leisure"~"park|garden"]', col:"#2E7A55", label:"Parks"},
+  transit:{q:'["railway"~"station|halt|subway_entrance|tram_stop"]', col:"#2E4E7A", label:"Transit"},
+};
+function liveNote(html){ $("#live-map").innerHTML=`<div class="live-note">${html}</div>`; }
+function initLiveMap(){
+  if(LIVE.map){ setTimeout(()=>LIVE.map.invalidateSize(),50); startLocate(); return; }
+  if(LIVE.failed || LIVE.loading) return;
+  LIVE.loading=true;
+  liveNote("Loading live map…");
+  const css=document.createElement("link");
+  css.rel="stylesheet"; css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  document.head.appendChild(css);
+  const js=document.createElement("script");
+  js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  js.onload=()=>{ LIVE.loading=false; buildLiveMap(); };
+  js.onerror=()=>{
+    LIVE.loading=false; LIVE.failed=true;
+    liveNote('The live map needs the web version of Pathseeker — this copy can\'t reach the internet.<br><br>'+
+      '<a href="https://nimblewizard.github.io/pathseeker/" target="_blank" rel="noopener"><b>Open Pathseeker on the web ↗</b></a>');
+  };
+  document.head.appendChild(js);
+}
+function buildLiveMap(){
+  const el=$("#live-map"); el.innerHTML="";
+  LIVE.map=L.map(el,{zoomControl:true}).setView([42.5,12.5],6);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(LIVE.map);
+  /* trip stops */
+  const seq=[S.trip.arrivalCity, ...sortedStops().map(s=>s.cityId), S.trip.departureCity];
+  const pts=[];
+  [...new Set(seq)].forEach(id=>{
+    const c=CITY_BY_ID[id]; if(!c||!c.lat) return;
+    pts.push([c.lat,c.lon]);
+    L.circleMarker([c.lat,c.lon],{radius:8,color:"#F3E7C9",weight:2,fillColor:"#BE1E3C",fillOpacity:1})
+      .addTo(LIVE.map).bindPopup(`<b>${esc(c.n)}</b><br><a href="https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lon}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`);
+  });
+  if(pts.length>1){
+    L.polyline(pts,{color:"#C8202F",weight:3,dashArray:"8 7",opacity:.85}).addTo(LIVE.map);
+    LIVE.map.fitBounds(pts,{padding:[40,40]});
+  }
+  LIVE.poiLayer=L.layerGroup().addTo(LIVE.map);
+  const btn=document.createElement("button");
+  btn.className="live-locate"; btn.textContent="📍"; btn.title="Go to my location";
+  btn.addEventListener("click",()=>{ startLocate(true); });
+  el.appendChild(btn);
+  LIVE.map.on("moveend",()=>{ clearTimeout(LIVE.fetchTimer); LIVE.fetchTimer=setTimeout(fetchPOIs,700); });
+  startLocate();
+}
+function startLocate(fly){
+  if(!navigator.geolocation||!LIVE.map) return;
+  if(LIVE.watch===null){
+    LIVE.watch=navigator.geolocation.watchPosition(p=>{
+      const ll=[p.coords.latitude,p.coords.longitude];
+      if(!LIVE.meDot){
+        LIVE.meRing=L.circle(ll,{radius:p.coords.accuracy||30,color:"#2E6BB8",weight:1,fillColor:"#2E6BB8",fillOpacity:.12}).addTo(LIVE.map);
+        LIVE.meDot=L.circleMarker(ll,{radius:7,color:"#fff",weight:2.5,fillColor:"#2E6BB8",fillOpacity:1})
+          .addTo(LIVE.map).bindPopup("You are here");
+        if(fly!==false) LIVE.map.flyTo(ll,15);
+      }else{
+        LIVE.meDot.setLatLng(ll); LIVE.meRing.setLatLng(ll).setRadius(p.coords.accuracy||30);
+      }
+    },()=>{},{enableHighAccuracy:true,maximumAge:15000});
+  }else if(fly && LIVE.meDot){ LIVE.map.flyTo(LIVE.meDot.getLatLng(),15); }
+}
+function fetchPOIs(){
+  if(!LIVE.map||!LIVE.cat) return;
+  if(LIVE.map.getZoom()<14){
+    $("#map-hint").innerHTML=`Zoom in closer to see ${esc(LIVE_CATS[LIVE.cat].label.toLowerCase())} · map data © OpenStreetMap contributors`;
+    LIVE.poiLayer.clearLayers(); return;
+  }
+  const b=LIVE.map.getBounds(), key=LIVE.cat, cat=LIVE_CATS[key];
+  const bbox=`(${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()})`;
+  const q=`[out:json][timeout:15];(node${cat.q}${bbox};way${cat.q}${bbox};);out center 150;`;
+  $("#map-hint").textContent="Searching this area…";
+  fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),
+    headers:{"Content-Type":"application/x-www-form-urlencoded"}})
+    .then(r=>r.json())
+    .then(d=>{
+      if(LIVE.cat!==key) return;  // filter changed while the request was in flight
+      LIVE.poiLayer.clearLayers();
+      let n=0;
+      (d.elements||[]).forEach(e=>{
+        const lat=e.lat??e.center?.lat, lon=e.lon??e.center?.lon;
+        if(lat==null) return;
+        const name=e.tags?.name||cat.label;
+        L.circleMarker([lat,lon],{radius:6,color:"#fff",weight:1.5,fillColor:cat.col,fillOpacity:.92})
+          .addTo(LIVE.poiLayer)
+          .bindPopup(`<b>${esc(name)}</b><br><span style="opacity:.75">${esc(LIVE.cat)}</span><br><a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`);
+        n++;
+      });
+      $("#map-hint").innerHTML=`${n} ${esc(cat.label.toLowerCase())} in view${n>=150?" (max shown)":""} · map data © OpenStreetMap contributors`;
+    })
+    .catch(()=>{
+      $("#map-hint").textContent="Nearby search hiccup — retrying…";
+      /* Overpass occasionally rate-limits; retry once */
+      if(!fetchPOIs.retried){ fetchPOIs.retried=true; setTimeout(()=>{ if(LIVE.cat===key) fetchPOIs(); },3000); }
+      else $("#map-hint").textContent="Nearby search failed — pan the map to try again.";
+    })
+    .finally(()=>{ setTimeout(()=>{ fetchPOIs.retried=false; },4000); });
+}
+function wireLiveFilter(){
+  $$("#live-filter .chip").forEach(ch=>ch.addEventListener("click",()=>{
+    const cat=ch.dataset.live;
+    LIVE.cat = (LIVE.cat===cat)? null : cat;
+    $$("#live-filter .chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.live===LIVE.cat)));
+    if(LIVE.poiLayer) LIVE.poiLayer.clearLayers();
+    if(LIVE.cat) fetchPOIs();
+    else $("#map-hint").innerHTML='map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+  }));
+}
+
 function panToCity(id){
   const c=CITY_BY_ID[id]; if(!c||!mapSvg) return;
   const [x,y]=ART[c.id]||[MAP_W/2,MAP_H/2];
@@ -461,12 +597,7 @@ function renderPanel(){
     </div>`;
   p.classList.remove("hidden");
   $("#panel-close").addEventListener("click",()=>selectCity(null));
-  p.querySelectorAll("[data-pc]").forEach(b=>b.addEventListener("click",()=>{
-    const ph=CITY_PHOTOS[c.id][+b.dataset.pc];
-    $("#pc-img").src=ph.d;
-    $("#pc-cap").innerHTML=`<b>${esc(ph.c)}</b><br><span style="opacity:.75">${esc(ph.cr)}</span>`;
-    const dlg=$("#dlg-postcard"); dlg.returnValue=""; dlg.showModal();
-  }));
+  p.querySelectorAll("[data-pc]").forEach(b=>b.addEventListener("click",()=>showPostcard(c.id,+b.dataset.pc)));
   const pp=$("#panel-paste"); if(pp) pp.addEventListener("click",()=>openPasteDlg());
   const pab=$("#panel-photo"); if(pab) pab.addEventListener("click",()=>promptPhoto({cityId:c.id, date:clampDay(todayISO())}, false));
   wirePhotos(p);
@@ -1749,9 +1880,45 @@ function initPasteDlg(){
 }
 
 /* ================= BOOT ================= */
+/* postcard lightbox: side-tap, chevrons, arrow keys and swipe all step through the album */
+const PC={city:null,idx:0};
+function showPostcard(cityId,i){
+  const list=CITY_PHOTOS[cityId]||[]; if(!list.length) return;
+  PC.city=cityId; PC.idx=((i%list.length)+list.length)%list.length;
+  const ph=list[PC.idx];
+  $("#pc-img").src=ph.d;
+  $("#pc-cap").innerHTML=`<b>${esc(ph.c)}</b><br><span style="opacity:.75">${esc(ph.cr)}</span>`;
+  $("#pc-count").textContent=(PC.idx+1)+" / "+list.length;
+  const dlg=$("#dlg-postcard");
+  if(!dlg.open){ dlg.returnValue=""; dlg.showModal(); }
+}
+function pcStep(d){ if(PC.city) showPostcard(PC.city,PC.idx+d); }
+function wirePostcards(){
+  $("#pc-prev").addEventListener("click",()=>pcStep(-1));
+  $("#pc-next").addEventListener("click",()=>pcStep(1));
+  $("#pc-img").addEventListener("click",e=>{
+    const r=e.currentTarget.getBoundingClientRect();
+    pcStep((e.clientX-r.left) < r.width/2 ? -1 : 1);
+  });
+  const dlg=$("#dlg-postcard");
+  dlg.addEventListener("keydown",e=>{
+    if(e.key==="ArrowLeft"){ e.preventDefault(); pcStep(-1); }
+    else if(e.key==="ArrowRight"){ e.preventDefault(); pcStep(1); }
+  });
+  let tx=null,ty=null;
+  dlg.addEventListener("touchstart",e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; },{passive:true});
+  dlg.addEventListener("touchend",e=>{
+    if(tx===null) return;
+    const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty; tx=null;
+    if(Math.abs(dx)>48 && Math.abs(dx)>Math.abs(dy)*1.5) pcStep(dx<0?1:-1);
+  },{passive:true});
+}
+
 function init(){
   loadState();
   renderHome();
+  wirePostcards();
+  wireLiveFilter();
   buildMapInto($("#home-minimap"), false);
   /* scrapbook parchment backgrounds per tab, under a theme-aware veil (--pveil) */
   const TAB_BG = {today:BG_TODAY, plan:BG_PLAN, itin:BG_ITIN, translate:BG_TRANSLATE, journal:BG_JOURNAL};
@@ -1779,6 +1946,7 @@ function init(){
     `@keyframes psheen{0%,62%{background-position:-160% 0}96%,100%{background-position:260% 0}}`+
     `.map-stage{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
     `.home-card{background-image:url(${BG_SCROLL});background-size:100% 100%;background-repeat:no-repeat}`+
+    `.plan-hero{background-image:url(${BG_PLANHERO})}`+
     `.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side`+
     `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`;
