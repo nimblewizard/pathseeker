@@ -1687,6 +1687,15 @@ function init(){
   const TAB_BG = {today:BG_TODAY, plan:BG_PLAN, itin:BG_ITIN, translate:BG_TRANSLATE, journal:BG_JOURNAL};
   for(const k in TAB_BG)
     $("#view-"+k).style.backgroundImage = `linear-gradient(var(--pveil),var(--pveil)), url(${TAB_BG[k]})`;
+  /* banner header + parchment card texture — injected as a stylesheet so it survives
+     re-renders (data URIs can't live in the static CSS) */
+  const skin=document.createElement("style");
+  skin.textContent =
+    `.appbar{background-image:url(${BG_BANNER})}`+
+    `.home-card,.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
+    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub`+
+    `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`;
+  document.head.appendChild(skin);
   $("#btn-start").addEventListener("click",()=>{
     const s=$("#trip-start").value, e=$("#trip-end").value;
     if(!s||!e||e<s){ toast("Check your dates — depart must follow arrive"); return; }
