@@ -280,9 +280,14 @@ function startLocate(fly){
     },()=>{},{enableHighAccuracy:true,maximumAge:15000});
   }else if(fly && LIVE.meDot){ LIVE.map.flyTo(LIVE.meDot.getLatLng(),15); }
 }
+const OVERPASS_URLS=["https://overpass-api.de/api/interpreter",
+                     "https://overpass.openstreetmap.fr/api/interpreter",
+                     "https://overpass.kumi.systems/api/interpreter",
+                     "https://overpass.osm.jp/api/interpreter",
+                     "https://overpass.private.coffee/api/interpreter"];
 function fetchPOIs(){
   if(!LIVE.map||!LIVE.cat) return;
-  if(LIVE.map.getZoom()<14){
+  if(LIVE.map.getZoom()<13){
     $("#map-hint").innerHTML=`Zoom in closer to see ${esc(LIVE_CATS[LIVE.cat].label.toLowerCase())} · map data © OpenStreetMap contributors`;
     LIVE.poiLayer.clearLayers(); return;
   }
@@ -290,9 +295,13 @@ function fetchPOIs(){
   const bbox=`(${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()})`;
   const q=`[out:json][timeout:15];(node${cat.q}${bbox};way${cat.q}${bbox};);out center 150;`;
   $("#map-hint").textContent="Searching this area…";
-  fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),
-    headers:{"Content-Type":"application/x-www-form-urlencoded"}})
-    .then(r=>r.json())
+  /* hard client timeout — the public mirrors sometimes accept a request and then stall */
+  const ac=new AbortController();
+  const killer=setTimeout(()=>ac.abort(),15000);
+  fetch(OVERPASS_URLS[LIVE.ep||0],{method:"POST",body:"data="+encodeURIComponent(q),
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ac.signal})
+    .then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .finally(()=>clearTimeout(killer))
     .then(d=>{
       if(LIVE.cat!==key) return;  // filter changed while the request was in flight
       LIVE.poiLayer.clearLayers();
@@ -306,24 +315,50 @@ function fetchPOIs(){
           .bindPopup(`<b>${esc(name)}</b><br><span style="opacity:.75">${esc(LIVE.cat)}</span><br><a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`);
         n++;
       });
+      LIVE.tries=0;
       $("#map-hint").innerHTML=`${n} ${esc(cat.label.toLowerCase())} in view${n>=150?" (max shown)":""} · map data © OpenStreetMap contributors`;
     })
     .catch(()=>{
-      $("#map-hint").textContent="Nearby search hiccup — retrying…";
-      /* Overpass occasionally rate-limits; retry once */
-      if(!fetchPOIs.retried){ fetchPOIs.retried=true; setTimeout(()=>{ if(LIVE.cat===key) fetchPOIs(); },3000); }
-      else $("#map-hint").textContent="Nearby search failed — pan the map to try again.";
-    })
-    .finally(()=>{ setTimeout(()=>{ fetchPOIs.retried=false; },4000); });
+      /* rotate to a mirror and retry — the public Overpass servers rate-limit freely */
+      LIVE.ep=((LIVE.ep||0)+1)%OVERPASS_URLS.length;
+      LIVE.tries=(LIVE.tries||0)+1;
+      if(LIVE.tries<OVERPASS_URLS.length){
+        $("#map-hint").textContent="Nearby search hiccup — trying another server…";
+        setTimeout(()=>{ if(LIVE.cat===key) fetchPOIs(); },1200);
+      }else{
+        LIVE.tries=0;
+        $("#map-hint").textContent="Nearby search failed — pan the map to try again.";
+      }
+    });
 }
 function wireLiveFilter(){
   $$("#live-filter .chip").forEach(ch=>ch.addEventListener("click",()=>{
     const cat=ch.dataset.live;
     LIVE.cat = (LIVE.cat===cat)? null : cat;
+    LIVE.tries=0;
     $$("#live-filter .chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.live===LIVE.cat)));
     if(LIVE.poiLayer) LIVE.poiLayer.clearLayers();
-    if(LIVE.cat) fetchPOIs();
-    else $("#map-hint").innerHTML='map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+    if(!LIVE.cat){
+      $("#map-hint").innerHTML='map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+      return;
+    }
+    if(LIVE.map && LIVE.map.getZoom()<13){
+      /* zoomed out to the whole route — dive into the nearest useful place instead of doing nothing:
+         your live location if it's known, else the trip stop closest to the map center */
+      let target = LIVE.meDot ? LIVE.meDot.getLatLng() : null;
+      if(!target){
+        const c=LIVE.map.getCenter();
+        let best=null, bd=Infinity;
+        [S.trip.arrivalCity, ...sortedStops().map(s=>s.cityId), S.trip.departureCity].forEach(id=>{
+          const ct=CITY_BY_ID[id]; if(!ct||!ct.lat) return;
+          const d=(ct.lat-c.lat)**2+(ct.lon-c.lng)**2;
+          if(d<bd){ bd=d; best=[ct.lat,ct.lon]; }
+        });
+        target=best;
+      }
+      if(target){ LIVE.map.flyTo(target,15); return; }  /* moveend triggers the search */
+    }
+    fetchPOIs();
   }));
 }
 
