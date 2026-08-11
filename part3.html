@@ -767,6 +767,116 @@ function wireBkRows(root){
 }
 
 /* ================= ITINERARY ================= */
+/* ================= TRIP VERSIONS — save alternates, compare costs & travel ================= */
+function tripStats(trip){
+  const stops=[...(trip.stops||[])].sort((a,b)=>a.arrive<b.arrive?-1:1);
+  const seq=[]; const push=(id)=>{ if(id&&CITY_BY_ID[id]&&(!seq.length||seq[seq.length-1]!==id)) seq.push(id); };
+  push(trip.arrivalCity); stops.forEach(s=>push(s.cityId)); push(trip.departureCity);
+  const legs=[];
+  for(let i=1;i<seq.length;i++){
+    const tt=travelInfo(seq[i-1],seq[i])||"", mode=legMode(tt);
+    const m=tt.match(/(\d+)h(\d+)?/), mm=tt.match(/~?(\d+)\s?m/);
+    legs.push({mode, h: m? (+m[1]+(m[2]?+m[2]/60:0)) : mm? +mm[1]/60 : 0});
+  }
+  const sum=(f)=>legs.filter(f).reduce((a,l)=>a+l.h,0);
+  /* committed € — variant-aware rerun of the pipeline logic */
+  const findBk=(item)=>{
+    if(item.stay) return (trip.bookings||[]).find(b=>(b.type==="hotel"||b.type==="airbnb")&&b.cityId===item.stay);
+    const mt=item.match; if(!mt) return null;
+    const k=mt.kw? new RegExp(mt.kw,"i") : null;
+    return (trip.bookings||[]).find(b=>(!mt.type||b.type===mt.type)&&(!mt.city||b.cityId===mt.city)&&(!k||k.test(b.name+" "+(b.notes||""))));
+  };
+  let committed=0;
+  CHECKLIST.forEach(item=>{
+    const raw=trip.checklist&&trip.checklist[item.id];
+    const o=raw===true?{st:"booked"}:(raw&&typeof raw==="object"?raw:{});
+    const bk=findBk(item);
+    const st=(bk&&o.st!=="paid")?"booked":(o.st||"todo");
+    if(st==="booked"||st==="paid") committed += (o.pr!=null&&o.pr!=="")? +o.pr : priceNum(bk&&bk.price);
+  });
+  /* rough lodging estimate from each city's stay price bands (€/night midpoints) */
+  const BAND={1:95,2:170,3:280};
+  let lodging=0;
+  stops.forEach(s=>{
+    const c=CITY_BY_ID[s.cityId]; if(!c) return;
+    const ps=(c.pois||[]).filter(p=>p.c==="stay"&&p.p).map(p=>p.p).sort((a,b)=>a-b);
+    const band=ps.length? ps[Math.floor(ps.length/2)] : 2;
+    lodging += (+s.nights||0)*BAND[band];
+  });
+  return { names:seq.map(id=>CITY_BY_ID[id].short||CITY_BY_ID[id].n),
+    stopCount:stops.length, nights:stops.reduce((a,s)=>a+(+s.nights||0),0),
+    legCount:legs.length, totalH:sum(()=>true), carH:sum(l=>l.mode==="car"),
+    trainH:sum(l=>l.mode==="train"), ferryH:sum(l=>l.mode==="ferry"),
+    maxLegH:legs.reduce((a,l)=>Math.max(a,l.h),0),
+    committed:Math.round(committed), lodging:Math.round(lodging) };
+}
+const fmtH=(h)=>{ if(!h) return "—";
+  const m=Math.round(h%1*60);
+  return h>=1? `${Math.floor(h)}h${m?String(m).padStart(2,"0"):""}` : `${Math.round(h*60)}m`; };
+function saveVariant(name){
+  S.variants=S.variants||[];
+  if(S.variants.length>=8){ toast("Eight versions is plenty — delete one first"); return; }
+  S.variants.push({id:uid(), name, savedAt:todayISO(), trip:JSON.parse(JSON.stringify(S.trip))});
+  mutate(); renderItin(); toast(`Saved "${name}"`);
+}
+function loadVariant(id){
+  const v=(S.variants||[]).find(x=>x.id===id); if(!v) return;
+  S.variants=S.variants.filter(x=>x.name!=="Auto-backup");
+  S.variants.push({id:uid(), name:"Auto-backup", savedAt:todayISO(), trip:JSON.parse(JSON.stringify(S.trip))});
+  S.trip=Object.assign(DEFAULT_TRIP(), JSON.parse(JSON.stringify(v.trip)));
+  mutate(); renderAll(); renderHome();
+  toast(`Loaded "${v.name}" — your previous route is in Auto-backup`);
+}
+function versionsHtml(){
+  const vs=S.variants||[];
+  return `<div class="journal-form versions">
+    <span class="label">Trip versions — save alternates, then compare them side by side</span>
+    <div class="row" style="grid-template-columns:1fr auto auto">
+      <input id="var-name" placeholder="Name this version — e.g. 'Skip Venice, +2 Sorrento'">
+      <button class="btn btn-sm" id="var-save">📌 Save current</button>
+      <button class="btn btn-sm btn-primary" id="var-compare" ${vs.length?"":"disabled"}>⚖ Compare</button>
+    </div>
+    ${vs.map(v=>`<div class="var-row"><b>${esc(v.name)}</b>
+      <span class="var-meta">${(v.trip.stops||[]).length} stops · ${fmtShort(v.savedAt)}</span>
+      <button class="btn btn-sm" data-varload="${v.id}">Load</button>
+      <button class="btn btn-sm" data-vardel="${v.id}" aria-label="Delete ${esc(v.name)}">✕</button></div>`).join("")}
+  </div>`;
+}
+function openCompare(){
+  const cols=[{name:"Current", st:tripStats(S.trip)},
+    ...(S.variants||[]).map(v=>({name:v.name, st:tripStats(v.trip)}))];
+  const rows=[
+    {l:"Route", v:c=>c.st.names.join(" → ")},
+    {l:"Stops", v:c=>c.st.stopCount},
+    {l:"Nights placed", v:c=>c.st.nights},
+    {l:"Travel legs", v:c=>c.st.legCount},
+    {l:"Total travel", v:c=>fmtH(c.st.totalH), n:c=>c.st.totalH, best:"min"},
+    {l:"Driving", v:c=>fmtH(c.st.carH), n:c=>c.st.carH, best:"min"},
+    {l:"Train time", v:c=>fmtH(c.st.trainH), n:c=>c.st.trainH, best:"min"},
+    {l:"Longest single leg", v:c=>fmtH(c.st.maxLegH), n:c=>c.st.maxLegH, best:"min"},
+    {l:"Committed so far", v:c=>c.st.committed?"€"+c.st.committed.toLocaleString("en-US"):"—"},
+    {l:"Rough lodging est.", v:c=>"~€"+c.st.lodging.toLocaleString("en-US"), n:c=>c.st.lodging, best:"min"},
+  ];
+  let h=`<table class="cmp-table"><thead><tr><th></th>${cols.map(c=>`<th>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    let bestIdx=-1;
+    if(r.best && cols.length>1){
+      const vals=cols.map(r.n);
+      const pos=vals.filter(v=>v>0);
+      const target=Math.min(...pos);
+      /* only crown a winner when there's an actual difference */
+      if(isFinite(target) && Math.max(...pos)>target) bestIdx=vals.indexOf(target);
+    }
+    h+=`<tr><th>${r.l}</th>${cols.map((c,i)=>
+      `<td class="${i===bestIdx?"best":""}">${r.v(c)}${i===bestIdx?" ✓":""}</td>`).join("")}</tr>`;
+  });
+  h+=`</tbody></table>
+    <p class="times-note">Lodging estimate = nights × each town's typical price band (~€95/€170/€280 a night) —
+    a planning yardstick, not a quote. Committed = prices logged in the Travel agent pipeline of that version.</p>`;
+  $("#cmp-body").innerHTML=h;
+  const dlg=$("#dlg-compare"); dlg.returnValue=""; dlg.showModal();
+}
+
 function renderItin(){
   const wrap=$("#itin-wrap");
   const days=tripDays();
@@ -778,6 +888,7 @@ function renderItin(){
       ${nightsPlanned}/${totalNights} nights placed</p>`;
   if(!days.length){ wrap.innerHTML=head+`<div class="empty">Set your trip dates on the home screen first.</div>`; return; }
   head+=stopEditorHtml();
+  head+=versionsHtml();
   let rows="";
   for(const d of days){
     const here=stopsOn(d);
@@ -817,6 +928,18 @@ function renderItin(){
   wrap.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",()=>
     openBookingDlg({date:b.dataset.addday, cityId:b.dataset.city})));
   wireStopEditor(wrap);
+  /* trip versions */
+  const vs=$("#var-save");
+  if(vs) vs.addEventListener("click",()=>{
+    const name=$("#var-name").value.trim() || `Version ${(S.variants||[]).length+1}`;
+    saveVariant(name);
+  });
+  const vc=$("#var-compare"); if(vc) vc.addEventListener("click",openCompare);
+  wrap.querySelectorAll("[data-varload]").forEach(b=>b.addEventListener("click",()=>loadVariant(b.dataset.varload)));
+  wrap.querySelectorAll("[data-vardel]").forEach(b=>b.addEventListener("click",()=>{
+    S.variants=(S.variants||[]).filter(v=>v.id!==b.dataset.vardel);
+    mutate(); renderItin();
+  }));
 }
 
 /* ---- route editor: reorder / resize stops in place; later dates ripple ---- */
@@ -2178,6 +2301,33 @@ function trResults(q){
     <p style="text-align:center;margin-top:10px"><a href="https://translate.google.com/?sl=en&tl=it&text=${encodeURIComponent(q)}" target="_blank" rel="noopener">Translate "${esc(q)}" on Google Translate ↗</a></p>`;
   return out;
 }
+/* ---- currency converter: live ECB rate via frankfurter.app, baked-in fallback ---- */
+let FX_RATE=1.15, FX_LIVE=false;   /* EUR→USD; fallback ≈ Aug 2026 */
+async function fxFetch(){
+  if(FX_LIVE) return;
+  try{
+    const r=await fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD");
+    if(!r.ok) throw 0;
+    const d=await r.json();
+    if(d.rates && d.rates.USD){ FX_RATE=d.rates.USD; FX_LIVE=true;
+      const n=$("#fx-note"); if(n) n.textContent=`€1 = $${FX_RATE.toFixed(4)} · European Central Bank rate, ${d.date}`;
+      fxQuick(); }
+  }catch(e){
+    const n=$("#fx-note"); if(n) n.textContent=`€1 ≈ $${FX_RATE.toFixed(2)} — approximate rate (live rate needs the web version)`;
+  }
+}
+function fxQuick(){
+  const q=$("#fx-quick"); if(!q) return;
+  q.innerHTML=[10,20,50,100,200].map(e=>`<span class="fx-chip">€${e} ≈ $${Math.round(e*FX_RATE)}</span>`).join("");
+}
+function wireFx(){
+  const eur=$("#fx-eur"), usd=$("#fx-usd");
+  const num=(v)=>{ const m=String(v).replace(",",".").match(/\d+(\.\d+)?/); return m? parseFloat(m[0]) : null; };
+  eur.addEventListener("input",()=>{ const v=num(eur.value); usd.value = v==null? "" : (v*FX_RATE).toFixed(2); });
+  usd.addEventListener("input",()=>{ const v=num(usd.value); eur.value = v==null? "" : (v/FX_RATE).toFixed(2); });
+  fxQuick(); fxFetch();
+}
+
 function renderTranslate(){
   const wrap=$("#translate-wrap");
   wrap.innerHTML=`<h2 class="view-title serif">Translate</h2>
@@ -2189,8 +2339,21 @@ function renderTranslate(){
       <div class="t-acts">
         <a class="btn btn-sm" href="https://translate.google.com/?sl=en&tl=it" target="_blank" rel="noopener">Open Google Translate ↗</a>
       </div></div>
+    <div class="t-card" style="margin-bottom:4px"><span class="label">Money — euros ⇄ dollars</span>
+      <div class="fx-row">
+        <span class="fx-cell">€ <input id="fx-eur" inputmode="decimal" placeholder="100"></span>
+        <span class="fx-swap">⇄</span>
+        <span class="fx-cell">$ <input id="fx-usd" inputmode="decimal" placeholder="…"></span>
+      </div>
+      <div class="fx-quick" id="fx-quick"></div>
+      <p class="times-note" id="fx-note">Using an approximate rate — checking today's…</p>
+      <p style="font-size:12.5px;margin:8px 0 0"><b>Tipping:</b> not expected — service (coperto) is usually
+      on the bill. Round up or leave a euro or two for great service. Card is fine nearly everywhere;
+      keep ~€50 cash for markets, small bars, and ZTL parking meters.</p>
+    </div>
     <div class="tr-search"><input id="tr-q" placeholder="Search — try 'check please' or 'vongole'…" autocomplete="off"></div>
     <div id="tr-body">${trResults("")}</div>`;
+  wireFx();
   const q=$("#tr-q");
   q.addEventListener("input",()=>{ $("#tr-body").innerHTML=trResults(q.value); });
   wrap.addEventListener("click",(e)=>{
