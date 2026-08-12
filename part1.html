@@ -99,7 +99,9 @@ h1,h2,h3{margin:0;text-wrap:balance}
 #home-minimap{
   position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:.5;
 }
-#home-minimap svg{width:min(120vw,2000px);height:auto}
+/* the backdrop map covers the whole panel — 'slice' crops rather than letterboxing,
+   so a portrait phone never shows voids around the landscape artwork */
+#home-minimap svg{width:100%;height:100%;display:block}
 /* setup card is the painted scroll (BG_SCROLL via skin); art carries the wordmark */
 .home-card{
   position:relative;width:min(470px,100%);
@@ -117,7 +119,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
   font-family:"Bodoni 72",Didot,Georgia,serif;font-size:17px;
 }
 @media (max-width:520px){
-  .home-card{padding:118px 42px 78px}
+  .home-card{padding:146px 34px 76px}
 }
 .field{margin-bottom:14px}
 .field .label{display:block;margin-bottom:5px}

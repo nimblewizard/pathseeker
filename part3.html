@@ -2147,10 +2147,10 @@ function renderHome(){
   if(n||S.trip.bookings.length){
     $("#home-resume").classList.remove("hidden");
     $("#home-resume-txt").textContent=`Trip in progress — ${n} stop${n===1?"":"s"}, ${S.trip.bookings.length} booking${S.trip.bookings.length===1?"":"s"}. Opening the map keeps everything.`;
-    $("#btn-start").textContent="Continue to the map";
+    $("#btn-start span").textContent="Continue to the map";
   }else{
     $("#home-resume").classList.add("hidden");
-    $("#btn-start").textContent="Open the map";
+    $("#btn-start span").textContent="Open the map";
   }
 }
 
@@ -3428,7 +3428,7 @@ function init(){
     }
   });
   docsInit().then(()=>{ const v=$("#view-plan"); if(v && !v.classList.contains("hidden")) renderPlan(); });
-  buildMapInto($("#home-minimap"), false);
+  buildMapInto($("#home-minimap"), false).setAttribute("preserveAspectRatio","xMidYMid slice");
   /* scrapbook parchment backgrounds per tab, under a theme-aware veil (--pveil) */
   const TAB_BG = {today:BG_TODAY, plan:BG_PLAN, itin:BG_ITIN, translate:BG_TRANSLATE, journal:BG_JOURNAL};
   for(const k in TAB_BG)
