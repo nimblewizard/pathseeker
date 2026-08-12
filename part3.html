@@ -59,7 +59,7 @@ const LS_KEY = "pathseeker.v1";
 const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
 const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-22", endDate:"2026-10-02",
   arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{},
-  packing:{}, packCustom:[]});
+  packing:{}, packCustom:[], budget:null});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
 let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
 
@@ -615,10 +615,18 @@ function renderPanel(){
   for(const cat of cats){
     const items=c.pois.filter(x=>x.c===cat);
     if(!items.length) continue;
-    sections+=`<div class="poi-section"><span class="label">${CAT_META[cat].t}</span>`;
-    for(const it of items){
+    /* price-band filter for lodging & food (€ / €€ / €€€) */
+    const bandable=(cat==="stay"||cat==="eat") && items.some(i=>i.p);
+    const band=bandable ? (UI.band||0) : 0;
+    const shown=band? items.filter(i=>(i.p||2)===band) : items;
+    sections+=`<div class="poi-section"><span class="label">${CAT_META[cat].t}</span>
+      ${bandable?`<span class="band-chips">${[0,1,2,3].map(bb=>
+        `<button class="band-chip" data-band="${bb}" aria-pressed="${band===bb}">${bb?"€".repeat(bb):"all"}</button>`).join("")}</span>`:""}`;
+    if(bandable && band && !shown.length)
+      sections+=`<p style="font-size:12.5px;color:var(--ink-soft);margin:6px 0 0">Nothing in that price band here — the town skews ${items.every(i=>(i.p||2)>band)?"pricier":"simpler"}.</p>`;
+    for(const it of shown){
       const idx=c.pois.indexOf(it);
-      sections+=`<div class="poi"><div class="poi-txt"><strong>${esc(it.n)}</strong><p>${esc(it.d)}</p></div>
+      sections+=`<div class="poi"><div class="poi-txt"><strong>${esc(it.n)}${it.p?` <span class="plan-price${it.p>1?" p"+it.p:""}">${"€".repeat(it.p)}</span>`:""}</strong><p>${esc(it.d)}</p></div>
         <div class="poi-acts">
           <a class="icon-btn" target="_blank" rel="noopener" href="${GM(it.n+", "+c.n)}" title="Photos & reviews on Google Maps" aria-label="Photos and reviews for ${esc(it.n)}">📷</a>
           <button class="icon-btn" data-addbk="${idx}" title="Save as booking" aria-label="Save ${esc(it.n)} as a booking">+</button>
@@ -662,6 +670,9 @@ function renderPanel(){
     taormina:"Taormina-Giardini",santostefano:"L'Aquila",castelmezzano:"Potenza Centrale"};
   const pd=$("#panel-deps");
   if(pd) pd.addEventListener("click",()=>openDepartures(DEP_HINT[c.id]||c.n));
+  p.querySelectorAll("[data-band]").forEach(b=>b.addEventListener("click",()=>{
+    UI.band=+b.dataset.band||0; renderPanel();
+  }));
   $("#panel-close").addEventListener("click",()=>selectCity(null));
   p.querySelectorAll("[data-pc]").forEach(b=>b.addEventListener("click",()=>showPostcard(c.id,+b.dataset.pc)));
   const pp=$("#panel-paste"); if(pp) pp.addEventListener("click",()=>openPasteDlg());
@@ -783,6 +794,8 @@ function bkRow(b){
     <span class="bk-name">${esc(b.name)}</span>
     <span class="bk-meta">${esc(t.n)}${meta?" · "+esc(meta):""}</span>
     <span class="spacer"></span>
+    <button class="icon-btn bk-clip${docsFor("bk:"+b.id).length?" has":""}" data-bkdocs="${b.id}"
+      onclick="event.stopPropagation()" aria-label="Tickets & documents for ${esc(b.name)}">📎${docsFor("bk:"+b.id).length||""}</button>
     ${b.link?`<a href="${esc(b.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" aria-label="Open booking link">↗</a>`:""}
   </div>`;
 }
@@ -792,6 +805,11 @@ function wireBkRows(root){
     el.addEventListener("click",open);
     el.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();} });
   });
+  root.querySelectorAll("[data-bkdocs]").forEach(btn=>btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    const b=S.trip.bookings.find(x=>x.id===btn.dataset.bkdocs);
+    if(b) openDocsDlg("bk:"+b.id, b.name);
+  }));
 }
 
 /* ================= ITINERARY ================= */
@@ -1127,13 +1145,16 @@ async function getWx(cityId){
   }catch(e){ WX[cityId]=null; }
   return WX[cityId];
 }
+let WX_UNIT=localStorage.getItem("ps.unit")||"F";
+const wxT=(c)=> WX_UNIT==="F"? Math.round(c*9/5+32) : Math.round(c);
 function wxChipHtml(w, date){
   if(!w) return "";
+  const u=`°${WX_UNIT}`, tip="tap to switch °F/°C";
   if(date){
     const day=w.days.find(x=>x.d===date);
-    if(day) return `<span class="wx-chip" title="Forecast for ${date}">${WX_ICON(day.code)} ${day.hi}°/${day.lo}°</span>`;
+    if(day) return `<span class="wx-chip" title="Forecast for ${date} — ${tip}">${WX_ICON(day.code)} ${wxT(day.hi)}°/${wxT(day.lo)}${u}</span>`;
   }
-  return `<span class="wx-chip" title="Right now">${WX_ICON(w.code)} ${w.t}° now</span>`;
+  return `<span class="wx-chip" title="Right now — ${tip}">${WX_ICON(w.code)} ${wxT(w.t)}${u} now</span>`;
 }
 function fillWxSlots(root){
   (root||document).querySelectorAll("[data-wx]").forEach(el=>{
@@ -1447,6 +1468,15 @@ function renderPlan(){
         Claude Code and this page redraws.</p></div>
       <div class="agent-progress"><i style="width:${Math.round(doneCount/CHECKLIST.length*100)}%"></i></div>
       <p class="plan-lead" style="margin-bottom:6px">${pipelineLine}</p>
+      <div class="budget-row">
+        <span class="budget-lbl">🎯 Trip budget €</span>
+        <input id="budget-in" inputmode="numeric" placeholder="set it" value="${S.trip.budget||""}">
+        ${S.trip.budget?(()=>{
+          const left=S.trip.budget-committed, pct=Math.min(100,Math.round(committed/S.trip.budget*100));
+          return `<div class="agent-progress budget-bar"><i style="width:${pct}%${left<0?";background:#B3261E":""}"></i></div>
+            <b class="budget-left${left<0?" over":""}">${left>=0?`€${left.toLocaleString("en-US")} left to spend`:`€${Math.abs(left).toLocaleString("en-US")} OVER budget`}</b>`;
+        })():`<span class="budget-hint">set a cap and watch what's left as you book</span>`}
+      </div>
       ${CHECKLIST.map(agentItemRow).join("")}
     </div></section>`;
   /* route at a glance */
@@ -1511,7 +1541,20 @@ function renderPlan(){
   h+=`<section class="plan-section" id="p-ess">
     <h2 class="serif">Practical essentials</h2>
     <div class="plan-grid2">${GUIDE.essentials.map(p=>`<div class="plan-panel"><h3>${esc(p.t)}</h3>
-      <ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")}</div></section>`;
+      <ul>${p.items.map(i=>`<li>${i}</li>`).join("")}</ul></div>`).join("")}
+      <div class="plan-panel"><h3>Festivals &amp; events in your window</h3><ul>
+        <li><b>Milan Fashion Week</b> typically runs the last week of September — very likely overlapping
+          your Sep 22 night. Book that hotel FIRST; prices spike citywide. <a href="https://www.yesmilano.it/en/events" target="_blank" rel="noopener">YesMilano calendar ↗</a></li>
+        <li><b>Sagra season:</b> late September is village harvest-festival time across Abruzzo, Basilicata
+          and Campania — grapes, chestnuts, porchetta. Check town notice boards; these never make the apps
+          and are the best nights of any trip.</li>
+        <li><b>Venice Architecture Biennale 2026</b> should still be running through late November —
+          world-class and easy to add to your Sep 23–24 days. <a href="https://www.labiennale.org/en" target="_blank" rel="noopener">La Biennale ↗</a> (verify dates)</li>
+        <li>Official what's-on pages: <a href="https://www.veneziaunica.it/en" target="_blank" rel="noopener">Venice ↗</a> ·
+          <a href="https://www.turismoroma.it/en/events" target="_blank" rel="noopener">Rome ↗</a> ·
+          <a href="https://www.italia.it/en/events" target="_blank" rel="noopener">all Italy ↗</a></li>
+      </ul></div>
+    </div></section>`;
   /* packing list — checkboxes persist (and ride the Drive snapshot) */
   const pkAll=[...PACK.flatMap(g=>g.items), ...(S.trip.packCustom||[])];
   const pkDone=pkAll.filter(i=>S.trip.packing[i.id]).length;
@@ -1568,6 +1611,11 @@ function renderPlan(){
     const item=CHECKLIST.find(i=>i.id===b.dataset.docs);
     openDocsDlg(item.id,item.label);
   }));
+  const bi=$("#budget-in");
+  if(bi) bi.addEventListener("change",()=>{
+    S.trip.budget=priceNum(bi.value)||null;
+    mutate(); renderPlan();
+  });
   wrap.querySelectorAll("[data-logleg]").forEach(b=>b.addEventListener("click",()=>{
     const [cityId,date,type,name]=b.dataset.logleg.split("|");
     openBookingDlg({cityId,date,type,name});
@@ -2196,6 +2244,20 @@ function renderToday(){
     <div class="t-cards">${cityCard}${lodgingCard}
       <div class="t-card"><span class="label">Tomorrow</span><p style="font-size:14px;margin-top:2px">${tomorrow}</p></div>
     </div>
+    ${(()=>{ /* ticket rail: today's scannables, one tap from pocket to scanner */
+      const tk=todays.filter(b=>b.conf || docsFor("bk:"+b.id).length);
+      if(!tk.length) return "";
+      return `<div class="poi-section"><span class="label">🎫 Tickets & codes for today</span></div>
+        <div class="ticket-rail">${tk.map(b=>{
+          const nd=docsFor("bk:"+b.id).length;
+          return `<div class="ticket-card">
+            <div class="tk-time">${esc(b.time||"")}</div>
+            <div class="tk-name">${esc(b.name)}</div>
+            ${b.conf?`<div class="tk-conf">${esc(b.conf)}</div>`:""}
+            ${nd?`<button class="btn btn-sm btn-primary" data-tkshow="${b.id}">Show ticket${nd>1?"s":""}</button>`:""}
+          </div>`;}).join("")}
+        </div>`;
+    })()}
     <div class="poi-section"><span class="label">On the books today</span></div>
     ${todays.length?`<div class="day-items" style="margin-top:8px">${todays.map(bkRow).join("")}</div>`
       :`<div class="empty" style="margin-top:8px">Nothing scheduled — wander well.</div>`}
@@ -2223,6 +2285,11 @@ function renderToday(){
   $("#td-to-map").addEventListener("click",()=>{ setView("map"); if(city) selectCity(city.id); });
   const al=$("#td-add-lodging"); if(al) al.addEventListener("click",()=>openBookingDlg({cityId:city.id, type:"hotel", date:t}));
   $("#td-add-bk").addEventListener("click",()=>openBookingDlg({date:t, cityId:city?city.id:undefined}));
+  wrap.querySelectorAll("[data-tkshow]").forEach(b=>b.addEventListener("click",()=>{
+    const docs=docsFor("bk:"+b.dataset.tkshow);
+    if(docs.length===1) viewDoc(docs[0].id);
+    else{ const bk=S.trip.bookings.find(x=>x.id===b.dataset.tkshow); openDocsDlg("bk:"+b.dataset.tkshow, bk?bk.name:"Tickets"); }
+  }));
   $("#td-note-add").addEventListener("click",()=>{
     const txt=$("#td-note").value.trim(); if(!txt){ toast("Write something first"); return; }
     S.trip.journal.push({id:uid(), date:t, text:txt}); mutate(); renderToday(); toast("Noted ✎");
@@ -2746,6 +2813,14 @@ function init(){
   wireLiveFilter();
   wireDocsDlg();
   wireDepartures();
+  /* tap any weather chip to flip °F/°C everywhere */
+  document.addEventListener("click",e=>{
+    if(e.target.closest && e.target.closest(".wx-chip")){
+      WX_UNIT = WX_UNIT==="F" ? "C" : "F";
+      localStorage.setItem("ps.unit",WX_UNIT);
+      fillWxSlots(document);
+    }
+  });
   docsInit().then(()=>{ const v=$("#view-plan"); if(v && !v.classList.contains("hidden")) renderPlan(); });
   buildMapInto($("#home-minimap"), false);
   /* scrapbook parchment backgrounds per tab, under a theme-aware veil (--pveil) */
