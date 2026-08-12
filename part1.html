@@ -745,6 +745,37 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 }
 .dep-stop:hover{background:var(--surface2)}
 .dep-mode{font-weight:700;font-size:13px;flex:none}
+/* ---------- trip calendar ---------- */
+.cal-month{margin:14px 0 22px}
+.cal-title{font-size:20px;margin:0 0 8px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-soft);text-align:center;padding-bottom:2px}
+.cal-cell{
+  min-height:82px;border:1px solid var(--line);border-radius:10px;padding:5px 6px;
+  background:var(--surface);opacity:.5;display:flex;flex-direction:column;gap:2px;
+}
+.cal-cell.out{border:none;background:none;opacity:1}
+.cal-cell.trip{opacity:1;cursor:pointer;background:var(--surface2);border-color:var(--gold)}
+.cal-cell.trip:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.cal-cell.moving{border-left:3px solid var(--accent)}
+.cal-cell.today{outline:2px solid var(--accent);outline-offset:1px}
+.cal-num{font-size:12px;font-weight:700;color:var(--ink-soft)}
+.cal-flag{font-size:9.5px;font-weight:700;color:var(--accent);letter-spacing:.02em}
+.cal-city{font-family:"Bodoni 72",Didot,Georgia,serif;font-size:13px;font-weight:700;line-height:1.15}
+.cal-city.none{color:var(--ink-soft);font-weight:400}
+.cal-dots{display:flex;gap:3px;align-items:center;margin-top:auto;flex-wrap:wrap}
+.cal-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.cal-more{font-size:9px;color:var(--ink-soft);font-weight:700}
+.cal-note{font-size:9.5px;color:var(--ink-soft)}
+.dayd-city{font-family:"Bodoni 72",Didot,Georgia,serif;font-size:22px;font-weight:700}
+@media (max-width:820px){
+  .cal-grid{gap:3px}
+  .cal-cell{min-height:62px;padding:3px 4px;border-radius:8px}
+  .cal-city{font-size:11px}
+  .cal-num{font-size:10.5px}
+  .cal-flag{display:none}
+}
 /* ---------- wallet: tickets on hand + travel documents ---------- */
 .wallet-seg{display:flex;gap:8px;margin:6px 0 14px}
 .wseg{
@@ -798,20 +829,6 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   align-items:center;justify-content:center;gap:1px;
 }
 .ds-add span{font-size:9.5px;letter-spacing:.02em}
-/* wordmark tuner (?tune=1 only) */
-#logo-tuner{
-  position:fixed;right:12px;bottom:12px;z-index:9999;width:min(320px,calc(100vw - 24px));
-  background:rgba(20,14,6,.93);color:#F3E7C9;border:1px solid rgba(233,215,171,.35);
-  border-radius:14px;padding:12px 14px;font-size:12px;box-shadow:0 14px 40px rgba(0,0,0,.5);
-  backdrop-filter:blur(3px);
-}
-.lt-head{font-size:12.5px;margin-bottom:8px}
-.lt-hint{opacity:.6;font-size:10.5px;display:block}
-.lt-row{display:grid;grid-template-columns:84px 1fr 62px;gap:8px;align-items:center;margin:6px 0}
-.lt-row input[type=range]{width:100%}
-.lt-row b{text-align:right;font-variant-numeric:tabular-nums}
-.lt-acts{display:flex;gap:8px;margin-top:10px}
-.lt-acts .btn{flex:1}
 /* golden hour line */
 .golden{color:#8A5A14}
 :root[data-theme="dark"] .golden{color:#E0B45E}

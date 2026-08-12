@@ -843,6 +843,93 @@ function wireBkRows(root){
 }
 
 /* ================= ITINERARY ================= */
+/* ================= TRIP CALENDAR — the whole trip on a month grid ================= */
+function calMonths(){
+  const out=[], seen=new Set();
+  tripDays().forEach(d=>{ const k=d.slice(0,7); if(!seen.has(k)){ seen.add(k); out.push(k); } });
+  return out;
+}
+function calDayCell(d, inMonth){
+  const days=tripDays(), inTrip=days.includes(d);
+  const st=stopsOn(d), city=st[0]?CITY_BY_ID[st[0].cityId]:null;
+  const arriving=sortedStops().filter(s=>s.arrive===d);
+  const prevCity=d>S.trip.startDate ? (stopsOn(addD(d,-1))[0]||{}).cityId : null;
+  const moving=arriving.length && prevCity && prevCity!==arriving[0].cityId;
+  const bks=S.trip.bookings.filter(b=>b.date===d).sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1);
+  const notes=S.trip.journal.filter(j=>j.date===d).length;
+  const isToday=d===todayISO();
+  const n=+d.slice(8,10);
+  if(!inMonth) return `<div class="cal-cell out"></div>`;
+  return `<div class="cal-cell${inTrip?" trip":""}${isToday?" today":""}${moving?" moving":""}"
+      ${inTrip?`data-calday="${d}" role="button" tabindex="0" aria-label="${fmtDow(d)} ${fmtShort(d)}"`:""}>
+    <div class="cal-num">${n}${d===S.trip.startDate?' <span class="cal-flag">✈ in</span>':""}${d===S.trip.endDate?' <span class="cal-flag">✈ home</span>':""}</div>
+    ${city?`<div class="cal-city">${moving?"→ ":""}${esc(city.short||city.n)}</div>`:inTrip?`<div class="cal-city none">—</div>`:""}
+    ${bks.length?`<div class="cal-dots">${bks.slice(0,4).map(b=>
+      `<span class="cal-dot" style="background:${typeMeta(b.type).c}" title="${esc(b.name)}"></span>`).join("")}${
+      bks.length>4?`<span class="cal-more">+${bks.length-4}</span>`:""}</div>`:""}
+    ${notes?`<div class="cal-note">✎${notes>1?notes:""}</div>`:""}
+  </div>`;
+}
+function calendarHtml(){
+  const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  return calMonths().map(mk=>{
+    const [y,m]=mk.split("-").map(Number);
+    const first=new Date(y,m-1,1), last=new Date(y,m,0);
+    const lead=(first.getDay()+6)%7;   /* Monday-first, the Italian way */
+    let cells="";
+    for(let i=0;i<lead;i++) cells+=calDayCell("",false);
+    for(let day=1;day<=last.getDate();day++)
+      cells+=calDayCell(`${y}-${String(m).padStart(2,"0")}-${String(day).padStart(2,"0")}`,true);
+    const tail=(7-((lead+last.getDate())%7))%7;
+    for(let i=0;i<tail;i++) cells+=calDayCell("",false);
+    return `<div class="cal-month">
+      <h3 class="cal-title serif">${first.toLocaleDateString("en-US",{month:"long",year:"numeric"})}</h3>
+      <div class="cal-grid">${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join("")}${cells}</div>
+    </div>`;
+  }).join("");
+}
+function openDayDlg(d){
+  const st=stopsOn(d), city=st[0]?CITY_BY_ID[st[0].cityId]:null;
+  const days=tripDays(), n=days.indexOf(d)+1;
+  const arriving=sortedStops().filter(s=>s.arrive===d);
+  const prevCity=d>S.trip.startDate ? (stopsOn(addD(d,-1))[0]||{}).cityId : null;
+  const tt=(arriving.length&&prevCity&&prevCity!==arriving[0].cityId)? travelInfo(prevCity,arriving[0].cityId) : null;
+  const bks=S.trip.bookings.filter(b=>b.date===d).sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1);
+  const notes=S.trip.journal.filter(j=>j.date===d);
+  const exp=S.trip.expenses.filter(e=>e.date===d);
+  const spent=exp.reduce((a,e)=>a+e.amount,0);
+  $("#dlg-day-title").innerHTML=`Day ${n>0?n:"—"} · ${fmtDow(d)} ${fmtShort(d)}`;
+  $("#dlg-day-body").innerHTML=
+    `<div class="dayd-city">${city?esc(city.n):"No city assigned"}
+      ${city?`<span class="wx-slot" data-wx="${city.id}|${d}"></span>`:""}</div>
+     ${tt?`<div class="plan-drive"><b>Travel day:</b> ${esc(tt)}</div>`:""}
+     ${city?`<p class="golden" style="font-size:12.5px;margin:6px 0 0">${goldenLine(city.id,d)}</p>`:""}
+     ${bks.length?`<div class="poi-section" style="margin-top:14px"><span class="label">On the books</span></div>
+       <div class="day-items" style="margin-top:6px">${bks.map(bkRow).join("")}</div>`
+      :`<p class="times-note" style="margin-top:14px">Nothing booked this day.</p>`}
+     ${notes.length?`<div class="poi-section" style="margin-top:14px"><span class="label">Journal</span></div>
+       ${notes.map(j=>`<p style="font-size:13px;margin:4px 0">✎ ${esc(j.text)}</p>`).join("")}`:""}
+     ${spent?`<p class="times-note" style="margin-top:10px">Logged this day: <b>${money(spent)}</b></p>`:""}
+     <div class="quick-row" style="margin-top:14px">
+       <button class="btn btn-sm btn-primary" data-dayopen="${d}">Open this day →</button>
+       <button class="btn btn-sm" data-daybk="${d}">+ Booking</button>
+       ${city?`<button class="btn btn-sm" data-daymap="${city.id}">Map</button>`:""}
+     </div>`;
+  const dlg=$("#dlg-day");
+  fillWxSlots(dlg);
+  wireBkRows(dlg);
+  dlg.querySelectorAll("[data-dayopen]").forEach(b=>b.addEventListener("click",()=>{
+    dlg.close(); UI.focusDay=b.dataset.dayopen; setView("today");
+  }));
+  dlg.querySelectorAll("[data-daybk]").forEach(b=>b.addEventListener("click",()=>{
+    dlg.close(); openBookingDlg({date:b.dataset.daybk, cityId:city?city.id:undefined});
+  }));
+  dlg.querySelectorAll("[data-daymap]").forEach(b=>b.addEventListener("click",()=>{
+    dlg.close(); setView("map"); selectCity(b.dataset.daymap);
+  }));
+  dlg.returnValue=""; if(!dlg.open) dlg.showModal();
+}
+
 /* ================= TRIP VERSIONS — save alternates, compare costs & travel ================= */
 function tripStats(trip){
   const stops=[...(trip.stops||[])].sort((a,b)=>a.arrive<b.arrive?-1:1);
@@ -963,6 +1050,22 @@ function renderItin(){
       fly into <b>${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")}</b>, out of <b>${esc(CITY_BY_ID[S.trip.departureCity]?.n||"—")}</b> ·
       ${nightsPlanned}/${totalNights} nights placed</p>`;
   if(!days.length){ wrap.innerHTML=head+`<div class="empty">Set your trip dates on the home screen first.</div>`; return; }
+  const iv=UI.itinView||"list";
+  head+=`<div class="wallet-seg" role="tablist" style="max-width:340px">
+    <button class="wseg" data-iview="list" aria-pressed="${iv==="list"}">☰ Day list</button>
+    <button class="wseg" data-iview="cal" aria-pressed="${iv==="cal"}">🗓 Calendar</button>
+  </div>`;
+  if(iv==="cal"){
+    wrap.innerHTML=head+calendarHtml()+
+      `<p class="times-note">Tap any trip day for its schedule · dots are bookings, ✎ marks journal notes.</p>`;
+    wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
+    wrap.querySelectorAll("[data-calday]").forEach(c=>{
+      const open=()=>openDayDlg(c.dataset.calday);
+      c.addEventListener("click",open);
+      c.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
+    });
+    return;
+  }
   head+=stopEditorHtml();
   head+=versionsHtml();
   let rows="";
@@ -1000,6 +1103,7 @@ function renderItin(){
       </div></div>`;
   }
   wrap.innerHTML=head+rows;
+  wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
   wireBkRows(wrap);
   wrap.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",()=>
     openBookingDlg({date:b.dataset.addday, cityId:b.dataset.city})));
@@ -3210,67 +3314,15 @@ function wirePostcards(){
   },{passive:true});
 }
 
-/* ---- wordmark geometry: d = desktop (>820px), m = phones. ?tune=1 restores the sliders ---- */
+/* ---- wordmark geometry, tuned by the user 2026-08-12: d = desktop (>820px), m = phones ---- */
 const LOGO_DEF = {
-  v:2,   /* bump when values are locked in — retires stale tuner sessions on every device */
   d:{h:78, x:28.5, y:48.5, sx:1.42, sk:1, bar:0},   /* user-tuned 2026-08-12 */
   m:{h:70, x:50,   y:50,   sx:1.30, sk:1, bar:0}
 };
-function logoVals(){
-  try{ const v=JSON.parse(localStorage.getItem("ps.logo")||"null");
-    if(v&&v.d&&v.m&&v.v===LOGO_DEF.v) return v; }catch(e){}
-  return JSON.parse(JSON.stringify(LOGO_DEF));
-}
+function logoVals(){ return LOGO_DEF; }   /* tuner removed 2026-08-12; values locked below */
 const logoBox=(v)=> `content:"";position:absolute;z-index:1;pointer-events:none;`+
   `height:${v.h}%;aspect-ratio:811/280;left:${v.x}%;top:${v.y}%;`+
   `transform:translate(-50%,-50%) scaleX(${v.sx}) skewX(${v.sk}deg);`;
-/* the tuner: ?tune=1 → live sliders for the wordmark, one set per breakpoint */
-const TUNE_CTRLS=[
-  {k:"h",  l:"Size (height)", min:30, max:130, step:.5, u:"%"},
-  {k:"x",  l:"Position ←→",   min:5,  max:95,  step:.5, u:"%"},
-  {k:"y",  l:"Position ↑↓",   min:10, max:90,  step:.5, u:"%"},
-  {k:"sx", l:"Stretch",       min:.6, max:2.6, step:.01,u:"×"},
-  {k:"sk", l:"Skew",          min:-8, max:8,   step:.5, u:"°"},
-  {k:"bar",l:"Header height", min:0,  max:220, step:1,  u:"px (0 = auto)"},
-];
-function initLogoTuner(skin){
-  const V=logoVals();
-  const bp=()=> window.innerWidth<=820 ? "m" : "d";
-  const box=document.createElement("div");
-  box.id="logo-tuner";
-  const draw=()=>{
-    const b=bp(), v=V[b];
-    box.innerHTML=`<div class="lt-head">Wordmark tuner —
-        <b>${b==="d"?"Desktop":"Mobile"}</b> <span class="lt-hint">(${b==="d"?"narrow the window under 820px to tune mobile":"widen past 820px for desktop"})</span></div>`+
-      TUNE_CTRLS.map(c=>`<label class="lt-row"><span>${c.l}</span>
-        <input type="range" data-k="${c.k}" min="${c.min}" max="${c.max}" step="${c.step}" value="${v[c.k]}">
-        <b data-out="${c.k}">${v[c.k]}${c.u}</b></label>`).join("")+
-      `<div class="lt-acts">
-        <button type="button" class="btn btn-sm" data-lt="reset">Reset this side</button>
-        <button type="button" class="btn btn-sm btn-primary" data-lt="copy">Copy both sets</button>
-      </div>`;
-    box.querySelectorAll("input[type=range]").forEach(inp=>inp.addEventListener("input",()=>{
-      const k=inp.dataset.k, c=TUNE_CTRLS.find(x=>x.k===k);
-      V[bp()][k]=parseFloat(inp.value); V.v=LOGO_DEF.v;
-      box.querySelector(`[data-out="${k}"]`).textContent=inp.value+c.u;
-      localStorage.setItem("ps.logo",JSON.stringify(V));
-      applySkin(skin);
-    }));
-    box.querySelector('[data-lt="reset"]').addEventListener("click",()=>{
-      V[bp()]=JSON.parse(JSON.stringify(LOGO_DEF[bp()])); V.v=LOGO_DEF.v;
-      localStorage.setItem("ps.logo",JSON.stringify(V)); applySkin(skin); draw();
-    });
-    box.querySelector('[data-lt="copy"]').addEventListener("click",()=>{
-      const txt=JSON.stringify(V);
-      navigator.clipboard?.writeText(txt).then(()=>toast("Values copied — paste them to Claude"),
-        ()=>prompt("Copy these values:",txt));
-    });
-  };
-  draw();
-  addEventListener("resize",()=>{ draw(); });
-  document.body.appendChild(box);
-}
-
 function applySkin(skin){
   const V=logoVals();
   const LOGO_BOX=logoBox(V.d);
@@ -3357,7 +3409,6 @@ function init(){
   const skin=document.createElement("style");
   applySkin(skin);
   document.head.appendChild(skin);
-  if(new URLSearchParams(location.search).get("tune")==="1") initLogoTuner(skin);
   $("#btn-start").addEventListener("click",()=>{
     const s=$("#trip-start").value, e=$("#trip-end").value;
     if(!s||!e||e<s){ toast("Check your dates — depart must follow arrive"); return; }
