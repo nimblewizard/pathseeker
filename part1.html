@@ -745,6 +745,20 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 }
 .dep-stop:hover{background:var(--surface2)}
 .dep-mode{font-weight:700;font-size:13px;flex:none}
+/* wordmark tuner (?tune=1 only) */
+#logo-tuner{
+  position:fixed;right:12px;bottom:12px;z-index:9999;width:min(320px,calc(100vw - 24px));
+  background:rgba(20,14,6,.93);color:#F3E7C9;border:1px solid rgba(233,215,171,.35);
+  border-radius:14px;padding:12px 14px;font-size:12px;box-shadow:0 14px 40px rgba(0,0,0,.5);
+  backdrop-filter:blur(3px);
+}
+.lt-head{font-size:12.5px;margin-bottom:8px}
+.lt-hint{opacity:.6;font-size:10.5px;display:block}
+.lt-row{display:grid;grid-template-columns:84px 1fr 62px;gap:8px;align-items:center;margin:6px 0}
+.lt-row input[type=range]{width:100%}
+.lt-row b{text-align:right;font-variant-numeric:tabular-nums}
+.lt-acts{display:flex;gap:8px;margin-top:10px}
+.lt-acts .btn{flex:1}
 /* golden hour line */
 .golden{color:#8A5A14}
 :root[data-theme="dark"] .golden{color:#E0B45E}

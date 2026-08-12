@@ -3085,6 +3085,100 @@ function wirePostcards(){
   },{passive:true});
 }
 
+/* ---- wordmark geometry: d = desktop (>820px), m = phones. ?tune=1 restores the sliders ---- */
+const LOGO_DEF = {
+  d:{h:83, x:35, y:48.5, sx:1.67, sk:1, bar:0},
+  m:{h:70, x:50, y:50,   sx:1.30, sk:1, bar:0}
+};
+function logoVals(){
+  try{ const v=JSON.parse(localStorage.getItem("ps.logo")||"null");
+    if(v&&v.d&&v.m) return v; }catch(e){}
+  return JSON.parse(JSON.stringify(LOGO_DEF));
+}
+const logoBox=(v)=> `content:"";position:absolute;z-index:1;pointer-events:none;`+
+  `height:${v.h}%;aspect-ratio:811/280;left:${v.x}%;top:${v.y}%;`+
+  `transform:translate(-50%,-50%) scaleX(${v.sx}) skewX(${v.sk}deg);`;
+/* the tuner: ?tune=1 → live sliders for the wordmark, one set per breakpoint */
+const TUNE_CTRLS=[
+  {k:"h",  l:"Size (height)", min:30, max:130, step:.5, u:"%"},
+  {k:"x",  l:"Position ←→",   min:5,  max:95,  step:.5, u:"%"},
+  {k:"y",  l:"Position ↑↓",   min:10, max:90,  step:.5, u:"%"},
+  {k:"sx", l:"Stretch",       min:.6, max:2.6, step:.01,u:"×"},
+  {k:"sk", l:"Skew",          min:-8, max:8,   step:.5, u:"°"},
+  {k:"bar",l:"Header height", min:0,  max:220, step:1,  u:"px (0 = auto)"},
+];
+function initLogoTuner(skin){
+  const V=logoVals();
+  const bp=()=> window.innerWidth<=820 ? "m" : "d";
+  const box=document.createElement("div");
+  box.id="logo-tuner";
+  const draw=()=>{
+    const b=bp(), v=V[b];
+    box.innerHTML=`<div class="lt-head">Wordmark tuner —
+        <b>${b==="d"?"Desktop":"Mobile"}</b> <span class="lt-hint">(${b==="d"?"narrow the window under 820px to tune mobile":"widen past 820px for desktop"})</span></div>`+
+      TUNE_CTRLS.map(c=>`<label class="lt-row"><span>${c.l}</span>
+        <input type="range" data-k="${c.k}" min="${c.min}" max="${c.max}" step="${c.step}" value="${v[c.k]}">
+        <b data-out="${c.k}">${v[c.k]}${c.u}</b></label>`).join("")+
+      `<div class="lt-acts">
+        <button type="button" class="btn btn-sm" data-lt="reset">Reset this side</button>
+        <button type="button" class="btn btn-sm btn-primary" data-lt="copy">Copy both sets</button>
+      </div>`;
+    box.querySelectorAll("input[type=range]").forEach(inp=>inp.addEventListener("input",()=>{
+      const k=inp.dataset.k, c=TUNE_CTRLS.find(x=>x.k===k);
+      V[bp()][k]=parseFloat(inp.value);
+      box.querySelector(`[data-out="${k}"]`).textContent=inp.value+c.u;
+      localStorage.setItem("ps.logo",JSON.stringify(V));
+      applySkin(skin);
+    }));
+    box.querySelector('[data-lt="reset"]').addEventListener("click",()=>{
+      V[bp()]=JSON.parse(JSON.stringify(LOGO_DEF[bp()]));
+      localStorage.setItem("ps.logo",JSON.stringify(V)); applySkin(skin); draw();
+    });
+    box.querySelector('[data-lt="copy"]').addEventListener("click",()=>{
+      const txt=JSON.stringify(V);
+      navigator.clipboard?.writeText(txt).then(()=>toast("Values copied — paste them to Claude"),
+        ()=>prompt("Copy these values:",txt));
+    });
+  };
+  draw();
+  addEventListener("resize",()=>{ draw(); });
+  document.body.appendChild(box);
+}
+
+function applySkin(skin){
+  const V=logoVals();
+  const LOGO_BOX=logoBox(V.d);
+  skin.textContent =
+    `.appbar{background-image:url(${BG_HDSCENE});background-size:cover;`+
+    `background-position:center 38%;background-repeat:no-repeat`+
+    `${V.d.bar?`;height:${V.d.bar}px`:""}}`+
+    `.appbar::before{${LOGO_BOX}background:url(${BG_HDLOGO}) center/100% 100% no-repeat}`+
+    /* metallic sheen sweeping across the logo only (masked to its alpha) */
+    `.appbar::after{${LOGO_BOX}`+
+    `background-image:linear-gradient(115deg,rgba(255,235,180,0) 42%,rgba(255,244,200,.95) 50%,rgba(255,235,180,0) 58%);`+
+    `background-size:260% 100%;background-repeat:no-repeat;background-position:-160% 0;`+
+    `-webkit-mask:url(${BG_HDLOGO}) center/100% 100% no-repeat;`+
+    `mask:url(${BG_HDLOGO}) center/100% 100% no-repeat}`+
+    `@media (prefers-reduced-motion:no-preference){.appbar::after{animation:psheen 26s ease-in-out infinite}}`+
+    `@keyframes psheen{0%,62%{background-position:-160% 0}96%,100%{background-position:260% 0}}`+
+    `.map-stage{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
+    `.home-card{background-image:url(${BG_SCROLL});background-size:100% 100%;background-repeat:no-repeat}`+
+    `.plan-hero{background-image:url(${BG_PLANHERO})}`+
+    `.plan-day-head{background-image:linear-gradient(rgba(35,18,8,.30),rgba(35,18,8,.42)),url(${BG_DAYHEAD});`+
+    `background-size:cover;background-position:center 30%}`+
+    `.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
+    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side`+
+    `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`+
+    /* candlelight: same parchment, dimmed to lamplight */
+    `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
+    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side)`+
+    `{background-image:linear-gradient(rgba(23,15,7,.87),rgba(23,15,7,.87)),url(${BG_CARD})}`+
+    `@media (max-width:820px){.appbar::before,.appbar::after{`+
+    `height:${V.m.h}%;left:${V.m.x}%;top:${V.m.y}%;`+
+    `transform:translate(-50%,-50%) scaleX(${V.m.sx}) skewX(${V.m.sk}deg)}`+
+    `${V.m.bar?`.appbar{height:${V.m.bar}px}`:""}}`;
+}
+
 function init(){
   loadState();
   renderHome();
@@ -3135,36 +3229,9 @@ function init(){
   /* banner header + parchment card texture — injected as a stylesheet so it survives
      re-renders (data URIs can't live in the static CSS) */
   const skin=document.createElement("style");
-  /* Header geometry locked in by the user via the (now removed) ?tune=1 tuner:
-     h:83% w:167% x:35% y:48.5% skew:1deg */
-  const LOGO_BOX = "content:\"\";position:absolute;z-index:1;pointer-events:none;"+
-    "height:83%;aspect-ratio:811/280;left:35%;top:48.5%;"+
-    "transform:translate(-50%,-50%) scaleX(1.67) skewX(1deg);";
-  skin.textContent =
-    `.appbar{background-image:url(${BG_HDSCENE});background-size:cover;`+
-    `background-position:center 38%;background-repeat:no-repeat}`+
-    `.appbar::before{${LOGO_BOX}background:url(${BG_HDLOGO}) center/100% 100% no-repeat}`+
-    /* metallic sheen sweeping across the logo only (masked to its alpha) */
-    `.appbar::after{${LOGO_BOX}`+
-    `background-image:linear-gradient(115deg,rgba(255,235,180,0) 42%,rgba(255,244,200,.95) 50%,rgba(255,235,180,0) 58%);`+
-    `background-size:260% 100%;background-repeat:no-repeat;background-position:-160% 0;`+
-    `-webkit-mask:url(${BG_HDLOGO}) center/100% 100% no-repeat;`+
-    `mask:url(${BG_HDLOGO}) center/100% 100% no-repeat}`+
-    `@media (prefers-reduced-motion:no-preference){.appbar::after{animation:psheen 26s ease-in-out infinite}}`+
-    `@keyframes psheen{0%,62%{background-position:-160% 0}96%,100%{background-position:260% 0}}`+
-    `.map-stage{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
-    `.home-card{background-image:url(${BG_SCROLL});background-size:100% 100%;background-repeat:no-repeat}`+
-    `.plan-hero{background-image:url(${BG_PLANHERO})}`+
-    `.plan-day-head{background-image:linear-gradient(rgba(35,18,8,.30),rgba(35,18,8,.42)),url(${BG_DAYHEAD});`+
-    `background-size:cover;background-position:center 30%}`+
-    `.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
-    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side`+
-    `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`+
-    /* candlelight: same parchment, dimmed to lamplight */
-    `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
-    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side)`+
-    `{background-image:linear-gradient(rgba(23,15,7,.87),rgba(23,15,7,.87)),url(${BG_CARD})}`;
+  applySkin(skin);
   document.head.appendChild(skin);
+  if(new URLSearchParams(location.search).get("tune")==="1") initLogoTuner(skin);
   $("#btn-start").addEventListener("click",()=>{
     const s=$("#trip-start").value, e=$("#trip-end").value;
     if(!s||!e||e<s){ toast("Check your dates — depart must follow arrive"); return; }
