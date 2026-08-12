@@ -237,6 +237,11 @@
           <button class="btn btn-sm" type="button" id="btn-tripsheet">Download</button>
         </div>
         <div class="sync-row">
+          <div class="t"><strong>Print pack</strong><p>The paper bundle: day-by-day plan, every confirmation
+            code, packing list, emergency card. For when phones die.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-printpack">🖨 Print</button>
+        </div>
+        <div class="sync-row">
           <div class="t"><strong>Phone reminders</strong><p>Calendar file (.ics) of every flight, train, check-in and
             reservation — with alarms built in. Import it once into Google or Apple Calendar and your phone
             does the nudging. Re-import after big booking sprees.</p></div>
@@ -259,11 +264,30 @@
   </form>
 </dialog>
 
+<div id="print-pack" class="print-pack" aria-hidden="true"></div>
+
 <dialog id="dlg-compare">
   <form method="dialog">
     <div class="dlg-head"><h3>Compare trip versions</h3></div>
     <div class="dlg-body cmp-scroll" id="cmp-body"></div>
     <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-compassnav">
+  <form method="dialog">
+    <div class="dlg-head"><h3>Compass</h3></div>
+    <div class="dlg-body" style="text-align:center">
+      <select id="cmp-target" aria-label="Point toward" style="margin-bottom:14px"></select>
+      <div class="cmpn-rose">
+        <span class="cmpn-card cmpn-n">N</span><span class="cmpn-card cmpn-e">E</span>
+        <span class="cmpn-card cmpn-s">S</span><span class="cmpn-card cmpn-w">W</span>
+        <div class="cmpn-needle" id="cmp-needle">▲</div>
+      </div>
+      <div class="cmpn-info" id="cmp-info">Tap Start to aim the needle.</div>
+      <button type="button" class="btn btn-primary" id="cmp-start" style="margin-top:10px">Start compass</button>
+    </div>
+    <div class="dlg-foot"><button class="btn" value="close">Close</button></div>
   </form>
 </dialog>
 

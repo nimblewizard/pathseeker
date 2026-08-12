@@ -729,11 +729,39 @@ function initStopDlg(){
       else { S.trip.stops.push({id:uid(), cityId:stopCity, arrive:a, nights:n}); toast(`${CITY_BY_ID[stopCity].n} added to your route`); }
       mutate(); renderAll();
     }else if(v==="remove"){
+      const gone=stopFor(stopCity);
       S.trip.stops=S.trip.stops.filter(s=>s.cityId!==stopCity);
-      toast(`${CITY_BY_ID[stopCity].n} removed`);
       mutate(); renderAll();
+      if(gone) trashPut("stop", gone, CITY_BY_ID[stopCity].n+" stop");
     }
   });
+}
+
+/* ---- undo & trash: nothing deleted is gone until you say so ---- */
+function trashPut(kind, data, label){
+  S.trash=S.trash||[];
+  const entry={id:uid(), kind, label, at:new Date().toISOString(), data};
+  S.trash.unshift(entry);
+  if(S.trash.length>20) S.trash.length=20;
+  persist();
+  undoToast(`Deleted “${label}”`, entry.id);
+}
+function trashRestore(id){
+  const t=(S.trash||[]).find(x=>x.id===id); if(!t) return;
+  S.trash=S.trash.filter(x=>x.id!==id);
+  if(t.kind==="booking") S.trip.bookings.push(t.data);
+  else if(t.kind==="expense") S.trip.expenses.push(t.data);
+  else if(t.kind==="note") S.trip.journal.push(t.data);
+  else if(t.kind==="stop" && !stopFor(t.data.cityId)) S.trip.stops.push(t.data);
+  mutate(); renderAll();
+  toast(`Restored “${t.label}”`);
+}
+function undoToast(msg, trashId){
+  const t=$("#toast");
+  t.innerHTML=`${esc(msg)} <button class="toast-undo" type="button">Undo</button>`;
+  t.querySelector(".toast-undo").addEventListener("click",()=>{ t.classList.remove("show"); trashRestore(trashId); });
+  t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"), 6500);
 }
 
 /* ================= BOOKING DIALOG ================= */
@@ -780,8 +808,10 @@ function initBookingDlg(){
       else { S.trip.bookings.push(Object.assign({id:uid()},data)); toast("Saved to your journal"); }
       mutate(); renderAll();
     }else if(v==="remove" && bkEditing){
+      const gone=S.trip.bookings.find(b=>b.id===bkEditing.id);
       S.trip.bookings=S.trip.bookings.filter(b=>b.id!==bkEditing.id);
-      toast("Booking deleted"); mutate(); renderAll();
+      mutate(); renderAll();
+      if(gone) trashPut("booking", gone, gone.name);
     }
   });
 }
@@ -1043,10 +1073,12 @@ function wireStopEditor(wrap){
     card.querySelector("[data-del]").addEventListener("click",()=>{
       const arr=seq(), i=idx(arr); if(i<0) return;
       const name=CITY_BY_ID[arr[i].cityId].n;
+      const gone=S.trip.stops.find(s=>s.id===sid);
       S.trip.stops=S.trip.stops.filter(s=>s.id!==sid);
       const rest=sortedStops();
       if(i<rest.length) rechain(rest, Math.max(1,i));
-      mutate(); renderAll(); toast(`${name} removed`);
+      mutate(); renderAll();
+      if(gone) trashPut("stop", gone, name+" stop");
     });
     card.querySelector("[data-edit]").addEventListener("click",()=>{
       const arr=seq(), i=idx(arr); if(i>=0) openStopDlg(arr[i].cityId);
@@ -1221,6 +1253,49 @@ async function showTimes(title, fromLL, toLL, date){
   }
 }
 
+/* ---- golden-hour compass: NOAA sun math, no API, times in Europe/Rome ---- */
+function sunUT(dateISO, lat, lon, zenith, rising){
+  const rad=Math.PI/180;
+  const d=new Date(dateISO+"T12:00:00Z");
+  const n=Math.floor((d-new Date(Date.UTC(d.getUTCFullYear(),0,0)))/864e5);
+  const lngHour=lon/15;
+  const t=n+((rising?6:18)-lngHour)/24;
+  const M=(0.9856*t)-3.289;
+  let L=M+(1.916*Math.sin(M*rad))+(0.020*Math.sin(2*M*rad))+282.634;
+  L=((L%360)+360)%360;
+  let RA=Math.atan(0.91764*Math.tan(L*rad))/rad;
+  RA=((RA%360)+360)%360;
+  RA+=(Math.floor(L/90)*90-Math.floor(RA/90)*90); RA/=15;
+  const sinDec=0.39782*Math.sin(L*rad), cosDec=Math.cos(Math.asin(sinDec));
+  const cosH=(Math.cos(zenith*rad)-(sinDec*Math.sin(lat*rad)))/(cosDec*Math.cos(lat*rad));
+  if(cosH>1||cosH<-1) return null;
+  let H=(rising?360-Math.acos(cosH)/rad:Math.acos(cosH)/rad)/15;
+  let UT=H+RA-(0.06571*t)-6.622-lngHour;
+  return ((UT%24)+24)%24;
+}
+function romeClock(dateISO, ut, offsetMin){
+  if(ut==null) return null;
+  const ms=Date.parse(dateISO+"T00:00:00Z")+ut*3600e3+(offsetMin||0)*60e3;
+  return new Date(ms).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"Europe/Rome"});
+}
+/* the pre-picked photo spot per stop */
+const VIEWPOINTS={
+  milan:"the Duomo rooftop terraces", como:"the Varenna lakefront", venice:"the Accademia Bridge",
+  santostefano:"the Rocca Calascio ridge", matera:"the gravina rim at Piazzetta Pascoli",
+  sorrento:"the Villa Comunale terrace", rome:"the Pincio terrace above Piazza del Popolo",
+  florence:"Piazzale Michelangelo", castelmezzano:"the Volo dell'Angelo platform overlook",
+  amalfi:"the Villa Cimbrone Terrace of Infinity", cinqueterre:"the Manarola harbor point",
+};
+function goldenLine(cityId, dateISO){
+  const c=CITY_BY_ID[cityId]; if(!c||!c.lat) return "";
+  const gh=romeClock(dateISO, sunUT(dateISO,c.lat,c.lon,84,false));
+  const ss=romeClock(dateISO, sunUT(dateISO,c.lat,c.lon,90.833,false));
+  const arrive=romeClock(dateISO, sunUT(dateISO,c.lat,c.lon,84,false), -20);
+  if(!ss) return "";
+  const spot=VIEWPOINTS[cityId];
+  return `🌇 Golden hour from <b>${gh}</b>, sunset <b>${ss}</b>${spot?` — be at ${esc(spot)} by ${arrive}`:""}.`;
+}
+
 /* getting-around booking strip per day card: airport trains, ferries, passes */
 const DAY_TRANSPORT={
  milan:[
@@ -1274,6 +1349,7 @@ function planDayCard(st, prevCityId){
     <div class="plan-day-body">
       <div class="plan-vibe">${esc(g.vibe||c.tag)}</div>
       ${getting?`<div class="plan-drive">${getting}</div>`:""}
+      ${(()=>{const gl=goldenLine(st.cityId, st.arrive); return gl?`<div class="plan-drive golden">${gl}</div>`:"";})()}
       ${dayTransportStrip(st)}
       ${planBlocks(g.blocks||[], c.n)}
       ${g.callout?`<div class="plan-callout">${g.callout}</div>`:""}
@@ -1393,6 +1469,73 @@ function dropSeal(id){
   row.appendChild(s);
   setTimeout(()=>s.remove(),1600);
 }
+/* ---- the trip linter: an automatic problems panel over everything the app knows ---- */
+function lintTrip(){
+  const out=[];
+  const days=tripDays(); if(!days.length) return out;
+  const seq=sortedStops();
+  /* nights with no city */
+  const un=days.slice(0,-1).filter(d=>!stopsOn(d).length);
+  if(un.length) out.push({sev:"warn", msg:`No city assigned for ${un.map(fmtShort).join(", ")} — fix in the Itinerary tab.`});
+  /* stops with no lodging booked (grouped) */
+  const unlodged=seq.filter(st=>!lodgingFor(st.cityId)).map(st=>CITY_BY_ID[st.cityId].short||CITY_BY_ID[st.cityId].n);
+  if(unlodged.length)
+    out.push({sev:unlodged.length===seq.length?"info":"warn",
+      msg:`Lodging not booked yet: ${unlodged.join(", ")}.`});
+  /* two timed bookings squeezed together */
+  const timed=S.trip.bookings.filter(b=>b.date&&b.time);
+  const mins=(t)=>{const[h,m]=t.split(":").map(Number);return h*60+(m||0);};
+  for(let i=0;i<timed.length;i++)for(let j=i+1;j<timed.length;j++){
+    const a=timed[i],b=timed[j];
+    if(a.date===b.date && Math.abs(mins(a.time)-mins(b.time))<45)
+      out.push({sev:"warn", msg:`Tight timing on ${fmtShort(a.date)}: “${esc(a.name)}” at ${a.time} and “${esc(b.name)}” at ${b.time}.`});
+  }
+  /* bookings in a city you won't be in that day */
+  S.trip.bookings.forEach(b=>{
+    if(!b.date||!b.cityId) return;
+    if(!["hotel","airbnb","ticket","restaurant"].includes(b.type)) return;
+    const here=stopsOn(b.date).map(s=>s.cityId);
+    if(here.length && !here.includes(b.cityId))
+      out.push({sev:"warn", msg:`“${esc(b.name)}” is in ${esc(CITY_BY_ID[b.cityId].n)} on ${fmtShort(b.date)} — but that day you're in ${esc(CITY_BY_ID[here[0]].n)}.`});
+  });
+  /* paperwork deadlines */
+  const daysTo=Math.round((pD(S.trip.startDate)-pD(todayISO()))/864e5);
+  if(daysTo>0){
+    const idp=chkState(CHECKLIST.find(i=>i.id==="idp"));
+    if(daysTo<35 && !(idp.st==="booked"||idp.st==="paid"))
+      out.push({sev:daysTo<21?"warn":"info", msg:`International Driving Permits take 2+ weeks at AAA — ${daysTo} days to departure.`});
+    const et=chkState(CHECKLIST.find(i=>i.id==="etias"));
+    if(daysTo<30 && !(et.st==="booked"||et.st==="paid"))
+      out.push({sev:"info", msg:`ETIAS isn't marked done — the application takes minutes (${daysTo} days out).`});
+  }
+  /* budget breach */
+  const stt=tripStats(S.trip);
+  if(S.trip.budget && stt.committed>S.trip.budget)
+    out.push({sev:"warn", msg:`€${(stt.committed-S.trip.budget).toLocaleString("en-US")} over your €${(+S.trip.budget).toLocaleString("en-US")} budget.`});
+  /* holds & missing codes */
+  const held=CHECKLIST.filter(i=>chkState(i).st==="held").length;
+  if(held) out.push({sev:"info", msg:`${held} item${held>1?"s":""} held but not booked — don't let the holds lapse.`});
+  const noconf=S.trip.bookings.filter(b=>["hotel","airbnb","train","ticket"].includes(b.type)&&!b.conf).length;
+  if(noconf) out.push({sev:"info", msg:`${noconf} booking${noconf>1?"s":""} missing a confirmation code — paste the emails so tickets are on hand.`});
+  /* stale phone reminders */
+  if(S.icsCount!=null && S.trip.bookings.length>S.icsCount)
+    out.push({sev:"info", msg:`${S.trip.bookings.length-S.icsCount} new booking${S.trip.bookings.length-S.icsCount>1?"s":""} since your last phone-reminder export.`});
+  return out;
+}
+function nextBestAction(lints){
+  const L=lints||lintTrip();
+  const w=L.find(l=>l.sev==="warn");
+  if(w) return "⚠ "+w.msg;
+  const milan=CHECKLIST.find(i=>i.id==="stay-milan");
+  if(milan && !chkDone(milan)) return "👉 Book the Milan hotel first — Fashion Week overlaps Sep 22 and prices climb daily.";
+  const nxt=CHECKLIST.find(i=>!chkDone(i));
+  if(nxt) return `👉 Next up: ${esc(nxt.label)}.`;
+  if(S.dirty) return "💾 Everything's booked — save a snapshot to Drive.";
+  const pkAll=[...PACK.flatMap(g=>g.items),...(S.trip.packCustom||[])];
+  if(pkAll.some(i=>!S.trip.packing[i.id])) return "🎒 All booked — time to pack.";
+  return "✨ All clear. Andiamo!";
+}
+
 function agentItemRow(item){
   const s=chkState(item), done=s.st==="booked"||s.st==="paid";
   let acts="";
@@ -1458,6 +1601,7 @@ function renderPlan(){
       <a href="#" id="btn-print" title="Print or save as PDF">🖨 Print</a>
     </div>`;
   /* concierge */
+  const lints=lintTrip();
   h+=`<section class="plan-section" id="p-agent">
     <h2 class="serif">Your travel agent</h2>
     <div class="plan-panel">
@@ -1477,7 +1621,15 @@ function renderPlan(){
             <b class="budget-left${left<0?" over":""}">${left>=0?`€${left.toLocaleString("en-US")} left to spend`:`€${Math.abs(left).toLocaleString("en-US")} OVER budget`}</b>`;
         })():`<span class="budget-hint">set a cap and watch what's left as you book</span>`}
       </div>
+      <p class="nudge">${nextBestAction(lints)}</p>
       ${CHECKLIST.map(agentItemRow).join("")}
+    </div></section>`;
+  /* trip check — the linter's problems panel */
+  h+=`<section class="plan-section" id="p-lint">
+    <h2 class="serif">Trip check</h2>
+    <div class="plan-panel">${lints.length?
+      lints.map(l=>`<div class="lint ${l.sev}">${l.sev==="warn"?"⚠":"ℹ"} ${l.msg}</div>`).join("")
+      :`<div class="lint ok">✓ No problems found — every night has a city, nothing overlaps, no deadlines looming.</div>`}
     </div></section>`;
   /* route at a glance */
   let legs=`<div class="plan-leg"><div class="dot">✈</div><div class="body">
@@ -1776,7 +1928,13 @@ function renderJournal(){
       ${leftJ.map(jNoteRow).join("")}</div>`;
   }
   if(!groups) groups=`<div class="empty">Add cities on the map — bookings and notes will gather here, grouped by stop.</div>`;
-  wrap.innerHTML=head+groups;
+  const trashHtml=(S.trash||[]).length?`<div class="journal-form"><span class="label">Recently deleted</span>
+    ${S.trash.slice(0,8).map(tr=>`<div class="var-row"><b>${esc(tr.label)}</b>
+      <span class="var-meta">${tr.kind}</span>
+      <button class="btn btn-sm" data-restore="${tr.id}">Restore</button></div>`).join("")}
+  </div>`:"";
+  wrap.innerHTML=head+groups+trashHtml;
+  wrap.querySelectorAll("[data-restore]").forEach(b=>b.addEventListener("click",()=>trashRestore(b.dataset.restore)));
   wireBkRows(wrap);
   wirePhotos(wrap);
   $("#jn-paste").addEventListener("click",()=>openPasteDlg());
@@ -1797,12 +1955,16 @@ function renderJournal(){
   });
   $("#ex-text").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#ex-add").click();} });
   wrap.querySelectorAll("[data-exdel]").forEach(b=>b.addEventListener("click",()=>{
+    const gone=S.trip.expenses.find(x=>x.id===b.dataset.exdel);
     S.trip.expenses=S.trip.expenses.filter(x=>x.id!==b.dataset.exdel);
     mutate(); renderJournal();
+    if(gone) trashPut("expense", gone, gone.label);
   }));
   wrap.querySelectorAll("[data-jdel]").forEach(b=>b.addEventListener("click",()=>{
+    const gone=S.trip.journal.find(j=>j.id===b.dataset.jdel);
     S.trip.journal=S.trip.journal.filter(j=>j.id!==b.dataset.jdel);
     mutate(); renderJournal();
+    if(gone) trashPut("note", gone, (gone.text||"note").slice(0,40));
   }));
 }
 const jNoteRow=(j)=>`<div class="j-note"><span class="jd">${fmtShort(j.date)}</span><span>${esc(j.text)}</span>
@@ -1992,6 +2154,7 @@ function initSync(){
   $("#btn-export").addEventListener("click",exportFile);
   $("#btn-tripsheet").addEventListener("click",exportTripSheet);
   $("#btn-ics").addEventListener("click",exportICS);
+  $("#btn-printpack").addEventListener("click",()=>{ $("#dlg-sync").close(); printPack(); });
   $("#btn-import").addEventListener("click",()=>$("#import-file").click());
   $("#import-file").addEventListener("change",(e)=>{
     const f=e.target.files[0]; if(!f) return;
@@ -2164,6 +2327,7 @@ function renderToday(){
           <div class="label" style="margin-top:6px">days until Italy</div>
           <p style="margin-top:10px">${fmtShort(S.trip.startDate)}: fly into ${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")} ·
           ${S.trip.stops.length} stop${S.trip.stops.length===1?"":"s"} planned · ${S.trip.bookings.length} booking${S.trip.bookings.length===1?"":"s"} made</p>
+          <p class="nudge" style="margin-top:10px">${nextBestAction()}</p>
           ${S.trip.stops.length?
             `<div style="margin-top:18px"><button class="btn btn-primary" id="td-begin">Begin your trip — walk it day by day</button></div>`
             :`<p style="margin-top:12px">Add cities on the map first, then walk the whole route from here.</p>`}
@@ -2229,7 +2393,9 @@ function renderToday(){
   const cityCard = `<div class="t-card"><span class="label">Where you are</span>
     <div class="big serif" style="font-size:24px">${city? esc(city.n) : "Unassigned day"}</div>
     <p>${city? esc(city.tag) : "Pick a city on the map for today."}</p>
-    <div class="t-acts"><button class="btn btn-sm" id="td-to-map">Open on the map</button></div></div>`;
+    ${city?`<p class="golden" style="font-size:12.5px;margin-top:6px">${goldenLine(city.id,t)}</p>`:""}
+    <div class="t-acts"><button class="btn btn-sm" id="td-to-map">Open on the map</button>
+      <button class="btn btn-sm" id="td-compass">🧭 Compass</button></div></div>`;
   const spentToday=S.trip.expenses.filter(e=>e.date===t).reduce((a,e)=>a+e.amount,0);
   wrap.innerHTML=`<h2 class="view-title serif">${isToday? "Today" : `Day ${dayN}`}</h2>
     <div class="day-nav">
@@ -2283,6 +2449,7 @@ function renderToday(){
     ${ESSENTIALS_HTML}`;
   wireBkRows(wrap);
   $("#td-to-map").addEventListener("click",()=>{ setView("map"); if(city) selectCity(city.id); });
+  const tc=$("#td-compass"); if(tc) tc.addEventListener("click",()=>openCompass(city?city.id:null));
   const al=$("#td-add-lodging"); if(al) al.addEventListener("click",()=>openBookingDlg({cityId:city.id, type:"hotel", date:t}));
   $("#td-add-bk").addEventListener("click",()=>openBookingDlg({date:t, cityId:city?city.id:undefined}));
   wrap.querySelectorAll("[data-tkshow]").forEach(b=>b.addEventListener("click",()=>{
@@ -2427,6 +2594,106 @@ function wireDepartures(){
   });
 }
 
+/* ---- compass mode: an ornate needle pointing at tonight's town ---- */
+const CMP={watch:null, heading:null, pos:null, target:null};
+const toRad=(d)=>d*Math.PI/180;
+function bearingTo(la1,lo1,la2,lo2){
+  const y=Math.sin(toRad(lo2-lo1))*Math.cos(toRad(la2));
+  const x=Math.cos(toRad(la1))*Math.sin(toRad(la2))-Math.sin(toRad(la1))*Math.cos(toRad(la2))*Math.cos(toRad(lo2-lo1));
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+function distKm(la1,lo1,la2,lo2){
+  const R=6371, dLa=toRad(la2-la1), dLo=toRad(lo2-lo1);
+  const a=Math.sin(dLa/2)**2+Math.cos(toRad(la1))*Math.cos(toRad(la2))*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function cmpUpdate(){
+  const c=CITY_BY_ID[CMP.target];
+  if(!CMP.pos||!c) return;
+  const br=bearingTo(CMP.pos.lat,CMP.pos.lon,c.lat,c.lon);
+  const d=distKm(CMP.pos.lat,CMP.pos.lon,c.lat,c.lon);
+  const rot=CMP.heading==null? br : br-CMP.heading;
+  $("#cmp-needle").style.transform=`translate(-50%,-100%) rotate(${rot}deg)`;
+  $("#cmp-info").innerHTML=`<b>${esc(c.n)}</b> · ${d<1?Math.round(d*1000)+" m":(d<10?d.toFixed(1):Math.round(d))+" km"} away`+
+    (CMP.heading==null?`<br><span class="times-note">no compass sensor here — needle shows bearing from north</span>`:"");
+}
+function cmpOri(e){
+  let h=null;
+  if(typeof e.webkitCompassHeading==="number") h=e.webkitCompassHeading;
+  else if(typeof e.alpha==="number" && (e.absolute||e.type==="deviceorientationabsolute")) h=360-e.alpha;
+  if(h!=null){ CMP.heading=h; cmpUpdate(); }
+}
+function cmpStop(){
+  if(CMP.watch!=null && navigator.geolocation){ navigator.geolocation.clearWatch(CMP.watch); CMP.watch=null; }
+  window.removeEventListener("deviceorientation",cmpOri);
+  window.removeEventListener("deviceorientationabsolute",cmpOri);
+  CMP.heading=null;
+}
+async function cmpStart(){
+  $("#cmp-info").textContent="Locating…";
+  if(navigator.geolocation && CMP.watch==null){
+    CMP.watch=navigator.geolocation.watchPosition(p=>{
+      CMP.pos={lat:p.coords.latitude,lon:p.coords.longitude}; cmpUpdate();
+    },()=>{ $("#cmp-info").textContent="Location unavailable — allow location access and try again."; },
+    {enableHighAccuracy:true,maximumAge:5000});
+  }
+  try{
+    if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission==="function"){
+      const st=await DeviceOrientationEvent.requestPermission();   /* iOS gesture-gated */
+      if(st==="granted") window.addEventListener("deviceorientation",cmpOri);
+    }else{
+      window.addEventListener("deviceorientationabsolute",cmpOri);
+      window.addEventListener("deviceorientation",cmpOri);
+    }
+  }catch(e){}
+}
+function openCompass(defaultCity){
+  const dlg=$("#dlg-compassnav"), sel=$("#cmp-target");
+  const ids=[...new Set([S.trip.arrivalCity,...sortedStops().map(s=>s.cityId),S.trip.departureCity])].filter(id=>CITY_BY_ID[id]);
+  sel.innerHTML=ids.map(id=>`<option value="${id}">${esc(CITY_BY_ID[id].n)}</option>`).join("");
+  CMP.target=(defaultCity&&ids.includes(defaultCity))?defaultCity:ids[0];
+  sel.value=CMP.target;
+  sel.onchange=()=>{ CMP.target=sel.value; cmpUpdate(); };
+  $("#cmp-info").textContent="Tap Start to aim the needle.";
+  dlg.returnValue=""; if(!dlg.open) dlg.showModal();
+  dlg.addEventListener("close",cmpStop,{once:true});
+}
+
+/* ---- the print pack: one paper bundle for when phones die ---- */
+function buildPrintPackHtml(){
+  const days=tripDays();
+  let h=`<h1>Pathseeker · Italia — ${fmtShort(S.trip.startDate)} to ${fmtShort(S.trip.endDate)}</h1>
+    <p class="pp-sub">Christopher &amp; Allison · printed ${new Date().toLocaleDateString()}</p>
+    <h2>Day by day</h2>`;
+  days.forEach((d,i)=>{
+    const here=stopsOn(d).map(s=>CITY_BY_ID[s.cityId].n).join(" & ")||"—";
+    const bks=[...S.trip.bookings.filter(b=>b.date===d)].sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1);
+    h+=`<div class="pp-day"><h3>Day ${i+1} · ${fmtDow(d)} ${fmtShort(d)} — ${esc(here)}</h3>
+      ${bks.length?`<ul>${bks.map(b=>`<li>${b.time?b.time+" — ":""}${esc(b.name)}${b.conf?` · code <b>${esc(b.conf)}</b>`:""}${b.notes?`<br><span class="pp-note">${esc(b.notes.slice(0,220))}</span>`:""}</li>`).join("")}</ul>`:""}
+    </div>`;
+  });
+  const coded=S.trip.bookings.filter(b=>b.conf);
+  if(coded.length) h+=`<h2>All confirmation codes</h2><table class="pp-codes">${
+    coded.map(b=>`<tr><td>${fmtShort(b.date)}</td><td>${esc(b.name)}</td><td><b>${esc(b.conf)}</b></td></tr>`).join("")}</table>`;
+  h+=`<h2>Packing list</h2>`+PACK.map(g=>`<p><b>${esc(g.h)}:</b> ${g.items.map(i=>`☐ ${esc(i.n)}`).join(" · ")}</p>`).join("")
+    +((S.trip.packCustom||[]).length?`<p><b>Extras:</b> ${S.trip.packCustom.map(i=>`☐ ${esc(i.n)}`).join(" · ")}</p>`:"");
+  h+=`<h2>Emergency card</h2><ul class="pp-em">
+    <li><b>112</b> — all emergencies, EU-wide (English available) · <b>118</b> medical</li>
+    <li><b>US Embassy Rome</b> +39 06 46741 · Consulate Milan +39 02 290351 · Consulate Naples +39 081 583 8111</li>
+    <li>Pharmacy = <b>farmacia</b> (green cross) — after-hours rota is posted on every pharmacy door</li>
+    <li>Lost card (collect calls): Visa +1 303 967 1096 · Mastercard +1 636 722 7111</li>
+    <li>Travel insurance policy #: ____________________ · Insurer 24h line: ____________________</li>
+  </ul>`;
+  return h;
+}
+function printPack(){
+  $("#print-pack").innerHTML=buildPrintPackHtml();
+  document.body.classList.add("pp-mode");
+  const done=()=>{ document.body.classList.remove("pp-mode"); window.removeEventListener("afterprint",done); };
+  window.addEventListener("afterprint",done);
+  window.print();
+}
+
 /* ---- phone reminders: .ics calendar with alarms for every dated booking ----
    No push server here by design — the phone's own calendar is the most reliable
    alarm delivery there is (works offline, locked, and for anyone who imports it). */
@@ -2461,12 +2728,35 @@ function buildICS(){
       `TRIGGER:${a}`,`DESCRIPTION:${icsEsc(b.name)}`,"END:VALARM"));
     V.push("END:VEVENT"); n++;
   });
+  /* morning briefings: one all-day event per trip day, the whole plan in the description,
+     8 AM alarm — the phone's calendar becomes the concierge */
+  tripDays().forEach((d,i)=>{
+    const here=stopsOn(d).map(s=>CITY_BY_ID[s.cityId].n).join(" & ");
+    const bks=[...S.trip.bookings.filter(b=>b.date===d)].sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1);
+    const cityId=(stopsOn(d)[0]||{}).cityId;
+    const lines=[
+      here?`In ${here}.`:"Unassigned day.",
+      ...bks.map(b=>`• ${b.time?b.time+" — ":""}${b.name}${b.conf?` (code ${b.conf})`:""}`),
+      cityId?stripTags(goldenLine(cityId,d)):"",
+    ].filter(Boolean);
+    V.push("BEGIN:VEVENT",
+      `UID:brief-${d}@pathseeker`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${d.replace(/-/g,"")}`,
+      `SUMMARY:${icsEsc(`🧭 Day ${i+1} — ${here||"Italy"}`)}`,
+      `DESCRIPTION:${icsEsc(lines.join("\n"))}`,
+      "BEGIN:VALARM","ACTION:DISPLAY","TRIGGER;RELATED=START:PT8H",
+      `DESCRIPTION:${icsEsc("Day "+(i+1)+" briefing")}`,"END:VALARM",
+      "END:VEVENT");
+    n++;
+  });
   V.push("END:VCALENDAR");
   return {ics:V.filter(Boolean).join("\r\n"), count:n};
 }
 async function exportICS(){
   const {ics,count}=buildICS();
   if(!count){ toast("No dated bookings yet — log some first"); return; }
+  S.icsCount=S.trip.bookings.length; persist();
   if(window.claude && window.claude.downloads){
     try{ await window.claude.downloads.save({filename:"pathseeker-italy.ics", data:ics});
       toast(`${count} reminders exported — open the file to add them to your calendar`); return; }
@@ -2813,6 +3103,21 @@ function init(){
   wireLiveFilter();
   wireDocsDlg();
   wireDepartures();
+  $("#cmp-start").addEventListener("click",cmpStart);
+  /* share-to-Pathseeker: a confirmation email shared from Gmail lands straight in paste-import */
+  try{
+    const q=new URLSearchParams(location.search);
+    const shared=[q.get("s_title"),q.get("s_text"),q.get("s_url")].filter(Boolean).join("\n");
+    if(shared){
+      history.replaceState(null,"",location.pathname);
+      setTimeout(()=>{
+        showApp();
+        openPasteDlg();
+        $("#paste-txt").value=shared;
+        toast("Shared text ready — hit Import");
+      },400);
+    }
+  }catch(e){}
   /* tap any weather chip to flip °F/°C everywhere */
   document.addEventListener("click",e=>{
     if(e.target.closest && e.target.closest(".wx-chip")){
