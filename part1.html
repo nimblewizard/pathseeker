@@ -315,9 +315,27 @@ h1,h2,h3{margin:0;text-wrap:balance}
 }
 .icon-btn:hover{color:var(--ink);box-shadow:var(--shadow-sm)}
 .panel-cta{
-  padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;background:var(--surface);
+  padding:10px 18px 16px;display:flex;gap:10px;background:transparent;border-top:none;
 }
 .panel-cta .btn{flex:1}
+/* the wax-sealed ribbon CTA — the label is pinned to the banner, right of the seal.
+   Band measured from the art: x 38–88% (centre 63%), y 35–66% (centre 50.5%). */
+.btn-ribbon{
+  position:relative;aspect-ratio:2056/601;width:100%;max-width:430px;margin:0 auto;
+  border:none;box-shadow:none;border-radius:0;padding:0;
+  background:center/100% 100% no-repeat;
+  filter:drop-shadow(0 5px 12px rgba(30,14,4,.38));
+  transition:filter .15s ease,transform .15s ease;
+}
+.btn-ribbon span{
+  position:absolute;left:63%;top:50.5%;transform:translate(-50%,-50%);max-width:50%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:"Bodoni 72",Didot,Georgia,serif;font-weight:700;letter-spacing:.01em;
+  font-size:clamp(11.5px,3.2vw,14.5px);line-height:1.1;text-align:center;
+  color:#48310F;text-shadow:0 1px 0 rgba(255,248,226,.55);
+}
+.btn-ribbon:hover{filter:drop-shadow(0 8px 16px rgba(30,14,4,.48)) brightness(1.05);transform:translateY(-1px)}
+.btn-ribbon:active{transform:translateY(1px)}
 .book-block{
   margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;
   background:var(--surface2);

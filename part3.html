@@ -659,7 +659,7 @@ function renderPanel(){
     <div class="panel-cta">
       ${st ? `<button class="btn" id="cta-dates">Edit dates</button>
               <button class="btn btn-primary" id="cta-book">Add booking</button>`
-           : `<button class="btn btn-primary" id="cta-add">Add ${esc(c.n)} to my trip</button>`}
+           : `<button class="btn btn-ribbon" id="cta-add"><span>Add ${esc(c.short||c.n)} to my trip</span></button>`}
     </div>`;
   p.classList.remove("hidden");
   fillWxSlots(p);
@@ -3350,6 +3350,7 @@ function applySkin(skin){
     /* the map sidebar is a lamplit Venetian panel, not parchment */
     /* the banner hangs over the map's edge — stretched to the panel, cut free of its black */
     `.side-art{background-image:url(${BG_SIDE})}`+
+    `.btn-ribbon{background-image:url(${BG_RIBBON})}`+
     /* candlelight: same parchment, dimmed to lamplight */
     `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub)`+
