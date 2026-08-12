@@ -62,6 +62,7 @@
       <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
       <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
       <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
+      <button class="tab" role="tab" data-view="wallet" aria-selected="false">Wallet</button>
     </nav>
     <button class="sync-btn thm-btn" id="btn-theme" title="Candlelight mode" aria-label="Toggle candlelight mode">🕯</button>
     <button class="sync-btn" id="btn-sync" title="Sync & backup">
@@ -120,6 +121,9 @@
     <!-- TRANSLATE -->
     <div id="view-translate" class="hidden"><div class="sheet-wrap" id="translate-wrap"></div></div>
 
+    <!-- WALLET -->
+    <div id="view-wallet" class="hidden"><div class="sheet-wrap" id="wallet-wrap"></div></div>
+
     <!-- PLAN (fairy-tale guide + concierge) -->
     <div id="view-plan" class="hidden"><div class="plan-wrap" id="plan-wrap"></div></div>
   </div>
@@ -131,6 +135,7 @@
     <button class="tab" role="tab" data-view="itin" aria-selected="false">Itinerary</button>
     <button class="tab" role="tab" data-view="journal" aria-selected="false">Journal</button>
     <button class="tab" role="tab" data-view="translate" aria-selected="false">Translate</button>
+    <button class="tab" role="tab" data-view="wallet" aria-selected="false">Wallet</button>
   </nav>
 </section>
 
@@ -308,6 +313,15 @@
   <form method="dialog">
     <div class="dlg-head"><h3 id="times-title">Train times</h3></div>
     <div class="dlg-body" id="times-list"></div>
+    <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
+  </form>
+</dialog>
+
+<input type="file" id="doc-file" accept="image/*,application/pdf" capture="environment" hidden>
+
+<dialog id="dlg-bigcode">
+  <form method="dialog">
+    <div class="bigcode-wrap"><div id="bigcode-txt"></div></div>
     <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
   </form>
 </dialog>

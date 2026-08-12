@@ -1451,6 +1451,16 @@ async function viewDoc(id){
   dlg.addEventListener("close",()=>{ URL.revokeObjectURL(url); body.innerHTML=""; },{once:true});
 }
 function wireDocsDlg(){
+  /* the wallet's per-slot picker (camera on phones) shares the same store */
+  $("#doc-file").addEventListener("change",async e=>{
+    for(const f of e.target.files){
+      if(f.size>15*1048576){ toast(`${f.name} is too big (15 MB max)`); continue; }
+      await docAdd(docsCtx,f);
+    }
+    e.target.value="";
+    if(UI.view==="wallet") renderWallet(); else renderPlan();
+    toast("Saved to this device");
+  });
   $("#docs-add").addEventListener("change",async e=>{
     for(const f of e.target.files){
       if(f.size>15*1048576){ toast(`${f.name} is too big (15 MB max)`); continue; }
@@ -1973,13 +1983,14 @@ const jNoteRow=(j)=>`<div class="j-note"><span class="jd">${fmtShort(j.date)}</s
 /* ================= VIEWS / NAV ================= */
 function setView(v){
   UI.view=v;
-  for(const k of ["map","itin","journal","today","translate","plan"])
+  for(const k of ["map","itin","journal","today","translate","plan","wallet"])
     $("#view-"+k).classList.toggle("hidden", v!==k);
   $$(".tab").forEach(t=>t.setAttribute("aria-selected", String(t.dataset.view===v)));
   if(v==="itin") renderItin();
   if(v==="journal") renderJournal();
   if(v==="today") renderToday();
   if(v==="plan") renderPlan();
+  if(v==="wallet") renderWallet();
   if(v==="translate" && !$("#tr-q")) renderTranslate();
 }
 function renderAll(){
@@ -1988,6 +1999,7 @@ function renderAll(){
   if(UI.view==="journal") renderJournal();
   if(UI.view==="today") renderToday();
   if(UI.view==="plan") renderPlan();
+  if(UI.view==="wallet") renderWallet();
 }
 function updateTripChip(){
   const n=S.trip.stops.length;
@@ -2772,6 +2784,119 @@ async function exportICS(){
     setTimeout(()=>URL.revokeObjectURL(url),4000);
     toast(`${count} reminders exported — open the file to add them to your calendar`);
   }catch(e){ toast("Couldn't export here"); }
+}
+
+/* ================= WALLET — tickets on hand + personal travel documents ================= */
+const DOC_SLOTS=[
+ {id:"pass-c", n:"Passport — Christopher", d:"photo page; check it's valid 3+ months past Oct 2"},
+ {id:"pass-a", n:"Passport — Allison",     d:"photo page"},
+ {id:"idp-c",  n:"International Driving Permit — Christopher", d:"police can ask for this with the rental"},
+ {id:"idp-a",  n:"International Driving Permit — Allison", d:""},
+ {id:"dl-c",   n:"Driver's license — Christopher", d:"carry alongside the IDP"},
+ {id:"dl-a",   n:"Driver's license — Allison", d:""},
+ {id:"etias",  n:"ETIAS approval",         d:"screenshot of the confirmation"},
+ {id:"ins",    n:"Travel insurance card",  d:"policy number and the 24-hour line"},
+ {id:"cards",  n:"Cards — front & back",   d:"so you can cancel fast if a wallet walks off"},
+ {id:"health", n:"Health & prescriptions", d:"scripts in your name, vaccination records"},
+ {id:"other",  n:"Anything else",          d:"marriage certificate, student ID, spare passport photos…"},
+];
+let walletUrls=[];
+function walletRevoke(){ walletUrls.forEach(u=>URL.revokeObjectURL(u)); walletUrls=[]; }
+function renderWallet(){
+  const wrap=$("#wallet-wrap");
+  const tab=UI.wallet||"tickets";
+  walletRevoke();
+  let h=`<h2 class="view-title serif">Wallet</h2>
+    <p class="view-sub">Everything you might be asked to show — tickets on the left, papers on the right.</p>
+    <div class="wallet-seg" role="tablist">
+      <button class="wseg" data-wtab="tickets" aria-pressed="${tab==="tickets"}">🎫 Tickets</button>
+      <button class="wseg" data-wtab="docs" aria-pressed="${tab==="docs"}">🪪 Documents</button>
+    </div>`;
+  if(tab==="tickets"){
+    const t=todayISO();
+    const withCode=S.trip.bookings.filter(b=>b.conf||docsFor("bk:"+b.id).length);
+    const plain=S.trip.bookings.filter(b=>!(b.conf||docsFor("bk:"+b.id).length));
+    const byDate={};
+    withCode.forEach(b=>{ (byDate[b.date||"undated"]=byDate[b.date||"undated"]||[]).push(b); });
+    const dates=Object.keys(byDate).sort();
+    h+=`<p class="wallet-note">${withCode.length} ticket${withCode.length===1?"":"s"} on hand${plain.length?` · ${plain.length} booking${plain.length===1?"":"s"} still without a code`:""}.
+      Tap a code to enlarge it for scanning.</p>`;
+    if(!withCode.length)
+      h+=`<div class="empty">No tickets yet — as you book, paste the confirmation and attach the PDF, and it lands here.</div>`;
+    dates.forEach(d=>{
+      const isToday=d===t;
+      h+=`<div class="poi-section" style="margin-top:16px"><span class="label">${d==="undated"?"No date":`${fmtDow(d)} ${fmtShort(d)}`}${isToday?" · TODAY":""}</span></div>
+        <div class="wallet-grid">${byDate[d].sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1).map(b=>{
+          const nd=docsFor("bk:"+b.id).length, tm=typeMeta(b.type);
+          return `<div class="wticket${isToday?" now":""}">
+            <div class="wt-top"><span class="type-dot" style="background:${tm.c}"></span>
+              <span class="wt-name">${esc(b.name)}</span></div>
+            <div class="wt-meta">${b.time?esc(b.time)+" · ":""}${esc(CITY_BY_ID[b.cityId]?.n||"")}${b.price?" · "+esc(b.price):""}</div>
+            ${b.conf?`<button class="wt-conf" data-bigcode="${esc(b.conf)}" title="Enlarge for scanning">${esc(b.conf)}</button>`:""}
+            <div class="wt-acts">
+              ${nd?`<button class="btn btn-sm btn-primary" data-tkshow2="${b.id}">Show ticket${nd>1?"s":""}</button>`:""}
+              <button class="btn btn-sm" data-bkdocs="${b.id}">📎 ${nd?"Manage":"Attach"}</button>
+              ${b.link?`<a class="btn btn-sm" href="${esc(b.link)}" target="_blank" rel="noopener">Open ↗</a>`:""}
+            </div></div>`;}).join("")}
+        </div>`;
+    });
+    if(plain.length)
+      h+=`<div class="poi-section" style="margin-top:18px"><span class="label">Booked, no code yet</span></div>
+        <div class="day-items" style="margin-top:6px">${plain.map(bkRow).join("")}</div>`;
+  }else{
+    const total=DOC_SLOTS.reduce((a,s)=>a+docsFor("doc:"+s.id).length,0);
+    h+=`<p class="wallet-note">${total} document${total===1?"":"s"} stored <b>on this device only</b> — they're never
+      included in Drive snapshots or shared links. Add them on each phone you'll carry.</p>
+      <div class="doc-slots">${DOC_SLOTS.map(sl=>{
+        const files=docsFor("doc:"+sl.id);
+        return `<div class="doc-slot${files.length?" has":""}">
+          <div class="ds-head"><strong>${esc(sl.n)}</strong>${files.length?`<span class="ds-count">${files.length}</span>`:""}</div>
+          ${sl.d?`<p class="ds-hint">${esc(sl.d)}</p>`:""}
+          <div class="ds-thumbs">${files.map(f=>`<button class="ds-thumb" data-docview="${f.id}" title="${esc(f.name)}">
+              ${f.mime==="application/pdf"?`<span class="ds-pdf">PDF</span>`:`<img data-thumb="${f.id}" alt="">`}
+              <span class="ds-x" data-docdel="${f.id}" role="button" aria-label="Delete">✕</span>
+            </button>`).join("")}
+            <button class="ds-add" data-docadd="${sl.id}">＋<span>Add / scan</span></button>
+          </div></div>`;}).join("")}
+      </div>
+      <p class="times-note">Tip: photograph the passport page flat in good light, then check it's readable at full size —
+      a border officer or hotel clerk should be able to read the numbers.</p>`;
+  }
+  wrap.innerHTML=h;
+  wrap.querySelectorAll("[data-wtab]").forEach(b=>b.addEventListener("click",()=>{ UI.wallet=b.dataset.wtab; renderWallet(); }));
+  wrap.querySelectorAll("[data-tkshow2]").forEach(b=>b.addEventListener("click",()=>{
+    const docs=docsFor("bk:"+b.dataset.tkshow2);
+    if(docs.length===1) viewDoc(docs[0].id);
+    else{ const bk=S.trip.bookings.find(x=>x.id===b.dataset.tkshow2); openDocsDlg("bk:"+b.dataset.tkshow2, bk?bk.name:"Tickets"); }
+  }));
+  wrap.querySelectorAll("[data-bkdocs]").forEach(b=>b.addEventListener("click",()=>{
+    const bk=S.trip.bookings.find(x=>x.id===b.dataset.bkdocs);
+    if(bk) openDocsDlg("bk:"+bk.id, bk.name);
+  }));
+  wrap.querySelectorAll("[data-bigcode]").forEach(b=>b.addEventListener("click",()=>showBigCode(b.dataset.bigcode)));
+  wrap.querySelectorAll("[data-docview]").forEach(b=>b.addEventListener("click",e=>{
+    if(e.target.closest("[data-docdel]")) return;
+    viewDoc(b.dataset.docview);
+  }));
+  wrap.querySelectorAll("[data-docdel]").forEach(b=>b.addEventListener("click",async e=>{
+    e.stopPropagation();
+    await docDel(b.dataset.docdel); renderWallet();
+  }));
+  wrap.querySelectorAll("[data-docadd]").forEach(b=>b.addEventListener("click",()=>{
+    docsCtx="doc:"+b.dataset.docadd;
+    $("#doc-file").click();
+  }));
+  /* lazy thumbnails straight from IndexedDB */
+  wrap.querySelectorAll("img[data-thumb]").forEach(async img=>{
+    const rec=await docGet(img.dataset.thumb);
+    if(!rec) return;
+    const u=URL.createObjectURL(rec.blob); walletUrls.push(u); img.src=u;
+  });
+}
+function showBigCode(code){
+  const dlg=$("#dlg-bigcode");
+  $("#bigcode-txt").textContent=code;
+  dlg.returnValue=""; if(!dlg.open) dlg.showModal();
 }
 
 /* ================= TRANSLATE ================= */
