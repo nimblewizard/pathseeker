@@ -3323,6 +3323,64 @@ function logoVals(){ return LOGO_DEF; }   /* tuner removed 2026-08-12; values lo
 const logoBox=(v)=> `content:"";position:absolute;z-index:1;pointer-events:none;`+
   `height:${v.h}%;aspect-ratio:811/280;left:${v.x}%;top:${v.y}%;`+
   `transform:translate(-50%,-50%) scaleX(${v.sx}) skewX(${v.sk}deg);`;
+/* ---- the map margin: canvas base + draped banner, tunable via ?tune=1 ---- */
+const SIDE_DEF={v:1, w:186, aw:250, ax:-22, ay:-8, ab:-8, cw:216, dark:.84, veil:.80};
+function sideVals(){
+  try{ const s=JSON.parse(localStorage.getItem("ps.side")||"null");
+    if(s && s.v===SIDE_DEF.v) return Object.assign({},SIDE_DEF,s); }catch(e){}
+  return Object.assign({},SIDE_DEF);
+}
+function applySideVars(v){
+  const r=document.documentElement.style;
+  r.setProperty("--side-w",v.w+"px");
+  r.setProperty("--art-w",v.aw+"px");
+  r.setProperty("--art-x",v.ax+"px");
+  r.setProperty("--art-y",v.ay+"px");
+  r.setProperty("--art-b",v.ab+"px");
+  r.setProperty("--canvas-w",v.cw+"px");
+  r.setProperty("--canvas-dark",v.dark);
+  r.setProperty("--veil",v.veil);
+}
+const SIDE_CTRLS=[
+  {k:"w",   l:"Margin width", min:120, max:320, step:1,   u:"px"},
+  {k:"aw",  l:"Art width",    min:140, max:460, step:1,   u:"px"},
+  {k:"ax",  l:"Art ←→",       min:-160,max:120, step:1,   u:"px"},
+  {k:"ay",  l:"Art top",      min:-120,max:60,  step:1,   u:"px"},
+  {k:"ab",  l:"Art bottom",   min:-120,max:60,  step:1,   u:"px"},
+  {k:"cw",  l:"Canvas width", min:120, max:400, step:1,   u:"px"},
+  {k:"dark",l:"Canvas dark",  min:0,   max:1,   step:.02, u:""},
+  {k:"veil",l:"Text veil",    min:0,   max:1,   step:.02, u:""},
+];
+function initSideTuner(){
+  const V=sideVals();
+  const box=document.createElement("div");
+  box.id="side-tuner";
+  box.innerHTML=`<div class="st-head">Map margin tuner — <b>canvas + banner</b></div>`+
+    SIDE_CTRLS.map(c=>`<label class="st-row"><span>${c.l}</span>
+      <input type="range" data-sk="${c.k}" min="${c.min}" max="${c.max}" step="${c.step}" value="${V[c.k]}">
+      <b data-so="${c.k}">${V[c.k]}${c.u}</b></label>`).join("")+
+    `<div class="st-acts">
+      <button type="button" class="btn btn-sm" data-st="reset">Reset</button>
+      <button type="button" class="btn btn-sm btn-primary" data-st="copy">Copy values</button>
+    </div>`;
+  box.querySelectorAll("input[type=range]").forEach(inp=>inp.addEventListener("input",()=>{
+    const k=inp.dataset.sk, c=SIDE_CTRLS.find(x=>x.k===k);
+    V[k]=parseFloat(inp.value); V.v=SIDE_DEF.v;
+    box.querySelector(`[data-so="${k}"]`).textContent=inp.value+c.u;
+    localStorage.setItem("ps.side",JSON.stringify(V));
+    applySideVars(V);
+  }));
+  box.querySelector('[data-st="reset"]').addEventListener("click",()=>{
+    localStorage.removeItem("ps.side"); location.reload();
+  });
+  box.querySelector('[data-st="copy"]').addEventListener("click",()=>{
+    const txt=JSON.stringify(V);
+    navigator.clipboard?.writeText(txt).then(()=>toast("Values copied — paste them to Claude"),
+      ()=>prompt("Copy these values:",txt));
+  });
+  document.body.appendChild(box);
+}
+
 function applySkin(skin){
   const V=logoVals();
   const LOGO_BOX=logoBox(V.d);
@@ -3350,7 +3408,7 @@ function applySkin(skin){
     /* the map sidebar is a lamplit Venetian panel, not parchment */
     /* the banner hangs over the map's edge — stretched to the panel, cut free of its black */
     `.side-art{background-image:url(${BG_SIDE})}`+
-    `.side-bg{background-image:linear-gradient(rgba(19,12,5,.84),rgba(19,12,5,.84)),url(${BG_CARD});`+
+    `.side-bg{background-image:linear-gradient(rgba(19,12,5,var(--canvas-dark,.84)),rgba(19,12,5,var(--canvas-dark,.84))),url(${BG_CARD});`+
     `background-size:auto,cover;background-position:center}`+
     /* candlelight: same parchment, dimmed to lamplight */
     `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
@@ -3414,6 +3472,8 @@ function init(){
   const skin=document.createElement("style");
   applySkin(skin);
   document.head.appendChild(skin);
+  applySideVars(sideVals());
+  if(new URLSearchParams(location.search).get("tune")==="1") initSideTuner();
   $("#btn-start").addEventListener("click",()=>{
     const s=$("#trip-start").value, e=$("#trip-end").value;
     if(!s||!e||e<s){ toast("Check your dates — depart must follow arrive"); return; }

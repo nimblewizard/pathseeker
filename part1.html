@@ -205,28 +205,45 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .city .plane{fill:#F3E7C9;font-size:20px;font-family:inherit;paint-order:stroke;stroke:rgba(26,18,6,.85);stroke-width:5px}
 /* the left margin: an illuminated-manuscript list, no box — it fades into the map */
 .map-side{
-  width:186px;flex:none;display:flex;flex-direction:column;gap:2px;
+  width:var(--side-w,186px);flex:none;display:flex;flex-direction:column;gap:2px;
   padding:20px 12px 20px 18px;overflow-y:auto;z-index:3;
   background:none;border-right:none;box-shadow:none;position:relative;
 }
 /* dims the painting only where the list sits; the overhang stays vivid */
 .map-side::before{
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
-  background:linear-gradient(90deg,rgba(12,8,3,.80) 0%,rgba(12,8,3,.72) 52%,rgba(12,8,3,.38) 84%,rgba(12,8,3,0) 100%);
+  background:linear-gradient(90deg,
+    rgba(12,8,3,var(--veil,.80)) 0%,
+    rgba(12,8,3,calc(var(--veil,.80) * .9)) 52%,
+    rgba(12,8,3,calc(var(--veil,.80) * .45)) 84%,
+    rgba(12,8,3,0) 100%);
 }
 /* aged-canvas base under the banner, masked so it melts into the map instead of ending square */
 .side-bg{
-  position:absolute;left:0;top:0;bottom:0;width:216px;z-index:1;pointer-events:none;
+  position:absolute;left:0;top:0;bottom:0;width:var(--canvas-w,216px);z-index:1;pointer-events:none;
   background-repeat:no-repeat;
   -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
   mask-image:linear-gradient(90deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
 }
 /* the painted banner, cut free of its glow and draped across the panel's edge */
 .side-art{
-  position:absolute;left:-22px;top:-8px;bottom:-8px;width:250px;z-index:2;
+  position:absolute;left:var(--art-x,-22px);top:var(--art-y,-8px);bottom:var(--art-b,-8px);
+  width:var(--art-w,250px);z-index:2;
   pointer-events:none;background-size:100% 100%;background-repeat:no-repeat;
   filter:drop-shadow(6px 2px 15px rgba(8,4,1,.6));
 }
+/* the margin tuner (?tune=1 only) */
+#side-tuner{
+  position:fixed;right:12px;bottom:12px;z-index:9999;width:min(330px,calc(100vw - 24px));
+  background:rgba(20,14,6,.94);color:#F3E7C9;border:1px solid rgba(233,215,171,.35);
+  border-radius:14px;padding:12px 14px;font-size:12px;box-shadow:0 14px 40px rgba(0,0,0,.55);
+}
+.st-head{font-size:12.5px;margin-bottom:8px;opacity:.85}
+.st-row{display:grid;grid-template-columns:96px 1fr 54px;gap:8px;align-items:center;margin:5px 0}
+.st-row input[type=range]{width:100%}
+.st-row b{text-align:right;font-variant-numeric:tabular-nums}
+.st-acts{display:flex;gap:8px;margin-top:10px}
+.st-acts .btn{flex:1}
 .side-label{
   font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
   color:rgba(233,215,171,.5);margin:12px 0 4px 6px;
