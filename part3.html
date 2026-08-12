@@ -3350,6 +3350,8 @@ function applySkin(skin){
     /* the map sidebar is a lamplit Venetian panel, not parchment */
     /* the banner hangs over the map's edge — stretched to the panel, cut free of its black */
     `.side-art{background-image:url(${BG_SIDE})}`+
+    `.side-bg{background-image:linear-gradient(rgba(19,12,5,.84),rgba(19,12,5,.84)),url(${BG_CARD});`+
+    `background-size:auto,cover;background-position:center}`+
     /* candlelight: same parchment, dimmed to lamplight */
     `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub)`+
