@@ -3324,7 +3324,7 @@ const logoBox=(v)=> `content:"";position:absolute;z-index:1;pointer-events:none;
   `height:${v.h}%;aspect-ratio:811/280;left:${v.x}%;top:${v.y}%;`+
   `transform:translate(-50%,-50%) scaleX(${v.sx}) skewX(${v.sk}deg);`;
 /* ---- the map margin: canvas base + draped banner, tunable via ?tune=1 ---- */
-const SIDE_DEF={v:1, w:186, aw:250, ax:-22, ay:-8, ab:-8, cw:216, dark:.84, veil:.80};
+const SIDE_DEF={v:2, w:186, aw:250, ax:-22, ay:-8, ab:-8, veil:.80, vend:100};
 function sideVals(){
   try{ const s=JSON.parse(localStorage.getItem("ps.side")||"null");
     if(s && s.v===SIDE_DEF.v) return Object.assign({},SIDE_DEF,s); }catch(e){}
@@ -3337,9 +3337,8 @@ function applySideVars(v){
   r.setProperty("--art-x",v.ax+"px");
   r.setProperty("--art-y",v.ay+"px");
   r.setProperty("--art-b",v.ab+"px");
-  r.setProperty("--canvas-w",v.cw+"px");
-  r.setProperty("--canvas-dark",v.dark);
   r.setProperty("--veil",v.veil);
+  r.setProperty("--veil-end",v.vend+"%");
 }
 const SIDE_CTRLS=[
   {k:"w",   l:"Margin width", min:120, max:320, step:1,   u:"px"},
@@ -3347,9 +3346,8 @@ const SIDE_CTRLS=[
   {k:"ax",  l:"Art ←→",       min:-160,max:120, step:1,   u:"px"},
   {k:"ay",  l:"Art top",      min:-120,max:60,  step:1,   u:"px"},
   {k:"ab",  l:"Art bottom",   min:-120,max:60,  step:1,   u:"px"},
-  {k:"cw",  l:"Canvas width", min:120, max:400, step:1,   u:"px"},
-  {k:"dark",l:"Canvas dark",  min:0,   max:1,   step:.02, u:""},
-  {k:"veil",l:"Text veil",    min:0,   max:1,   step:.02, u:""},
+  {k:"veil",l:"Veil strength",min:0,   max:1,   step:.02, u:""},
+  {k:"vend",l:"Veil reach",   min:30,  max:100, step:1,   u:"%"},
 ];
 function initSideTuner(){
   const V=sideVals();
@@ -3397,7 +3395,7 @@ function applySkin(skin){
     `mask:url(${BG_HDLOGO}) center/100% 100% no-repeat}`+
     `@media (prefers-reduced-motion:no-preference){.appbar::after{animation:psheen 26s ease-in-out infinite}}`+
     `@keyframes psheen{0%,62%{background-position:-160% 0}96%,100%{background-position:260% 0}}`+
-    `.map-stage{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
+    `#view-map{background-image:url(${BG_MAPDESK});background-size:cover;background-position:center}`+
     `.home-card{background-image:url(${BG_SCROLL});background-size:100% 100%;background-repeat:no-repeat}`+
     `.plan-hero{background-image:url(${BG_PLANHERO})}`+
     `.plan-day-head{background-image:linear-gradient(rgba(35,18,8,.30),rgba(35,18,8,.42)),url(${BG_DAYHEAD});`+
@@ -3408,8 +3406,6 @@ function applySkin(skin){
     /* the map sidebar is a lamplit Venetian panel, not parchment */
     /* the banner hangs over the map's edge — stretched to the panel, cut free of its black */
     `.side-art{background-image:url(${BG_SIDE})}`+
-    `.side-bg{background-image:linear-gradient(rgba(19,12,5,var(--canvas-dark,.84)),rgba(19,12,5,var(--canvas-dark,.84))),url(${BG_CARD});`+
-    `background-size:auto,cover;background-position:center}`+
     /* candlelight: same parchment, dimmed to lamplight */
     `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
     `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub)`+

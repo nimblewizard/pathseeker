@@ -175,7 +175,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 /* ---------- map view ---------- */
 #view-map{position:absolute;inset:0;display:flex}
 /* the map is fixed hand-painted artwork — stage chrome is art-toned in both themes */
-.map-stage{flex:1;min-width:0;position:relative;z-index:1;background:#171208;overflow:hidden}
+.map-stage{flex:1;min-width:0;position:relative;z-index:1;background:transparent;overflow:hidden}
 .map-stage > svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 .sea-label{
   font-family:"Bodoni 72",Didot,Georgia,serif;font-style:italic;
@@ -214,16 +214,8 @@ h1,h2,h3{margin:0;text-wrap:balance}
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
   background:linear-gradient(90deg,
     rgba(12,8,3,var(--veil,.80)) 0%,
-    rgba(12,8,3,calc(var(--veil,.80) * .9)) 52%,
-    rgba(12,8,3,calc(var(--veil,.80) * .45)) 84%,
-    rgba(12,8,3,0) 100%);
-}
-/* aged-canvas base under the banner, masked so it melts into the map instead of ending square */
-.side-bg{
-  position:absolute;left:0;top:0;bottom:0;width:var(--canvas-w,216px);z-index:1;pointer-events:none;
-  background-repeat:no-repeat;
-  -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
-  mask-image:linear-gradient(90deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
+    rgba(12,8,3,calc(var(--veil,.80) * .88)) calc(var(--veil-end,100%) * .55),
+    rgba(12,8,3,0) var(--veil-end,100%));
 }
 /* the painted banner, cut free of its glow and draped across the panel's edge */
 .side-art{
@@ -594,7 +586,7 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   }
   .mob-tabs .tab{flex:1;text-align:center;padding:9px 2px;font-size:12.5px}
   #view-map{flex-direction:column}
-  .side-art,.side-bg{display:none}
+  .side-art{display:none}
   .map-side{
     width:auto;flex-direction:row;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;
     padding:8px 12px;border-right:none;border-bottom:1px solid rgba(233,215,171,.18);
