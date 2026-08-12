@@ -3087,12 +3087,13 @@ function wirePostcards(){
 
 /* ---- wordmark geometry: d = desktop (>820px), m = phones. ?tune=1 restores the sliders ---- */
 const LOGO_DEF = {
+  v:1,   /* bump when values are locked in — retires stale tuner sessions on every device */
   d:{h:83, x:35, y:48.5, sx:1.67, sk:1, bar:0},
   m:{h:70, x:50, y:50,   sx:1.30, sk:1, bar:0}
 };
 function logoVals(){
   try{ const v=JSON.parse(localStorage.getItem("ps.logo")||"null");
-    if(v&&v.d&&v.m) return v; }catch(e){}
+    if(v&&v.d&&v.m&&v.v===LOGO_DEF.v) return v; }catch(e){}
   return JSON.parse(JSON.stringify(LOGO_DEF));
 }
 const logoBox=(v)=> `content:"";position:absolute;z-index:1;pointer-events:none;`+
@@ -3125,13 +3126,13 @@ function initLogoTuner(skin){
       </div>`;
     box.querySelectorAll("input[type=range]").forEach(inp=>inp.addEventListener("input",()=>{
       const k=inp.dataset.k, c=TUNE_CTRLS.find(x=>x.k===k);
-      V[bp()][k]=parseFloat(inp.value);
+      V[bp()][k]=parseFloat(inp.value); V.v=LOGO_DEF.v;
       box.querySelector(`[data-out="${k}"]`).textContent=inp.value+c.u;
       localStorage.setItem("ps.logo",JSON.stringify(V));
       applySkin(skin);
     }));
     box.querySelector('[data-lt="reset"]').addEventListener("click",()=>{
-      V[bp()]=JSON.parse(JSON.stringify(LOGO_DEF[bp()]));
+      V[bp()]=JSON.parse(JSON.stringify(LOGO_DEF[bp()])); V.v=LOGO_DEF.v;
       localStorage.setItem("ps.logo",JSON.stringify(V)); applySkin(skin); draw();
     });
     box.querySelector('[data-lt="copy"]').addEventListener("click",()=>{
