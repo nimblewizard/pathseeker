@@ -3345,11 +3345,16 @@ function applySkin(skin){
     `.plan-day-head{background-image:linear-gradient(rgba(35,18,8,.30),rgba(35,18,8,.42)),url(${BG_DAYHEAD});`+
     `background-size:cover;background-position:center 30%}`+
     `.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
-    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side`+
+    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub`+
     `{background-image:url(${BG_CARD});background-size:cover;background-position:center}`+
+    /* the map sidebar is a lamplit Venetian panel, not parchment */
+    `.map-side{background-image:linear-gradient(rgba(14,9,3,.46) 0%,rgba(14,9,3,.52) 22%,rgba(14,9,3,.82) 52%,rgba(14,9,3,.62) 78%,rgba(14,9,3,.50) 100%),url(${BG_SIDE});`+
+    `background-size:cover;background-position:58% center;background-repeat:no-repeat;background-color:#120c05}`+
+    /* phones get a flat lamplit strip — a horizontal slice of a vertical banner reads as mud */
+    `@media (max-width:820px){.map-side{background-image:linear-gradient(180deg,#1c1409,#120c05)}}`+
     /* candlelight: same parchment, dimmed to lamplight */
     `:root[data-theme="dark"] :is(.panel,dialog,.stop-card,.journal-form,.j-note,.t-card,.ess,.book-block,`+
-    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub,.map-side)`+
+    `.travel-note,.plan-route,.plan-day,.plan-panel,.plan-fact,.plan-gem,.bk,.day-scrub)`+
     `{background-image:linear-gradient(rgba(23,15,7,.87),rgba(23,15,7,.87)),url(${BG_CARD})}`+
     `@media (max-width:820px){.appbar::before,.appbar::after{`+
     `height:${V.m.h}%;left:${V.m.x}%;top:${V.m.y}%;`+
