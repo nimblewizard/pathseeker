@@ -175,7 +175,7 @@ h1,h2,h3{margin:0;text-wrap:balance}
 /* ---------- map view ---------- */
 #view-map{position:absolute;inset:0;display:flex}
 /* the map is fixed hand-painted artwork — stage chrome is art-toned in both themes */
-.map-stage{flex:1;min-width:0;position:relative;background:#171208;overflow:hidden}
+.map-stage{flex:1;min-width:0;position:relative;z-index:1;background:#171208;overflow:hidden}
 .map-stage > svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 .sea-label{
   font-family:"Bodoni 72",Didot,Georgia,serif;font-style:italic;
@@ -203,12 +203,18 @@ h1,h2,h3{margin:0;text-wrap:balance}
 }
 .city.gateway text{font-weight:700}
 .city .plane{fill:#F3E7C9;font-size:20px;font-family:inherit;paint-order:stroke;stroke:rgba(26,18,6,.85);stroke-width:5px}
-/* the left margin: a lamplit Venetian panel with an illuminated-manuscript list */
+/* the left margin: an illuminated-manuscript list, no box — it fades into the map */
 .map-side{
   width:186px;flex:none;display:flex;flex-direction:column;gap:2px;
-  padding:20px 12px 20px 18px;overflow-y:auto;z-index:6;
-  background:#120c05;border-right:1px solid rgba(233,215,171,.22);
-  box-shadow:inset -14px 0 22px -18px #000, 2px 0 16px rgba(10,6,2,.45);
+  padding:20px 12px 20px 18px;overflow-y:auto;z-index:3;
+  background:linear-gradient(90deg,rgba(13,8,3,.93) 0%,rgba(13,8,3,.90) 46%,rgba(13,8,3,.62) 82%,rgba(13,8,3,0) 100%);
+  border-right:none;box-shadow:none;
+}
+/* the painted banner, cut free of its black and draped across the panel's edge */
+.side-art{
+  position:absolute;left:-10px;top:-10px;bottom:-10px;width:268px;z-index:2;
+  pointer-events:none;background-size:100% 100%;background-repeat:no-repeat;
+  filter:drop-shadow(6px 0 18px rgba(8,4,1,.55));
 }
 .side-label{
   font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
@@ -560,9 +566,11 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   }
   .mob-tabs .tab{flex:1;text-align:center;padding:9px 2px;font-size:12.5px}
   #view-map{flex-direction:column}
+  .side-art{display:none}
   .map-side{
     width:auto;flex-direction:row;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;
-    padding:8px 12px;border-right:none;border-bottom:1px solid var(--line);
+    padding:8px 12px;border-right:none;border-bottom:1px solid rgba(233,215,171,.18);
+    background:linear-gradient(180deg,#1c1409,#120c05);
   }
   .map-side .chips{flex-direction:row;flex-wrap:nowrap}
   .map-side .chip{white-space:nowrap;font-size:15px;padding:4px 6px 4px 18px}
