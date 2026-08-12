@@ -588,6 +588,10 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   .appbar{padding:0 12px 8px;height:clamp(70px,20vw,100px)}
   .appbar .tabs{display:none}
   .trip-chip{display:none}
+  /* phones: the sync pill goes (it lives in Today's quick row instead) and the
+     candlelight toggle takes the top-right corner on its own */
+  #btn-sync{display:none}
+  #btn-theme{margin-left:auto;padding:8px 11px;font-size:15px}
   .mob-tabs{
     display:flex;flex:none;background:var(--surface);border-top:1px solid var(--line);
     padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:30;

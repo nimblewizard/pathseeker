@@ -195,7 +195,7 @@ function showXMap(id){
   mapImgEl.setAttribute("href",href);
   mapImgEl.setAttributeNS("http://www.w3.org/1999/xlink","xlink:href",href);
   mapImgEl.setAttribute("width",CURW); mapImgEl.setAttribute("height",CURH);
-  VB={x:0,y:0,w:CURW,h:CURH}; applyVB();
+  fitVB();
   $("#map-stage").classList.toggle("xmap",!story);
   $("#view-map").classList.toggle("xmap",!story);
   $$("#map-switch .chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.xmap===m.id)));
@@ -386,7 +386,7 @@ function wireLiveFilter(){
 function panToCity(id){
   const c=CITY_BY_ID[id]; if(!c||!mapSvg) return;
   const [x,y]=ART[c.id]||[MAP_W/2,MAP_H/2];
-  VB.x=x-VB.w/2; VB.y=y-VB.h/2; applyVB();
+  VB.x=x-VB.w/2-marginShift(); VB.y=y-VB.h/2; applyVB();
 }
 
 function el(tag, attrs, parent){
@@ -405,6 +405,20 @@ function buildMapInto(container, interactive){
   container.appendChild(svg);
   return svg;
 }
+function marginShift(w,h){
+  /* the stage runs under the painted margin, so plain centring would bury art behind it.
+     Convert half the margin's width into art units at the given zoom level. */
+  if(!mapSvg) return 0;
+  const st=mapSvg.getBoundingClientRect();
+  if(!st.width || window.innerWidth<=820) return 0;
+  const margin=parseFloat(getComputedStyle($("#view-map")).getPropertyValue("--margin-w"))||0;
+  const scale=Math.min(st.width/(w||VB.w), st.height/(h||VB.h));   /* xMidYMid meet */
+  return scale ? (margin/2)/scale : 0;
+}
+function fitVB(){ VB={x:-marginShift(CURW,CURH),y:0,w:CURW,h:CURH}; applyVB(); }
+/* the first fit can run before the stage has been laid out (width 0 → no shift),
+   so re-fit whenever the map is revealed or resized — but never fight a user's zoom */
+function refitMap(){ if(mapSvg && Math.abs(VB.w-CURW)<1) fitVB(); }
 function applyVB(){ mapSvg.setAttribute("viewBox", `${VB.x} ${VB.y} ${VB.w} ${VB.h}`); }
 function zoomAt(cx, cy, f){
   const w=Math.min(Math.max(VB.w*f, 180), CURW*1.6);
@@ -493,7 +507,7 @@ function initMap(){
     sw.appendChild(b);
   });
   UI.xmap="story";
-  $("#zoom-reset").addEventListener("click",()=>{ VB={x:0,y:0,w:CURW,h:CURH}; applyVB(); });
+  $("#zoom-reset").addEventListener("click",fitVB);
   const stepDay=(n)=>{
     UI.focusDay=clampDay(addD(focusDayClamped(),n));
     updateMapMarks();
@@ -2095,6 +2109,7 @@ function setView(v){
   if(v==="today") renderToday();
   if(v==="plan") renderPlan();
   if(v==="wallet") renderWallet();
+  if(v==="map") requestAnimationFrame(refitMap);
   if(v==="translate" && !$("#tr-q")) renderTranslate();
 }
 function renderAll(){
@@ -2113,6 +2128,7 @@ function showApp(){
   $("#home").classList.add("hidden");
   $("#app").classList.remove("hidden");
   if(!mapSvg) initMap();
+  requestAnimationFrame(refitMap);
   const t=todayISO();
   if(t>=S.trip.startDate && t<=S.trip.endDate) UI.view="today";
   renderAll(); setView(UI.view);
@@ -2430,6 +2446,20 @@ function beginTrip(){
   if(mapSvg){ updateMapMarks(); }
   toast("Andiamo — Day 1. Step through your route with ‹ ›");
 }
+const QUICK_TOOLS = `<div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button>
+      <button class="btn btn-quiet btn-sm" id="td-ics">📅 Phone reminders</button>
+      <button class="btn btn-quiet btn-sm" id="td-deps">🚉 Departures</button>
+      <button class="btn btn-quiet btn-sm" id="td-sync">☁ Sync &amp; backup</button></div>`;
+function wireQuickTools(){
+  const s=$("#td-sheet"); if(s) s.addEventListener("click",exportTripSheet);
+  const i=$("#td-ics");   if(i) i.addEventListener("click",exportICS);
+  const y=$("#td-sync");  if(y) y.addEventListener("click",()=>$("#btn-sync").click());
+  const d=$("#td-deps");
+  if(d) d.addEventListener("click",()=>{
+    const here=(stopsOn(focusDayClamped())[0]||{}).cityId;
+    openDepartures(here? (CITY_BY_ID[here].n||"") : "");
+  });
+}
 function renderToday(){
   const wrap=$("#today-wrap");
   const real=todayISO(), days=tripDays();
@@ -2447,8 +2477,9 @@ function renderToday(){
           ${S.trip.stops.length?
             `<div style="margin-top:18px"><button class="btn btn-primary" id="td-begin">Begin your trip — walk it day by day</button></div>`
             :`<p style="margin-top:12px">Add cities on the map first, then walk the whole route from here.</p>`}
-        </div>${ESSENTIALS_HTML}`;
+        </div>${QUICK_TOOLS}${ESSENTIALS_HTML}`;
       const bb=$("#td-begin"); if(bb) bb.addEventListener("click",beginTrip);
+      wireQuickTools();
       return;
     }
     if(real>S.trip.endDate){
@@ -2459,7 +2490,8 @@ function renderToday(){
           <p>${S.trip.stops.length} cities · ${S.trip.bookings.length} bookings · ${S.trip.journal.length} journal notes · ${PHOTOS.length} photo${PHOTOS.length===1?"":"s"}${spent?` · ${money(spent)} logged`:""}.
           Your journal keeps the whole story.</p>
           <div class="t-acts"><button class="btn btn-sm" id="td-to-journal">Open journal</button>
-          <button class="btn btn-sm" id="td-relive">Relive it day by day</button></div></div>`;
+          <button class="btn btn-sm" id="td-relive">Relive it day by day</button></div></div>${QUICK_TOOLS}`;
+      wireQuickTools();
       $("#td-to-journal").addEventListener("click",()=>setView("journal"));
       $("#td-relive").addEventListener("click",()=>{ UI.focusDay=S.trip.startDate; renderToday(); if(mapSvg) updateMapMarks(); });
       return;
@@ -2559,9 +2591,7 @@ function renderToday(){
       <button class="btn btn-sm" id="td-exp-add">Expense</button>
       <span style="font-size:12.5px;color:var(--ink-soft)">${spentToday?`today: ${money(spentToday)}`:""}</span>
     </div>
-    <div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button>
-      <button class="btn btn-quiet btn-sm" id="td-ics">📅 Phone reminders</button>
-      <button class="btn btn-quiet btn-sm" id="td-deps">🚉 Departures</button></div>
+    ${QUICK_TOOLS}
     ${ESSENTIALS_HTML}`;
   wireBkRows(wrap);
   $("#td-to-map").addEventListener("click",()=>{ setView("map"); if(city) selectCity(city.id); });
@@ -2582,13 +2612,7 @@ function renderToday(){
     if(!p){ toast("Start with the amount — e.g. 14.50 lunch"); return; }
     S.trip.expenses.push(Object.assign({id:uid(), date:t}, p)); mutate(); renderToday(); toast(money(p.amount)+" logged");
   });
-  $("#td-sheet").addEventListener("click",exportTripSheet);
-  const ti=$("#td-ics"); if(ti) ti.addEventListener("click",exportICS);
-  const tdp=$("#td-deps");
-  if(tdp) tdp.addEventListener("click",()=>{
-    const here=(stopsOn(focusDayClamped())[0]||{}).cityId;
-    openDepartures(here? (CITY_BY_ID[here].n||"") : "");
-  });
+  wireQuickTools();
   $("#td-note").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-note-add").click();} });
   $("#td-exp").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-exp-add").click();} });
   const nav=(d)=>{ UI.focusDay=clampDay(d); renderToday(); if(mapSvg) updateMapMarks(); };
@@ -3379,6 +3403,7 @@ function init(){
   wireLiveFilter();
   wireDocsDlg();
   wireDepartures();
+  addEventListener("resize",refitMap);
   $("#cmp-start").addEventListener("click",cmpStart);
   /* share-to-Pathseeker: a confirmation email shared from Gmail lands straight in paste-import */
   try{
