@@ -3087,9 +3087,9 @@ function wirePostcards(){
 
 /* ---- wordmark geometry: d = desktop (>820px), m = phones. ?tune=1 restores the sliders ---- */
 const LOGO_DEF = {
-  v:1,   /* bump when values are locked in — retires stale tuner sessions on every device */
-  d:{h:83, x:35, y:48.5, sx:1.67, sk:1, bar:0},
-  m:{h:70, x:50, y:50,   sx:1.30, sk:1, bar:0}
+  v:2,   /* bump when values are locked in — retires stale tuner sessions on every device */
+  d:{h:78, x:28.5, y:48.5, sx:1.42, sk:1, bar:0},   /* user-tuned 2026-08-12 */
+  m:{h:70, x:50,   y:50,   sx:1.30, sk:1, bar:0}
 };
 function logoVals(){
   try{ const v=JSON.parse(localStorage.getItem("ps.logo")||"null");
