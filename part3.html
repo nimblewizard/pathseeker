@@ -59,7 +59,7 @@ const LS_KEY = "pathseeker.v1";
 const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
 const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-22", endDate:"2026-10-02",
   arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{},
-  packing:{}, packCustom:[], budget:null});
+  packing:{}, packCustom:[], budget:null, shortlist:[]});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
 let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
 
@@ -655,6 +655,7 @@ function renderPanel(){
       const idx=c.pois.indexOf(it);
       sections+=`<div class="poi"><div class="poi-txt"><strong>${esc(it.n)}${it.p?` <span class="plan-price${it.p>1?" p"+it.p:""}">${"€".repeat(it.p)}</span>`:""}</strong><p>${esc(it.d)}</p></div>
         <div class="poi-acts">
+          <button class="icon-btn${slHas(c.id,it.n)?" starred":""}" data-star="${idx}" title="${slHas(c.id,it.n)?"Saved as a possibility":"Save as a possibility"}" aria-label="Shortlist ${esc(it.n)}">${slHas(c.id,it.n)?"★":"☆"}</button>
           <a class="icon-btn" target="_blank" rel="noopener" href="${GM(it.n+", "+c.n)}" title="Photos & reviews on Google Maps" aria-label="Photos and reviews for ${esc(it.n)}">📷</a>
           <button class="icon-btn" data-addbk="${idx}" title="Save as booking" aria-label="Save ${esc(it.n)} as a booking">+</button>
         </div></div>`;
@@ -702,6 +703,9 @@ function renderPanel(){
   }));
   $("#panel-close").addEventListener("click",()=>selectCity(null));
   p.querySelectorAll("[data-pc]").forEach(b=>b.addEventListener("click",()=>showPostcard(c.id,+b.dataset.pc)));
+  p.querySelectorAll("[data-star]").forEach(b=>b.addEventListener("click",()=>{
+    const it=c.pois[+b.dataset.star]; if(it) slToggle(c.id, it.n, it.d);
+  }));
   const pp=$("#panel-paste"); if(pp) pp.addEventListener("click",()=>openPasteDlg());
   const pab=$("#panel-photo"); if(pab) pab.addEventListener("click",()=>promptPhoto({cityId:c.id, date:clampDay(todayISO())}, false));
   wirePhotos(p);
@@ -780,6 +784,7 @@ function trashRestore(id){
   else if(t.kind==="expense") S.trip.expenses.push(t.data);
   else if(t.kind==="note") S.trip.journal.push(t.data);
   else if(t.kind==="stop" && !stopFor(t.data.cityId)) S.trip.stops.push(t.data);
+  else if(t.kind==="idea") (S.trip.shortlist=S.trip.shortlist||[]).push(t.data);
   mutate(); renderAll();
   toast(`Restored “${t.label}”`);
 }
@@ -938,6 +943,64 @@ function wireBkRows(root){
 }
 
 /* ================= ITINERARY ================= */
+/* ================= POTENTIAL DESTINATIONS — ideas not yet committed ================= */
+const slAll = ()=> S.trip.shortlist||(S.trip.shortlist=[]);
+const slHas = (cityId,name)=> slAll().some(x=>x.cityId===cityId && x.name===name);
+function slToggle(cityId,name,note){
+  const i=slAll().findIndex(x=>x.cityId===cityId && x.name===name);
+  if(i>=0){ const g=slAll()[i]; slAll().splice(i,1); mutate(); renderAll(); undoToast(`Removed “${name}”`, (trashPut("idea",g,name), S.trash[0].id)); }
+  else { slAll().push({id:uid(), cityId, name, note:note||"", date:""}); mutate(); renderAll(); toast(`“${name}” saved as a possibility`); }
+}
+function shortlistHtml(){
+  const list=slAll();
+  const byCity={};
+  list.forEach(x=>{ (byCity[x.cityId]=byCity[x.cityId]||[]).push(x); });
+  const stopIds=sortedStops().map(s=>s.cityId);
+  const order=Object.keys(byCity).sort((a,b)=>(stopIds.indexOf(a)+99)%99-(stopIds.indexOf(b)+99)%99);
+  return `<div class="journal-form">
+    <span class="label">Potential destinations — things you'd like to do, not yet committed</span>
+    <div class="row" style="grid-template-columns:1fr 200px auto">
+      <input id="sl-name" placeholder="Add an idea — 'Boboli Gardens at sunset'">
+      <select id="sl-city">${CITIES.map(c=>`<option value="${c.id}"${c.id===(UI.selected||S.trip.arrivalCity)?" selected":""}>${esc(c.n)}</option>`).join("")}</select>
+      <button class="btn btn-sm" id="sl-add">＋ Add</button>
+    </div>
+    ${list.length? order.map(cid=>`<div class="sl-group"><b>${esc(CITY_BY_ID[cid]?.n||cid)}</b>
+        ${byCity[cid].map(x=>`<div class="pencil-item">
+          <span class="pi-name">${esc(x.name)}${x.date?` <em class="pi-when">penciled in ${fmtShort(x.date)}</em>`:""}</span>
+          <button class="icon-btn" data-sldel="${x.id}" aria-label="Remove ${esc(x.name)}">✕</button></div>`).join("")}
+      </div>`).join("")
+      : `<p class="times-note">Nothing yet — tap ☆ beside any sight, stay or place to eat on the map, or add one here.
+         Ideas stay out of your schedule until you pencil them into a day below.</p>`}
+  </div>`;
+}
+function wireShortlist(wrap){
+  const add=$("#sl-add");
+  if(add) add.addEventListener("click",()=>{
+    const n=$("#sl-name").value.trim(); if(!n) return;
+    slAll().push({id:uid(), cityId:$("#sl-city").value, name:n, note:"", date:""});
+    mutate(); renderItin();
+  });
+  const inp=$("#sl-name");
+  if(inp) inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("#sl-add").click(); } });
+  wrap.querySelectorAll("[data-sldel]").forEach(b=>b.addEventListener("click",()=>{
+    const g=slAll().find(x=>x.id===b.dataset.sldel);
+    S.trip.shortlist=slAll().filter(x=>x.id!==b.dataset.sldel);
+    mutate(); renderItin();
+    if(g){ trashPut("idea",g,g.name); }
+  }));
+  wrap.querySelectorAll("[data-pencil]").forEach(b=>b.addEventListener("click",()=>{
+    const [id,date]=b.dataset.pencil.split("|");
+    const x=slAll().find(y=>y.id===id); if(x){ x.date=date; mutate(); renderItin(); toast(`“${x.name}” penciled into ${fmtShort(date)}`); }
+  }));
+  wrap.querySelectorAll("[data-unpencil]").forEach(b=>b.addEventListener("click",()=>{
+    const x=slAll().find(y=>y.id===b.dataset.unpencil); if(x){ x.date=""; mutate(); renderItin(); }
+  }));
+  wrap.querySelectorAll("[data-bookidea]").forEach(b=>b.addEventListener("click",()=>{
+    const x=slAll().find(y=>y.id===b.dataset.bookidea); if(!x) return;
+    openBookingDlg({cityId:x.cityId, date:x.date||"", name:x.name, type:"ticket", notes:x.note||""});
+  }));
+}
+
 /* ================= TRIP CALENDAR — the whole trip on a month grid ================= */
 function calMonths(){
   const out=[], seen=new Set();
@@ -1166,6 +1229,7 @@ function renderItin(){
     return;
   }
   head+=stopEditorHtml();
+  head+=shortlistHtml();
   head+=versionsHtml();
   let rows="";
   /* bookings can sit outside the trip window — the outbound flights leave the day before
@@ -1210,6 +1274,21 @@ function renderItin(){
       <div class="day-date"><div class="dow">${fmtDow(d)}</div><div class="num">${pD(d).getDate()}</div><div class="mon">${pD(d).toLocaleDateString("en-US",{month:"short"})}</div></div>
       <div><div class="day-city">${cityHtml}</div>${chips}
         ${bks?`<div class="day-items">${bks}</div>`:""}
+        ${(()=>{
+          const pencilled=slAll().filter(x=>x.date===d);
+          const ideas=here.length? slAll().filter(x=>!x.date && x.cityId===here[0].cityId) : [];
+          let h="";
+          if(pencilled.length) h+=`<div class="pencil-list">${pencilled.map(x=>`
+            <div class="pencil-item pencilled"><span class="pi-dot">◇</span>
+              <span class="pi-name">${esc(x.name)}</span>
+              <button class="btn btn-sm" data-bookidea="${x.id}">Book it</button>
+              <button class="icon-btn" data-unpencil="${x.id}" aria-label="Take off this day">✕</button></div>`).join("")}</div>`;
+          if(ideas.length) h+=`<details class="idea-box"><summary>💡 ${ideas.length} possibilit${ideas.length>1?"ies":"y"} in ${esc(CITY_BY_ID[here[0].cityId].short||CITY_BY_ID[here[0].cityId].n)}</summary>
+            ${ideas.map(x=>`<div class="pencil-item"><span class="pi-name">${esc(x.name)}</span>
+              <button class="btn btn-sm" data-pencil="${x.id}|${d}">＋ Pencil into this day</button></div>`).join("")}
+          </details>`;
+          return h;
+        })()}
         <div class="day-add"><button class="btn btn-quiet btn-sm" data-addday="${d}" data-city="${cityForAdd}">+ Add booking</button></div>
       </div></div>`;
   }
@@ -1220,6 +1299,7 @@ function renderItin(){
   wrap.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",()=>
     openBookingDlg({date:b.dataset.addday, cityId:b.dataset.city})));
   wireStopEditor(wrap);
+  wireShortlist(wrap);
   /* trip versions */
   const vs=$("#var-save");
   if(vs) vs.addEventListener("click",()=>{

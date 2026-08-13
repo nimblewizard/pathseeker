@@ -989,6 +989,20 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 .poi-peek:hover{opacity:1}
 /* leaflet popup gets the parchment treatment + room for place details */
 .leaflet-popup-content{font-size:13px;line-height:1.5}
+/* potential destinations */
+.sl-group{padding:8px 0 2px;border-bottom:1px dotted var(--line)}
+.sl-group:last-child{border-bottom:none}
+.sl-group b{font-size:12.5px;letter-spacing:.02em}
+.pencil-item{display:flex;gap:8px;align-items:center;padding:5px 0;font-size:13.5px}
+.pencil-item .pi-name{flex:1;min-width:0}
+.pi-when{font-style:italic;color:var(--ink-soft);font-size:12px}
+.pi-dot{color:var(--gold);font-size:15px}
+.pencil-item.pencilled{border-left:2px solid var(--gold);padding-left:8px;margin:2px 0}
+.pencil-list{margin:6px 0 2px}
+.idea-box{margin:4px 0 2px;font-size:13px}
+.idea-box summary{cursor:pointer;color:var(--ink-soft);font-weight:600;padding:4px 0}
+.idea-box summary:hover{color:var(--ink)}
+.icon-btn.starred{color:#B8862B;border-color:#B8862B}
 /* trip versions + comparison */
 .var-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dotted var(--line);font-size:13.5px}
 .var-row:last-child{border-bottom:none}
