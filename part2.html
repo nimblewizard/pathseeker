@@ -169,7 +169,7 @@
 <dialog id="dlg-booking">
   <form method="dialog">
     <div class="dlg-head"><h3 class="serif" id="dlg-bk-title">Add a booking</h3>
-      <p>Hotels, tickets, tables, trains — it all lands in your journal.</p>
+      <p>Flights, hotels, tables, tickets — it all lands in your journal.</p>
       <button type="button" class="btn btn-sm" id="bk-paste" style="margin-top:10px">Paste a confirmation email instead…</button></div>
     <div class="dlg-body">
       <div>
@@ -186,47 +186,81 @@
           <select id="bk-city"></select>
         </div>
         <div>
-          <label class="label" for="bk-date">Date</label>
+          <label class="label" for="bk-date"><span id="lbl-date">Date</span></label>
           <input type="date" id="bk-date">
         </div>
       </div>
-      <div class="field-row">
+
+      <!-- flights & trains -->
+      <div class="field-row hidden" id="f-route">
         <div>
-          <label class="label" for="bk-from">Departs from <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <label class="label" for="bk-from">Departs from</label>
           <input id="bk-from" placeholder="Denver (DEN)">
         </div>
         <div>
-          <label class="label" for="bk-to">Arrives at <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <label class="label" for="bk-to">Arrives at</label>
           <input id="bk-to" placeholder="Newark (EWR)">
         </div>
       </div>
+
       <div class="field-row">
         <div>
-          <label class="label" for="bk-time">Departure time <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <label class="label" for="bk-time"><span id="lbl-time">Time</span> <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
           <input type="time" id="bk-time">
         </div>
-        <div>
-          <label class="label" for="bk-arr">Arrival time <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
-          <input type="time" id="bk-arr">
-        </div>
-      </div>
-      <div class="field-row">
-        <div>
-          <label class="label" for="bk-arrdate">Arrival date <span style="text-transform:none;letter-spacing:0">(if it lands the next day)</span></label>
-          <input type="date" id="bk-arrdate">
-        </div>
-        <div>
+        <div id="f-price-slot">
           <label class="label" for="bk-price">Price <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
           <input id="bk-price" placeholder="€120">
         </div>
       </div>
-      <div class="field-row">
+
+      <div class="field-row hidden" id="f-arrival">
         <div>
-          <label class="label" for="bk-loyalty">MileagePlus / loyalty # <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <label class="label" for="bk-arr">Arrival time</label>
+          <input type="time" id="bk-arr">
+        </div>
+        <div>
+          <label class="label" for="bk-arrdate">Arrival date <span style="text-transform:none;letter-spacing:0">(if next day)</span></label>
+          <input type="date" id="bk-arrdate">
+        </div>
+      </div>
+
+      <!-- stays -->
+      <div class="field-row hidden" id="f-checkout">
+        <div>
+          <label class="label" for="bk-checkout">Check-out date</label>
+          <input type="date" id="bk-checkout">
+        </div>
+        <div>
+          <label class="label" for="bk-checkouttime">Check-out time <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+          <input type="time" id="bk-checkouttime">
+        </div>
+      </div>
+
+      <div class="field-row hidden" id="f-seatparty">
+        <div id="f-seats">
+          <label class="label" for="bk-seats">Seats / coach</label>
+          <input id="bk-seats" placeholder="40B, 40C">
+        </div>
+        <div id="f-loyalty">
+          <label class="label" for="bk-loyalty">Frequent flyer / loyalty #</label>
           <input id="bk-loyalty" class="mono" placeholder="VP081177">
+        </div>
+      </div>
+
+      <div class="field-row hidden" id="f-party">
+        <div>
+          <label class="label" for="bk-party"><span id="lbl-party">Party size</span></label>
+          <input id="bk-party" inputmode="numeric" placeholder="2">
         </div>
         <div></div>
       </div>
+
+      <div class="hidden" id="f-address">
+        <label class="label" for="bk-address">Address</label>
+        <input id="bk-address" placeholder="Via Speranzella 15, Napoli">
+      </div>
+
       <div>
         <label class="label" for="bk-conf">Confirmation # <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
         <input id="bk-conf" class="mono" placeholder="ABC123">
@@ -243,7 +277,7 @@
       </div>
       <div>
         <label class="label" for="bk-link">Link <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
-        <input id="bk-link" type="url" placeholder="https://…">
+        <input id="bk-link" placeholder="https://…">
       </div>
       <div>
         <label class="label" for="bk-notes">Notes</label>
@@ -252,7 +286,7 @@
     </div>
     <div class="dlg-foot">
       <button class="btn" value="cancel">Cancel</button>
-      <button class="btn btn-danger hidden" value="remove" id="bk-remove">Delete</button>
+      <button class="btn btn-quiet hidden" id="bk-remove" value="remove" style="color:var(--accent)">Delete</button>
       <button class="btn btn-primary" value="ok">Save booking</button>
     </div>
   </form>
@@ -446,6 +480,7 @@
 /* ================= DATA ================= */
 const GM = (q) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q + ", Italy");
 const BK_TYPES = [
+  {id:"flight",   n:"Flight",     c:"#2E6BB8"},
   {id:"hotel",    n:"Hotel",      c:"#7A5C9E"},
   {id:"airbnb",   n:"Airbnb",     c:"#C96A50"},
   {id:"ticket",   n:"Ticket",     c:"#B8862B"},

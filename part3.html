@@ -796,7 +796,7 @@ let bkEditing=null, bkType="hotel", bkId=null;
 function openBookingDlg(pre){
   bkEditing = pre && pre.id ? pre : null;
   const d = bkEditing || Object.assign({cityId:UI.selected||S.trip.arrivalCity, type:"hotel", name:"",
-    date:"", time:"", conf:"", price:"", link:"", notes:"", from:"", to:"", arrTime:"", arrDate:"", loyalty:""}, pre||{});
+    date:"", time:"", conf:"", price:"", link:"", notes:"", from:"", to:"", arrTime:"", arrDate:"", loyalty:"", checkOut:"", checkOutTime:"", seats:"", party:"", address:""}, pre||{});
   bkType = d.type||"hotel";
   bkId = bkEditing ? bkEditing.id : uid();
   $("#dlg-bk-title").textContent = bkEditing? "Edit booking" : "Add a booking";
@@ -808,7 +808,10 @@ function openBookingDlg(pre){
   $("#bk-time").value=d.time||""; $("#bk-price").value=d.price||"";
   $("#bk-from").value=d.from||""; $("#bk-to").value=d.to||"";
   $("#bk-arr").value=d.arrTime||""; $("#bk-arrdate").value=d.arrDate||"";
-  $("#bk-loyalty").value=d.loyalty||"";
+  $("#bk-loyalty").value=d.loyalty||""; $("#bk-checkout").value=d.checkOut||"";
+  $("#bk-checkouttime").value=d.checkOutTime||""; $("#bk-seats").value=d.seats||"";
+  $("#bk-party").value=d.party||""; $("#bk-address").value=d.address||"";
+  applyBkType();
   $("#bk-conf").value=d.conf||""; $("#bk-link").value=d.link||"";
   $("#bk-notes").value=d.notes||"";
   $("#bk-remove").classList.toggle("hidden", !bkEditing);
@@ -817,11 +820,45 @@ function openBookingDlg(pre){
   $("#dlg-booking").returnValue="";
   $("#dlg-booking").showModal();
 }
+const BK_FIELDS = {
+  flight:     ["route","arrival","seatparty","seats","loyalty"],
+  train:      ["route","arrival","seatparty","seats","loyalty"],
+  hotel:      ["checkout","address"],
+  airbnb:     ["checkout","address"],
+  restaurant: ["party","address"],
+  ticket:     ["party"],
+  other:      [],
+};
+const BK_LABELS = {
+  flight:    {date:"Departure date", time:"Departure time"},
+  train:     {date:"Departure date", time:"Departure time"},
+  hotel:     {date:"Check-in date",  time:"Check-in time"},
+  airbnb:    {date:"Check-in date",  time:"Check-in time"},
+  restaurant:{date:"Reservation date", time:"Reservation time"},
+  ticket:    {date:"Date",           time:"Entry time"},
+  other:     {date:"Date",           time:"Time"},
+};
+const BK_PLACE = {
+  flight:"UA19 Newark → Milan", train:"Frecciarossa 9707", hotel:"Hotel Santa Caterina",
+  airbnb:"Trastevere apartment", restaurant:"Osteria Francescana", ticket:"Uffizi Gallery",
+  other:"Rental car pickup",
+};
+function applyBkType(){
+  const show=BK_FIELDS[bkType]||[];
+  ["route","arrival","seatparty","seats","loyalty","checkout","party","address"].forEach(k=>{
+    const el=$("#f-"+k); if(el) el.classList.toggle("hidden", !show.includes(k));
+  });
+  const L=BK_LABELS[bkType]||BK_LABELS.other;
+  $("#lbl-date").textContent=L.date;
+  $("#lbl-time").textContent=L.time;
+  $("#lbl-party").textContent = bkType==="ticket" ? "How many tickets" : "Party size";
+  $("#bk-name").placeholder = BK_PLACE[bkType]||BK_PLACE.other;
+}
 function renderBkTypes(){
   $("#bk-types").innerHTML = BK_TYPES.map(t=>
     `<button type="button" class="type-opt" data-t="${t.id}" aria-pressed="${t.id===bkType}">
       <span class="type-dot" style="background:${t.c}"></span>${t.n}</button>`).join("");
-  $$("#bk-types .type-opt").forEach(b=>b.addEventListener("click",()=>{ bkType=b.dataset.t; renderBkTypes(); }));
+  $$("#bk-types .type-opt").forEach(b=>b.addEventListener("click",()=>{ bkType=b.dataset.t; renderBkTypes(); applyBkType(); }));
 }
 function bkDocCount(){
   const n=bkId? docsFor("bk:"+bkId).length : 0;
@@ -848,7 +885,10 @@ function initBookingDlg(){
         date:$("#bk-date").value, time:$("#bk-time").value, conf:$("#bk-conf").value.trim(),
         price:$("#bk-price").value.trim(), link:$("#bk-link").value.trim(), notes:$("#bk-notes").value.trim(),
         from:$("#bk-from").value.trim(), to:$("#bk-to").value.trim(),
-        arrTime:$("#bk-arr").value, arrDate:$("#bk-arrdate").value, loyalty:$("#bk-loyalty").value.trim() };
+        arrTime:$("#bk-arr").value, arrDate:$("#bk-arrdate").value, loyalty:$("#bk-loyalty").value.trim(),
+        checkOut:$("#bk-checkout").value, checkOutTime:$("#bk-checkouttime").value,
+        seats:$("#bk-seats").value.trim(), party:$("#bk-party").value.trim(),
+        address:$("#bk-address").value.trim() };
       if(bkEditing){ Object.assign(S.trip.bookings.find(b=>b.id===bkEditing.id)||{}, data); toast("Booking updated"); }
       else { S.trip.bookings.push(Object.assign({id:bkId},data)); toast("Saved to your journal"); }
       mutate(); renderAll();
@@ -863,13 +903,16 @@ function initBookingDlg(){
     }
   });
 }
-const typeMeta=(id)=> BK_TYPES.find(t=>t.id===id)||BK_TYPES[5];
+const typeMeta=(id)=> BK_TYPES.find(t=>t.id===id)||BK_TYPES.find(t=>t.id==="other");
 function bkRow(b, detail){
   const t=typeMeta(b.type);
   const nextDay = b.arrDate && b.date && b.arrDate!==b.date;
   const clock=[b.time, b.arrTime? b.arrTime+(nextDay?` ${fmtShort(b.arrDate)}`:"") : ""].filter(Boolean).join(" → ");
   const route=(b.from||b.to)? `${esc(b.from||"?")} → ${esc(b.to||"?")}` : "";
-  const meta=[clock, b.conf?`#${b.conf}`:"", b.price].filter(Boolean).join(" · ");
+  const stay = b.checkOut? `out ${fmtShort(b.checkOut)}` : "";
+  const guests = b.party? (b.type==="ticket"? `${b.party} tickets` : `table for ${b.party}`) : "";
+  const meta=[clock, stay, guests, b.seats?`seats ${b.seats}`:"", b.conf?`#${b.conf}`:"", b.price]
+    .filter(Boolean).join(" · ");
   return `<div class="bk" data-bk="${b.id}" role="button" tabindex="0" aria-label="Edit booking ${esc(b.name)}">
     <span class="type-dot" style="background:${t.c}"></span>
     <span class="bk-name">${esc(b.name)}</span>
@@ -3307,7 +3350,9 @@ function extractDates(txt){
 function parseConfirmation(txt){
   const lower=txt.toLowerCase();
   let type="hotel";
-  if(lower.includes("airbnb")) type="airbnb";
+  if(/\b(flight|airline|boarding pass|united|delta|american airlines|lufthansa|british airways|ita airways)\b/.test(lower)
+     || /\b[A-Z]{2}\s?\d{1,4}\b/.test(txt)) type="flight";
+  else if(lower.includes("airbnb")) type="airbnb";
   else if(lower.includes("vrbo")||lower.includes("booking.com")||lower.includes("hotel")||lower.includes("check-in")) type="hotel";
   else if(lower.includes("trenitalia")||lower.includes("italo")||lower.includes("train")) type="train";
   else if(lower.includes("museum")||lower.includes("tour")||lower.includes("ticket")||lower.includes("entry")) type="ticket";
