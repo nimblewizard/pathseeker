@@ -2460,6 +2460,7 @@ async function exportFile(){
    EventSource and pushes its own edits back. Documents (passports, tickets) never
    leave the device they were added on. Pages only — the artifact's CSP blocks it. */
 let CLOUD=null, cloudES=null, cloudPushT=null, cloudApplying=false, cloudState="off";
+let cloudRetryT=null, cloudTries=0, cloudPending=false;
 /* per-tab, not per-device: two tabs open on the same computer should still see
    each other's edits, while a tab never re-adopts the write it just made. */
 const DEVICE_ID = uid()+uid();
@@ -2481,8 +2482,9 @@ async function cloudPush(){
   try{
     const r=await fetch(cloudUrl(),{method:"PUT",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({app:"pathseeker",version:1,savedAt:new Date().toISOString(),device:DEVICE_ID,trip:S.trip})});
+    cloudPending = !r.ok;
     cloudStatus(r.ok? "Live" : "Sync error");
-  }catch(e){ cloudStatus("Offline — will retry"); }
+  }catch(e){ cloudPending=true; cloudStatus("Offline — will retry"); }
 }
 function cloudPushSoon(){ if(!CLOUD||cloudApplying) return; clearTimeout(cloudPushT); cloudPushT=setTimeout(cloudPush,1200); }
 function cloudAdopt(payload){
@@ -2504,8 +2506,32 @@ function cloudConnect(){
     try{ const d=JSON.parse(e.data); if(d.path==="/") cloudAdopt(d.data); else cloudPull(); }catch(err){}
   });
   cloudES.addEventListener("patch",()=>cloudPull());
-  cloudES.onopen=()=>cloudStatus("Live");
-  cloudES.onerror=()=>{ cloudStatus("Reconnecting…"); };
+  cloudES.onopen=()=>{ cloudTries=0; cloudStatus("Live"); };
+  /* A closed EventSource never retries on its own, and Firebase drops long-lived
+     streams (and phones kill them whenever the tab is backgrounded). Without this
+     the app sits on "Reconnecting…" forever and silently stops syncing. */
+  cloudES.onerror=()=>{
+    cloudStatus("Reconnecting…");
+    if(!cloudES || cloudES.readyState===2) cloudRetry();
+  };
+}
+/* If our own last push failed, our edits are the newer ones — send them rather
+   than pulling the server copy over the top of them. */
+function cloudResync(){
+  if(!CLOUD) return;
+  if(cloudPending) cloudPush(); else cloudPull();
+  if(!cloudES || cloudES.readyState===2) cloudConnect();
+}
+function cloudRetry(){
+  clearTimeout(cloudRetryT);
+  const wait=Math.min(30000, 1000*Math.pow(2,cloudTries++));
+  cloudRetryT=setTimeout(cloudResync, wait);
+}
+function cloudWatchdog(){
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) cloudResync(); });
+  window.addEventListener("online", cloudResync);
+  window.addEventListener("focus", ()=>{ if(CLOUD && cloudES && cloudES.readyState===2) cloudResync(); });
+  setInterval(()=>{ if(CLOUD && (!cloudES || cloudES.readyState===2)) cloudResync(); }, 60000);
 }
 const joinLink=()=> CLOUD? `${location.origin}${location.pathname}#join=${btoa(JSON.stringify({u:CLOUD.url,k:CLOUD.key}))}` : "";
 function renderCloudDlg(){
@@ -2556,6 +2582,7 @@ function cloudInit(){
   cloudLoad();
   if(CLOUD){ cloudConnect(); cloudPull(); }
   cloudStatus(CLOUD? "Connecting…" : "off");
+  cloudWatchdog();
 }
 
 function initSync(){
