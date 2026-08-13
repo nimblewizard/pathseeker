@@ -864,7 +864,9 @@ function calMonths(){
   return out;
 }
 function calDayCell(d, inMonth){
-  const days=tripDays(), inTrip=days.includes(d);
+  const days=tripDays();
+  const hasBk=d && S.trip.bookings.some(b=>b.date===d);
+  const inTrip=days.includes(d) || hasBk;   /* travel days outside the window still count */
   const st=stopsOn(d), city=st[0]?CITY_BY_ID[st[0].cityId]:null;
   const arriving=sortedStops().filter(s=>s.arrive===d);
   const prevCity=d>S.trip.startDate ? (stopsOn(addD(d,-1))[0]||{}).cityId : null;
@@ -877,7 +879,9 @@ function calDayCell(d, inMonth){
   return `<div class="cal-cell${inTrip?" trip":""}${isToday?" today":""}${moving?" moving":""}"
       ${inTrip?`data-calday="${d}" role="button" tabindex="0" aria-label="${fmtDow(d)} ${fmtShort(d)}"`:""}>
     <div class="cal-num">${n}${d===S.trip.startDate?' <span class="cal-flag">✈ in</span>':""}${d===S.trip.endDate?' <span class="cal-flag">✈ home</span>':""}</div>
-    ${city?`<div class="cal-city">${moving?"→ ":""}${esc(city.short||city.n)}</div>`:inTrip?`<div class="cal-city none">—</div>`:""}
+    ${city?`<div class="cal-city">${moving?"→ ":""}${esc(city.short||city.n)}</div>`
+      :(hasBk&&!days.includes(d))?`<div class="cal-city none">✈ travel</div>`
+      :inTrip?`<div class="cal-city none">—</div>`:""}
     ${bks.length?`<div class="cal-dots">${bks.slice(0,4).map(b=>
       `<span class="cal-dot" style="background:${typeMeta(b.type).c}" title="${esc(b.name)}"></span>`).join("")}${
       bks.length>4?`<span class="cal-more">+${bks.length-4}</span>`:""}</div>`:""}
@@ -1083,6 +1087,18 @@ function renderItin(){
   head+=stopEditorHtml();
   head+=versionsHtml();
   let rows="";
+  /* bookings can sit outside the trip window — the outbound flights leave the day before
+     you land. Draw those days too, flagged, so nothing is invisible. */
+  const outside=[...new Set(S.trip.bookings.filter(b=>b.date && (b.date<S.trip.startDate || b.date>S.trip.endDate))
+    .map(b=>b.date))].sort();
+  const before=outside.filter(d=>d<S.trip.startDate), after=outside.filter(d=>d>S.trip.endDate);
+  const edgeRow=(d,label)=>`<div class="day-row edge">
+      <div class="day-date"><div class="dow">${fmtDow(d)}</div><div class="num">${pD(d).getDate()}</div><div class="mon">${pD(d).toLocaleDateString("en-US",{month:"short"})}</div></div>
+      <div><div class="day-city"><span class="transfer">✈</span> <span class="edge-label">${label}</span></div>
+        <div class="day-items">${S.trip.bookings.filter(b=>b.date===d).sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1).map(bkRow).join("")}</div>
+        <div class="day-add"><button class="btn btn-quiet btn-sm" data-addday="${d}" data-city="${S.trip.arrivalCity}">+ Add booking</button></div>
+      </div></div>`;
+  before.forEach(d=>{ rows+=edgeRow(d,"Getting there — travel day"); });
   for(const d of days){
     const here=stopsOn(d);
     const arriving=sortedStops().filter(s=>s.arrive===d);
@@ -1116,6 +1132,7 @@ function renderItin(){
         <div class="day-add"><button class="btn btn-quiet btn-sm" data-addday="${d}" data-city="${cityForAdd}">+ Add booking</button></div>
       </div></div>`;
   }
+  after.forEach(d=>{ rows+=edgeRow(d,"After the trip"); });
   wrap.innerHTML=head+rows;
   wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
   wireBkRows(wrap);
