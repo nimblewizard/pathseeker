@@ -792,12 +792,13 @@ function undoToast(msg, trashId){
 }
 
 /* ================= BOOKING DIALOG ================= */
-let bkEditing=null, bkType="hotel";
+let bkEditing=null, bkType="hotel", bkId=null;
 function openBookingDlg(pre){
   bkEditing = pre && pre.id ? pre : null;
   const d = bkEditing || Object.assign({cityId:UI.selected||S.trip.arrivalCity, type:"hotel", name:"",
-    date:"", time:"", conf:"", price:"", link:"", notes:"", from:"", to:"", arrTime:"", loyalty:""}, pre||{});
+    date:"", time:"", conf:"", price:"", link:"", notes:"", from:"", to:"", arrTime:"", arrDate:"", loyalty:""}, pre||{});
   bkType = d.type||"hotel";
+  bkId = bkEditing ? bkEditing.id : uid();
   $("#dlg-bk-title").textContent = bkEditing? "Edit booking" : "Add a booking";
   const cs=$("#bk-city");
   cs.innerHTML = CITIES.map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join("");
@@ -806,10 +807,12 @@ function openBookingDlg(pre){
   $("#bk-name").value=d.name||""; $("#bk-date").value=d.date||"";
   $("#bk-time").value=d.time||""; $("#bk-price").value=d.price||"";
   $("#bk-from").value=d.from||""; $("#bk-to").value=d.to||"";
-  $("#bk-arr").value=d.arrTime||""; $("#bk-loyalty").value=d.loyalty||"";
+  $("#bk-arr").value=d.arrTime||""; $("#bk-arrdate").value=d.arrDate||"";
+  $("#bk-loyalty").value=d.loyalty||"";
   $("#bk-conf").value=d.conf||""; $("#bk-link").value=d.link||"";
   $("#bk-notes").value=d.notes||"";
   $("#bk-remove").classList.toggle("hidden", !bkEditing);
+  bkDocCount();
   renderBkTypes();
   $("#dlg-booking").returnValue="";
   $("#dlg-booking").showModal();
@@ -820,7 +823,18 @@ function renderBkTypes(){
       <span class="type-dot" style="background:${t.c}"></span>${t.n}</button>`).join("");
   $$("#bk-types .type-opt").forEach(b=>b.addEventListener("click",()=>{ bkType=b.dataset.t; renderBkTypes(); }));
 }
+function bkDocCount(){
+  const n=bkId? docsFor("bk:"+bkId).length : 0;
+  const c=$("#bk-doccount"); if(c) c.textContent = n? `${n} attached` : "";
+  const v=$("#bk-viewdocs"); if(v) v.classList.toggle("hidden", !n);
+}
 function initBookingDlg(){
+  $("#bk-attach").addEventListener("click",()=>{ docsCtx="bk:"+bkId; $("#doc-file").click(); });
+  $("#bk-viewdocs").addEventListener("click",()=>{
+    const docs=docsFor("bk:"+bkId);
+    if(docs.length===1) viewDoc(docs[0].id);
+    else openDocsDlg("bk:"+bkId, $("#bk-name").value||"Tickets");
+  });
   $("#bk-city").addEventListener("change",()=>{
     const st=stopFor($("#bk-city").value);
     if(st && !$("#bk-date").value) $("#bk-date").value=st.arrive;
@@ -834,11 +848,14 @@ function initBookingDlg(){
         date:$("#bk-date").value, time:$("#bk-time").value, conf:$("#bk-conf").value.trim(),
         price:$("#bk-price").value.trim(), link:$("#bk-link").value.trim(), notes:$("#bk-notes").value.trim(),
         from:$("#bk-from").value.trim(), to:$("#bk-to").value.trim(),
-        arrTime:$("#bk-arr").value, loyalty:$("#bk-loyalty").value.trim() };
+        arrTime:$("#bk-arr").value, arrDate:$("#bk-arrdate").value, loyalty:$("#bk-loyalty").value.trim() };
       if(bkEditing){ Object.assign(S.trip.bookings.find(b=>b.id===bkEditing.id)||{}, data); toast("Booking updated"); }
-      else { S.trip.bookings.push(Object.assign({id:uid()},data)); toast("Saved to your journal"); }
+      else { S.trip.bookings.push(Object.assign({id:bkId},data)); toast("Saved to your journal"); }
       mutate(); renderAll();
-    }else if(v==="remove" && bkEditing){
+    }else if(v!=="ok" && !bkEditing && bkId){
+      docsFor("bk:"+bkId).forEach(d=>docDel(d.id));
+    }
+    if(v==="remove" && bkEditing){
       const gone=S.trip.bookings.find(b=>b.id===bkEditing.id);
       S.trip.bookings=S.trip.bookings.filter(b=>b.id!==bkEditing.id);
       mutate(); renderAll();
@@ -849,7 +866,8 @@ function initBookingDlg(){
 const typeMeta=(id)=> BK_TYPES.find(t=>t.id===id)||BK_TYPES[5];
 function bkRow(b, detail){
   const t=typeMeta(b.type);
-  const clock=[b.time, b.arrTime].filter(Boolean).join(" → ");
+  const nextDay = b.arrDate && b.date && b.arrDate!==b.date;
+  const clock=[b.time, b.arrTime? b.arrTime+(nextDay?` ${fmtShort(b.arrDate)}`:"") : ""].filter(Boolean).join(" → ");
   const route=(b.from||b.to)? `${esc(b.from||"?")} → ${esc(b.to||"?")}` : "";
   const meta=[clock, b.conf?`#${b.conf}`:"", b.price].filter(Boolean).join(" · ");
   return `<div class="bk" data-bk="${b.id}" role="button" tabindex="0" aria-label="Edit booking ${esc(b.name)}">
@@ -1616,7 +1634,9 @@ function wireDocsDlg(){
       await docAdd(docsCtx,f);
     }
     e.target.value="";
-    if(UI.view==="wallet") renderWallet(); else renderPlan();
+    if($("#dlg-booking").open) bkDocCount();
+    else if(UI.view==="wallet") renderWallet();
+    else renderPlan();
     toast("Saved to this device");
   });
   $("#docs-add").addEventListener("change",async e=>{
@@ -2909,7 +2929,7 @@ function buildICS(){
       `UID:${b.id}@pathseeker`,
       `DTSTAMP:${now}`,
       `DTSTART;TZID=Europe/Rome:${icsDT(b.date,time)}`,
-      b.arrTime? `DTEND;TZID=Europe/Rome:${icsDT(b.arrTime<time? addD(b.date,1) : b.date, b.arrTime)}`
+      b.arrTime? `DTEND;TZID=Europe/Rome:${icsDT(b.arrDate || (b.arrTime<time? addD(b.date,1) : b.date), b.arrTime)}`
                : "DURATION:PT1H30M",
       `SUMMARY:${icsEsc(icon+" "+b.name)}`,
       c?`LOCATION:${icsEsc(c.n+", Italy")}`:"",

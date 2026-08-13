@@ -439,7 +439,10 @@ h1,h2,h3{margin:0;text-wrap:balance}
 }
 .bk:hover{box-shadow:var(--shadow-sm)}
 .bk .type-dot{width:9px;height:9px;border-radius:50%;flex:none}
-.bk .bk-route{color:var(--ink);font-weight:700}
+.bk .bk-docs-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bk-doccount{font-size:12px;font-weight:700;color:#4C6B23}
+:root[data-theme="dark"] .bk-doccount{color:#B5CC7E}
+.bk-route{color:var(--ink);font-weight:700}
 .bk-note{
   flex-basis:100%;order:9;margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--ink-soft);
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;

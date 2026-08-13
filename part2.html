@@ -212,17 +212,34 @@
       </div>
       <div class="field-row">
         <div>
+          <label class="label" for="bk-arrdate">Arrival date <span style="text-transform:none;letter-spacing:0">(if it lands the next day)</span></label>
+          <input type="date" id="bk-arrdate">
+        </div>
+        <div>
           <label class="label" for="bk-price">Price <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
           <input id="bk-price" placeholder="€120">
         </div>
+      </div>
+      <div class="field-row">
         <div>
           <label class="label" for="bk-loyalty">MileagePlus / loyalty # <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
           <input id="bk-loyalty" class="mono" placeholder="VP081177">
         </div>
+        <div></div>
       </div>
       <div>
         <label class="label" for="bk-conf">Confirmation # <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
         <input id="bk-conf" class="mono" placeholder="ABC123">
+      </div>
+      <div>
+        <span class="label" style="display:block;margin-bottom:6px">Tickets &amp; documents</span>
+        <div class="bk-docs-row">
+          <button type="button" class="btn btn-sm" id="bk-attach">📎 Attach / scan ticket</button>
+          <button type="button" class="btn btn-sm hidden" id="bk-viewdocs">View</button>
+          <span class="bk-doccount" id="bk-doccount"></span>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-soft);margin:6px 0 0">Photograph a paper ticket or add the PDF —
+          it stays on this device and appears in your Wallet.</p>
       </div>
       <div>
         <label class="label" for="bk-link">Link <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
