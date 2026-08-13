@@ -142,7 +142,7 @@
 
 <!-- ================= DIALOGS ================= -->
 <dialog id="dlg-dates">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3 class="serif" id="dlg-dates-title">Nights in …</h3>
       <p id="dlg-dates-sub"></p></div>
     <div class="dlg-body">
@@ -167,7 +167,7 @@
 </dialog>
 
 <dialog id="dlg-booking">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3 class="serif" id="dlg-bk-title">Add a booking</h3>
       <p>Flights, hotels, tables, tickets — it all lands in your journal.</p>
       <button type="button" class="btn btn-sm" id="bk-paste" style="margin-top:10px">Paste a confirmation email instead…</button></div>
@@ -293,7 +293,7 @@
 </dialog>
 
 <dialog id="dlg-sync">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3 class="serif">Sync &amp; backup</h3>
       <p>Your trip lives on this device and can sync through your Google Drive.</p></div>
     <div class="dlg-body">
@@ -344,7 +344,7 @@
 <div id="print-pack" class="print-pack" aria-hidden="true"></div>
 
 <dialog id="dlg-compare">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3>Compare trip versions</h3></div>
     <div class="dlg-body cmp-scroll" id="cmp-body"></div>
     <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
@@ -352,7 +352,7 @@
 </dialog>
 
 <dialog id="dlg-compassnav">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3>Compass</h3></div>
     <div class="dlg-body" style="text-align:center">
       <select id="cmp-target" aria-label="Point toward" style="margin-bottom:14px"></select>
@@ -369,7 +369,7 @@
 </dialog>
 
 <dialog id="dlg-departures">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3>Live departures</h3></div>
     <div class="dlg-body">
       <div class="tr-search" style="margin:0 0 10px">
@@ -382,7 +382,7 @@
 </dialog>
 
 <dialog id="dlg-times">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3 id="times-title">Train times</h3></div>
     <div class="dlg-body" id="times-list"></div>
     <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
@@ -392,7 +392,7 @@
 <input type="file" id="doc-file" accept="image/*,application/pdf" capture="environment" hidden>
 
 <dialog id="dlg-day">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3 class="serif" id="dlg-day-title"></h3></div>
     <div class="dlg-body" id="dlg-day-body"></div>
     <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
@@ -400,14 +400,14 @@
 </dialog>
 
 <dialog id="dlg-bigcode">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="bigcode-wrap"><div id="bigcode-txt"></div></div>
     <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
   </form>
 </dialog>
 
 <dialog id="dlg-docs">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3 id="docs-title">Documents</h3></div>
     <div class="dlg-body">
       <div id="docs-list"></div>
@@ -422,7 +422,7 @@
 </dialog>
 
 <dialog id="dlg-docview">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="docview-body" id="docview-body"></div>
     <div class="dlg-foot"><span id="docview-name" style="margin-right:auto;font-size:12.5px;color:var(--ink-soft)"></span>
       <button class="btn btn-primary" value="close">Close</button></div>
@@ -430,7 +430,7 @@
 </dialog>
 
 <dialog id="dlg-postcard">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="pc-frame">
       <img id="pc-img" alt="Postcard photo">
       <button type="button" class="pc-nav" id="pc-prev" aria-label="Previous photo">‹</button>
@@ -443,7 +443,7 @@
 </dialog>
 
 <dialog id="dlg-photo">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <img id="ph-img" alt="Trip photo">
     <div class="dlg-body">
       <p id="ph-meta" style="margin:0;font-size:13px;color:var(--ink-soft)"></p>
@@ -459,7 +459,7 @@
 <input type="file" id="photo-import" accept="image/*" multiple class="hidden">
 
 <dialog id="dlg-paste">
-  <form method="dialog">
+  <form method="dialog" novalidate>
     <div class="dlg-head"><h3 class="serif">Import a confirmation</h3>
       <p>Booked on Airbnb, VRBO, Booking.com, or a hotel site? Paste the confirmation
       email below — Pathseeker reads out the name, dates, code, and price. Nothing leaves this page.</p></div>

@@ -880,7 +880,7 @@ function initBookingDlg(){
     const v=$("#dlg-booking").returnValue;
     if(v==="ok"){
       const name=$("#bk-name").value.trim();
-      if(!name){ toast("Give the booking a name"); return; }
+      if(!name){ toast("Give the booking a name — everything else is optional"); return; }
       const data={ cityId:$("#bk-city").value, type:bkType, name,
         date:$("#bk-date").value, time:$("#bk-time").value, conf:$("#bk-conf").value.trim(),
         price:$("#bk-price").value.trim(), link:$("#bk-link").value.trim(), notes:$("#bk-notes").value.trim(),
