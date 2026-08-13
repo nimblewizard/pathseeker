@@ -74,7 +74,7 @@ function persist(){
   S.savedAt = new Date().toISOString();
   try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){}
 }
-function mutate(){ S.dirty = true; persist(); updateSyncUI(); }
+function mutate(){ S.dirty = true; persist(); updateSyncUI(); if(typeof cloudPushSoon==="function") cloudPushSoon(); }
 const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
 /* date helpers */
@@ -2455,6 +2455,108 @@ async function exportFile(){
     setTimeout(()=>URL.revokeObjectURL(url),4000);
   }catch(e){ syncMsg("Export isn't available here — use Save to Drive instead.","err"); }
 }
+/* ================= LIVE SYNC — one trip, every device =================
+   A Firebase Realtime Database holds the trip; each device streams changes over
+   EventSource and pushes its own edits back. Documents (passports, tickets) never
+   leave the device they were added on. Pages only — the artifact's CSP blocks it. */
+let CLOUD=null, cloudES=null, cloudPushT=null, cloudApplying=false, cloudState="off";
+const DEVICE_ID=(()=>{ let d=localStorage.getItem("ps.device");
+  if(!d){ d=uid()+uid(); localStorage.setItem("ps.device",d); } return d; })();
+function cloudLoad(){ try{ CLOUD=JSON.parse(localStorage.getItem("ps.cloud")||"null"); }catch(e){ CLOUD=null; } return CLOUD; }
+function cloudSet(c){ CLOUD=c; if(c) localStorage.setItem("ps.cloud",JSON.stringify(c)); else localStorage.removeItem("ps.cloud"); }
+const cloudUrl=()=> CLOUD? `${CLOUD.url.replace(/\/+$/,"")}/trips/${CLOUD.key}.json` : null;
+const newTripKey=()=>{ const a=new Uint8Array(24); (crypto||{}).getRandomValues?.(a);
+  return [...a].map(b=>"abcdefghijklmnopqrstuvwxyz0123456789"[b%36]).join(""); };
+function cloudStatus(t){
+  cloudState=t;
+  const el=$("#cloud-status");
+  if(el) el.textContent = CLOUD? `${t} · this device is linked` :
+    "Off — set it up once and every phone, tablet and laptop follows along automatically.";
+  const b=$("#btn-cloud"); if(b) b.textContent = CLOUD? "Manage" : "Set up";
+  updateSyncUI();
+}
+async function cloudPush(){
+  if(!CLOUD || cloudApplying) return;
+  try{
+    const r=await fetch(cloudUrl(),{method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({app:"pathseeker",version:1,savedAt:new Date().toISOString(),device:DEVICE_ID,trip:S.trip})});
+    cloudStatus(r.ok? "Live" : "Sync error");
+  }catch(e){ cloudStatus("Offline — will retry"); }
+}
+function cloudPushSoon(){ if(!CLOUD||cloudApplying) return; clearTimeout(cloudPushT); cloudPushT=setTimeout(cloudPush,1200); }
+function cloudAdopt(payload){
+  if(!payload || !payload.trip || payload.device===DEVICE_ID) return;
+  cloudApplying=true;
+  S.trip=Object.assign(DEFAULT_TRIP(), payload.trip);
+  S.dirty=false; persist();
+  try{ renderAll(); renderHome(); }catch(e){}
+  cloudApplying=false;
+  cloudStatus("Live");
+}
+async function cloudPull(){ try{ const r=await fetch(cloudUrl()); cloudAdopt(await r.json()); }catch(e){} }
+function cloudConnect(){
+  if(!CLOUD || typeof EventSource==="undefined") return;
+  try{ cloudES && cloudES.close(); }catch(e){}
+  cloudStatus("Connecting…");
+  cloudES=new EventSource(cloudUrl());
+  cloudES.addEventListener("put",e=>{
+    try{ const d=JSON.parse(e.data); if(d.path==="/") cloudAdopt(d.data); else cloudPull(); }catch(err){}
+  });
+  cloudES.addEventListener("patch",()=>cloudPull());
+  cloudES.onopen=()=>cloudStatus("Live");
+  cloudES.onerror=()=>{ cloudStatus("Reconnecting…"); };
+}
+const joinLink=()=> CLOUD? `${location.origin}${location.pathname}#join=${btoa(JSON.stringify({u:CLOUD.url,k:CLOUD.key}))}` : "";
+function renderCloudDlg(){
+  const b=$("#cloud-body");
+  if(!CLOUD){
+    b.innerHTML=`<p style="font-size:13.5px;margin:0 0 12px">Paste the <b>Realtime Database URL</b> from your Firebase
+      project — it looks like <code>https://pathseeker-1234-default-rtdb.firebaseio.com</code>.</p>
+      <input id="cloud-url" placeholder="https://…firebaseio.com" style="width:100%">
+      <div class="quick-row" style="margin-top:12px">
+        <button type="button" class="btn btn-sm btn-primary" id="cloud-go">Start syncing</button>
+      </div>
+      <p class="times-note">This device becomes the first in the group; you'll get a link to open on the others.</p>`;
+    $("#cloud-go").addEventListener("click",async()=>{
+      const u=$("#cloud-url").value.trim(); if(!u) return;
+      cloudSet({url:u, key:newTripKey()});
+      await cloudPush(); cloudConnect(); renderCloudDlg();
+    });
+  }else{
+    b.innerHTML=`<p style="font-size:13.5px;margin:0 0 10px"><b>${esc(cloudState)}</b> — edits here reach every linked device in about a second.</p>
+      <span class="label" style="display:block;margin-bottom:6px">Open this link on your other devices</span>
+      <input id="cloud-link" readonly value="${esc(joinLink())}" style="width:100%;font-size:11.5px">
+      <div class="quick-row" style="margin-top:10px">
+        <button type="button" class="btn btn-sm btn-primary" id="cloud-copy">Copy link</button>
+        <button type="button" class="btn btn-sm" id="cloud-pull">Pull now</button>
+        <button type="button" class="btn btn-sm" id="cloud-off">Unlink this device</button>
+      </div>
+      <p class="times-note">Treat the link like a key: anyone who has it can see and edit the trip.
+        Passport scans and tickets stay on the device that added them.</p>`;
+    $("#cloud-copy").addEventListener("click",()=>{
+      const t=joinLink();
+      navigator.clipboard?.writeText(t).then(()=>toast("Link copied — send it to your phone"),
+        ()=>{ $("#cloud-link").select(); });
+    });
+    $("#cloud-pull").addEventListener("click",cloudPull);
+    $("#cloud-off").addEventListener("click",()=>{
+      try{ cloudES && cloudES.close(); }catch(e){}
+      cloudSet(null); cloudStatus("off"); renderCloudDlg(); toast("This device is no longer syncing");
+    });
+  }
+}
+function openCloudDlg(){ renderCloudDlg(); const d=$("#dlg-cloud"); d.returnValue=""; if(!d.open) d.showModal(); }
+function cloudInit(){
+  const m=/#join=([^&]+)/.exec(location.hash||"");
+  if(m){
+    try{ const j=JSON.parse(atob(decodeURIComponent(m[1])));
+      if(j.u&&j.k){ cloudSet({url:j.u,key:j.k}); history.replaceState(null,"",location.pathname); } }catch(e){}
+  }
+  cloudLoad();
+  if(CLOUD){ cloudConnect(); cloudPull(); }
+  cloudStatus(CLOUD? "Connecting…" : "off");
+}
+
 function initSync(){
   $("#btn-sync").addEventListener("click",()=>{
     $("#sync-msg").classList.add("hidden");
@@ -3598,6 +3700,8 @@ function init(){
   wireLiveFilter();
   wireDocsDlg();
   wireDepartures();
+  $("#btn-cloud").addEventListener("click",openCloudDlg);
+  cloudInit();
   addEventListener("resize",refitMap);
   $("#cmp-start").addEventListener("click",cmpStart);
   /* share-to-Pathseeker: a confirmation email shared from Gmail lands straight in paste-import */

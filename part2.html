@@ -314,6 +314,11 @@
           <button class="btn btn-sm" type="button" id="btn-tripsheet">Download</button>
         </div>
         <div class="sync-row">
+          <div class="t"><strong>Live sync across devices</strong>
+            <p id="cloud-status">Off — set it up once and every phone, tablet and laptop follows along automatically.</p></div>
+          <button class="btn btn-sm" type="button" id="btn-cloud">Set up</button>
+        </div>
+        <div class="sync-row">
           <div class="t"><strong>Print pack</strong><p>The paper bundle: day-by-day plan, every confirmation
             code, packing list, emergency card. For when phones die.</p></div>
           <button class="btn btn-sm" type="button" id="btn-printpack">🖨 Print</button>
@@ -342,6 +347,15 @@
 </dialog>
 
 <div id="print-pack" class="print-pack" aria-hidden="true"></div>
+
+<dialog id="dlg-cloud">
+  <form method="dialog" novalidate>
+    <div class="dlg-head"><h3 class="serif">Live sync</h3>
+      <p>One shared trip across every device — yours and Allison's.</p></div>
+    <div class="dlg-body" id="cloud-body"></div>
+    <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
+  </form>
+</dialog>
 
 <dialog id="dlg-compare">
   <form method="dialog" novalidate>
