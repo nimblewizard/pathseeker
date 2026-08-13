@@ -126,7 +126,20 @@ const travelInfo=(a,b)=> TT[[a,b].sort().join("|")] || null;
 const schedLink=(a,b,d)=> "https://www.google.com/search?q="+encodeURIComponent(
   `train ${CITY_BY_ID[a].n} to ${CITY_BY_ID[b].n} ${d||""}`.trim());
 const stripTags=(s)=> String(s||"").replace(/<[^>]+>/g,"");
-const money=(n)=> "€"+(Math.round(n*100)/100).toLocaleString("en-US",{minimumFractionDigits: n%1?2:0, maximumFractionDigits:2});
+/* Money is STORED in euros everywhere; CUR only changes how it is shown. */
+let CUR = localStorage.getItem("ps.cur")==="USD" ? "USD" : "EUR";
+const curSym = ()=> CUR==="USD" ? "$" : "€";
+const inCur = (eur)=> CUR==="USD" ? eur*FX_RATE : eur;   /* euros → displayed currency */
+const toEur = (v)=> CUR==="USD" ? v/FX_RATE : v;         /* typed amount → euros */
+const money=(n)=>{ const v=inCur(n);
+  return curSym()+(Math.round(v*100)/100).toLocaleString("en-US",{minimumFractionDigits: v%1?2:0, maximumFractionDigits:2}); };
+const money0=(n)=> curSym()+Math.round(inCur(n)).toLocaleString("en-US");   /* whole units */
+const curToggle = ()=> `<button class="cur-toggle" data-curtog="1" title="Show amounts in ${CUR==="EUR"?"dollars":"euros"}">${CUR==="EUR"?"€ EUR":"$ USD"}</button>`;
+function setCur(c){
+  CUR = c==="USD" ? "USD" : "EUR";
+  localStorage.setItem("ps.cur", CUR);
+  renderAll();
+}
 function parseExpense(txt){
   const m=String(txt).match(/^\s*€?\s*(\d+(?:[.,]\d{1,2})?)\s*(.*)$/);
   if(!m) return null;
@@ -1036,8 +1049,8 @@ function openCompare(){
     {l:"Driving", v:c=>fmtH(c.st.carH), n:c=>c.st.carH, best:"min"},
     {l:"Train time", v:c=>fmtH(c.st.trainH), n:c=>c.st.trainH, best:"min"},
     {l:"Longest single leg", v:c=>fmtH(c.st.maxLegH), n:c=>c.st.maxLegH, best:"min"},
-    {l:"Committed so far", v:c=>c.st.committed?"€"+c.st.committed.toLocaleString("en-US"):"—"},
-    {l:"Rough lodging est.", v:c=>"~€"+c.st.lodging.toLocaleString("en-US"), n:c=>c.st.lodging, best:"min"},
+    {l:"Committed so far", v:c=>c.st.committed?money0(c.st.committed):"—"},
+    {l:"Rough lodging est.", v:c=>"~"+money0(c.st.lodging), n:c=>c.st.lodging, best:"min"},
   ];
   let h=`<table class="cmp-table"><thead><tr><th></th>${cols.map(c=>`<th>${esc(c.name)}</th>`).join("")}</tr></thead><tbody>`;
   rows.forEach(r=>{
@@ -1660,7 +1673,7 @@ function lintTrip(){
   /* budget breach */
   const stt=tripStats(S.trip);
   if(S.trip.budget && stt.committed>S.trip.budget)
-    out.push({sev:"warn", msg:`€${(stt.committed-S.trip.budget).toLocaleString("en-US")} over your €${(+S.trip.budget).toLocaleString("en-US")} budget.`});
+    out.push({sev:"warn", msg:`${money0(stt.committed-S.trip.budget)} over your ${money0(+S.trip.budget)} budget.`});
   /* holds & missing codes */
   const held=CHECKLIST.filter(i=>chkState(i).st==="held").length;
   if(held) out.push({sev:"info", msg:`${held} item${held>1?"s":""} held but not booked — don't let the holds lapse.`});
@@ -1701,8 +1714,9 @@ function agentItemRow(item){
     <div class="t"><strong>${esc(item.label)}</strong><p>${esc(item.sub)}${s.auto?" · ✓ booked in your journal":""}</p></div>
     <div class="pipe">
       <button class="st-pill st-${s.st}" data-cyc="${item.id}" title="Click to advance the status">${CHK_LABEL[s.st]}</button>
-      <input class="chk-price" data-pr="${item.id}" inputmode="decimal" placeholder="${bkPrice?"€"+bkPrice:"€ price"}"
-        value="${s.pr!=null?esc(String(s.pr)):""}" aria-label="Price for ${esc(item.label)}">
+      <input class="chk-price" data-pr="${item.id}" inputmode="decimal"
+        placeholder="${bkPrice?curSym()+Math.round(inCur(bkPrice)):curSym()+" price"}"
+        value="${s.pr!=null?esc(String(Math.round(inCur(+s.pr)*100)/100)):""}" aria-label="Price for ${esc(item.label)}">
       <button class="doc-clip${docsFor(item.id).length?" has":""}" data-docs="${item.id}"
         title="Attached documents" aria-label="Documents for ${esc(item.label)}">📎${docsFor(item.id).length||""}</button>
     </div>
@@ -1727,7 +1741,7 @@ function renderPlan(){
   const committed=Math.round(chkStates.reduce((a,x)=>
     a + ((x.s.st==="booked"||x.s.st==="paid") ? chkPrice(x.s) : 0), 0));
   const pipelineLine=[`${doneCount} of ${CHECKLIST.length} booked`,
-    committed?`€${committed.toLocaleString("en-US")} committed`:"",
+    committed?`${money0(committed)} committed`:"",
     heldCount?`${heldCount} held`:"", resCount?`${resCount} researching`:"",
     DOCS.length?`📎 ${DOCS.length} document${DOCS.length>1?"s":""}`:""].filter(Boolean).join(" · ");
   /* hero + facts */
@@ -1762,12 +1776,13 @@ function renderPlan(){
       <div class="agent-progress"><i style="width:${Math.round(doneCount/CHECKLIST.length*100)}%"></i></div>
       <p class="plan-lead" style="margin-bottom:6px">${pipelineLine}</p>
       <div class="budget-row">
-        <span class="budget-lbl">🎯 Trip budget €</span>
-        <input id="budget-in" inputmode="numeric" placeholder="set it" value="${S.trip.budget||""}">
+        <span class="budget-lbl">🎯 Trip budget ${curSym()}</span>
+        <input id="budget-in" inputmode="numeric" placeholder="set it" value="${S.trip.budget? Math.round(inCur(S.trip.budget)) : ""}">
+        ${curToggle()}
         ${S.trip.budget?(()=>{
           const left=S.trip.budget-committed, pct=Math.min(100,Math.round(committed/S.trip.budget*100));
           return `<div class="agent-progress budget-bar"><i style="width:${pct}%${left<0?";background:#B3261E":""}"></i></div>
-            <b class="budget-left${left<0?" over":""}">${left>=0?`€${left.toLocaleString("en-US")} left to spend`:`€${Math.abs(left).toLocaleString("en-US")} OVER budget`}</b>`;
+            <b class="budget-left${left<0?" over":""}">${left>=0?`${money0(left)} left to spend`:`${money0(Math.abs(left))} OVER budget`}</b>`;
         })():`<span class="budget-hint">set a cap and watch what's left as you book</span>`}
       </div>
       <p class="nudge">${nextBestAction(lints)}</p>
@@ -1906,7 +1921,8 @@ function renderPlan(){
   }));
   wrap.querySelectorAll("[data-pr]").forEach(inp=>inp.addEventListener("change",()=>{
     const v=inp.value.trim();
-    chkSet(inp.dataset.pr,{pr: v===""? undefined : priceNum(v)||undefined});
+    const n=priceNum(v);
+    chkSet(inp.dataset.pr,{pr: v===""||!n? undefined : Math.round(toEur(n)*100)/100});
   }));
   wrap.querySelectorAll("[data-docs]").forEach(b=>b.addEventListener("click",()=>{
     const item=CHECKLIST.find(i=>i.id===b.dataset.docs);
@@ -1914,7 +1930,8 @@ function renderPlan(){
   }));
   const bi=$("#budget-in");
   if(bi) bi.addEventListener("change",()=>{
-    S.trip.budget=priceNum(bi.value)||null;
+    const typed=priceNum(bi.value);
+    S.trip.budget = typed? Math.round(toEur(typed)) : null;   /* stored in euros */
     mutate(); renderPlan();
   });
   wrap.querySelectorAll("[data-logleg]").forEach(b=>b.addEventListener("click",()=>{
@@ -2012,16 +2029,17 @@ function renderJournal(){
   let exSummary="";
   if(spent){
     exSummary=`<div class="ex-summary">
-      <b>${money(spent)}</b> <span class="ex-usd">≈ $${Math.round(spent*FX_RATE).toLocaleString("en-US")}</span>
-      ${inTrip?` · ${money(Math.round(spent/daysIn))}/day over ${daysIn} day${daysIn>1?"s":""}`:""}
+      <b>${money(spent)}</b> <span class="ex-usd">≈ ${CUR==="USD"?"€"+Math.round(spent).toLocaleString("en-US")
+        :"$"+Math.round(spent*FX_RATE).toLocaleString("en-US")}</span>
+      ${inTrip?` · ${money0(spent/daysIn)}/day over ${daysIn} day${daysIn>1?"s":""}`:""}
       <div class="ex-cats">${Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>
-        `<span class="fx-chip">${EXCAT[c]||"🧾"} ${money(Math.round(v))}</span>`).join("")}</div>
+        `<span class="fx-chip">${EXCAT[c]||"🧾"} ${money0(v)}</span>`).join("")}</div>
       ${Math.abs(bal)>=1?`<div class="ex-settle">${bal>0?"Allison owes Christopher":"Christopher owes Allison"}
-        <b>${money(Math.round(Math.abs(bal)))}</b> at settle-up</div>`:""}
+        <b>${money0(Math.abs(bal))}</b> at settle-up</div>`:""}
     </div>`;
   }
   head+=`<div class="journal-form">
-      <span class="label">Spending${spent?` — ${money(spent)} so far`:""}</span>
+      <span class="label">Spending${spent?` — ${money(spent)} so far`:""} ${curToggle()}</span>
       ${exSummary}
       <div class="row">
         <input type="date" id="ex-date" value="${esc(todayISO()>=S.trip.startDate&&todayISO()<=S.trip.endDate?todayISO():S.trip.startDate)}">
@@ -2045,7 +2063,7 @@ function renderJournal(){
         `<div class="exp-row"><span class="d">${fmtShort(e.date)}</span>
          <span class="ex-tag">${EXCAT[e.cat]||"🧾"}${e.payer?` ${e.payer}`:""}</span>
          <span class="lbl">${esc(e.label)}</span>
-         <span class="amt">${money(e.amount)}<span class="ex-usd"> $${Math.round(e.amount*FX_RATE)}</span></span>
+         <span class="amt">${money(e.amount)}</span>
          <button class="btn-quiet" data-exdel="${e.id}" aria-label="Delete expense">✕</button></div>`).join("")
       :""}
     </div>`;
@@ -2099,6 +2117,7 @@ function renderJournal(){
     if(!p){ toast("Start with the amount — e.g. 14.50 lunch"); return; }
     const cat=$("#ex-cat").value||guessCat(p.label);
     const payer=$("#ex-payer").value||"";
+    p.amount = Math.round(toEur(p.amount)*100)/100;   /* store euros whatever is displayed */
     S.trip.expenses.push(Object.assign({id:uid(), date:$("#ex-date").value||S.trip.startDate, cat, payer}, p));
     mutate(); renderJournal(); toast(money(p.amount)+" logged");
   });
@@ -2608,7 +2627,7 @@ function renderToday(){
       <button class="btn btn-sm" id="td-note-add">Note</button>
     </div>
     <div class="quick-row">
-      <input id="td-exp" placeholder="Log spending — e.g. 14.50 lunch" inputmode="decimal">
+      <input id="td-exp" placeholder="Log spending in ${curSym()} — e.g. 14.50 lunch" inputmode="decimal">
       <button class="btn btn-sm" id="td-exp-add">Expense</button>
       <span style="font-size:12.5px;color:var(--ink-soft)">${spentToday?`today: ${money(spentToday)}`:""}</span>
     </div>
@@ -2631,7 +2650,9 @@ function renderToday(){
   $("#td-exp-add").addEventListener("click",()=>{
     const p=parseExpense($("#td-exp").value);
     if(!p){ toast("Start with the amount — e.g. 14.50 lunch"); return; }
-    S.trip.expenses.push(Object.assign({id:uid(), date:t}, p)); mutate(); renderToday(); toast(money(p.amount)+" logged");
+    p.amount=Math.round(toEur(p.amount)*100)/100;   /* stored in euros */
+    S.trip.expenses.push(Object.assign({id:uid(), date:t, cat:guessCat(p.label)}, p));
+    mutate(); renderToday(); toast(money(p.amount)+" logged");
   });
   wireQuickTools();
   $("#td-note").addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();$("#td-note-add").click();} });
@@ -3440,6 +3461,13 @@ function init(){
       },400);
     }
   }catch(e){}
+  /* tap any currency chip to flip € ⇄ $ everywhere */
+  document.addEventListener("click",e=>{
+    const t=e.target.closest && e.target.closest("[data-curtog]");
+    if(t) setCur(CUR==="EUR"?"USD":"EUR");
+  });
+  /* keep the rate fresh for the whole app, not just the Translate tab */
+  fxFetch();
   /* tap any weather chip to flip °F/°C everywhere */
   document.addEventListener("click",e=>{
     if(e.target.closest && e.target.closest(".wx-chip")){

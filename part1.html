@@ -958,6 +958,12 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);
 }
 .band-chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.cur-toggle{
+  font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 10px;border-radius:999px;
+  border:1.5px solid var(--line);background:var(--surface);color:var(--ink-soft);cursor:pointer;
+  vertical-align:middle;margin-left:6px;
+}
+.cur-toggle:hover{border-color:var(--ink);color:var(--ink)}
 /* expense summary + split */
 .ex-summary{font-size:14px;margin:2px 0 10px;padding:10px 12px;border:1px dotted var(--line);border-radius:10px}
 .ex-summary b{font-size:17px}
