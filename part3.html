@@ -2460,8 +2460,9 @@ async function exportFile(){
    EventSource and pushes its own edits back. Documents (passports, tickets) never
    leave the device they were added on. Pages only — the artifact's CSP blocks it. */
 let CLOUD=null, cloudES=null, cloudPushT=null, cloudApplying=false, cloudState="off";
-const DEVICE_ID=(()=>{ let d=localStorage.getItem("ps.device");
-  if(!d){ d=uid()+uid(); localStorage.setItem("ps.device",d); } return d; })();
+/* per-tab, not per-device: two tabs open on the same computer should still see
+   each other's edits, while a tab never re-adopts the write it just made. */
+const DEVICE_ID = uid()+uid();
 function cloudLoad(){ try{ CLOUD=JSON.parse(localStorage.getItem("ps.cloud")||"null"); }catch(e){ CLOUD=null; } return CLOUD; }
 function cloudSet(c){ CLOUD=c; if(c) localStorage.setItem("ps.cloud",JSON.stringify(c)); else localStorage.removeItem("ps.cloud"); }
 const cloudUrl=()=> CLOUD? `${CLOUD.url.replace(/\/+$/,"")}/trips/${CLOUD.key}.json` : null;
