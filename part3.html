@@ -961,7 +961,7 @@ function tripStats(trip){
     if(item.stay) return (trip.bookings||[]).find(b=>(b.type==="hotel"||b.type==="airbnb")&&b.cityId===item.stay);
     const mt=item.match; if(!mt) return null;
     const k=mt.kw? new RegExp(mt.kw,"i") : null;
-    return (trip.bookings||[]).find(b=>(!mt.type||b.type===mt.type)&&(!mt.city||b.cityId===mt.city)&&(!k||k.test(b.name+" "+(b.notes||""))));
+    return (trip.bookings||[]).find(b=>b.conf&&(!mt.type||b.type===mt.type)&&(!mt.city||b.cityId===mt.city)&&(!k||k.test(b.name+" "+(b.notes||""))));
   };
   let committed=0;
   CHECKLIST.forEach(item=>{
@@ -1241,7 +1241,10 @@ function chkMatchBooking(item){
   if(item.stay) return lodgingFor(item.stay);
   const m=item.match; if(!m) return null;
   const kw=m.kw? new RegExp(m.kw,"i") : null;
+  /* a real booking carries a confirmation code — planning placeholders (the car pickup, the
+     zipline day trip) must NOT tick their checklist item off before anything is actually booked */
   return S.trip.bookings.find(b=>
+    b.conf &&
     (!m.type || b.type===m.type) &&
     (!m.city || b.cityId===m.city) &&
     (!kw || kw.test(b.name+" "+(b.notes||""))));
