@@ -830,7 +830,7 @@ function initBookingDlg(){
   });
 }
 const typeMeta=(id)=> BK_TYPES.find(t=>t.id===id)||BK_TYPES[5];
-function bkRow(b){
+function bkRow(b, detail){
   const t=typeMeta(b.type);
   const meta=[b.time, b.conf?`#${b.conf}`:"", b.price].filter(Boolean).join(" · ");
   return `<div class="bk" data-bk="${b.id}" role="button" tabindex="0" aria-label="Edit booking ${esc(b.name)}">
@@ -841,6 +841,7 @@ function bkRow(b){
     <button class="icon-btn bk-clip${docsFor("bk:"+b.id).length?" has":""}" data-bkdocs="${b.id}"
       onclick="event.stopPropagation()" aria-label="Tickets & documents for ${esc(b.name)}">📎${docsFor("bk:"+b.id).length||""}</button>
     ${b.link?`<a href="${esc(b.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" aria-label="Open booking link">↗</a>`:""}
+    ${detail&&b.notes?`<div class="bk-note">${esc(b.notes)}</div>`:""}
   </div>`;
 }
 function wireBkRows(root){
@@ -923,7 +924,7 @@ function openDayDlg(d){
      ${tt?`<div class="plan-drive"><b>Travel day:</b> ${esc(tt)}</div>`:""}
      ${city?`<p class="golden" style="font-size:12.5px;margin:6px 0 0">${goldenLine(city.id,d)}</p>`:""}
      ${bks.length?`<div class="poi-section" style="margin-top:14px"><span class="label">On the books</span></div>
-       <div class="day-items" style="margin-top:6px">${bks.map(bkRow).join("")}</div>`
+       <div class="day-items" style="margin-top:6px">${bks.map(b=>bkRow(b,true)).join("")}</div>`
       :`<p class="times-note" style="margin-top:14px">Nothing booked this day.</p>`}
      ${notes.length?`<div class="poi-section" style="margin-top:14px"><span class="label">Journal</span></div>
        ${notes.map(j=>`<p style="font-size:13px;margin:4px 0">✎ ${esc(j.text)}</p>`).join("")}`:""}
@@ -1095,7 +1096,7 @@ function renderItin(){
   const edgeRow=(d,label)=>`<div class="day-row edge">
       <div class="day-date"><div class="dow">${fmtDow(d)}</div><div class="num">${pD(d).getDate()}</div><div class="mon">${pD(d).toLocaleDateString("en-US",{month:"short"})}</div></div>
       <div><div class="day-city"><span class="transfer">✈</span> <span class="edge-label">${label}</span></div>
-        <div class="day-items">${S.trip.bookings.filter(b=>b.date===d).sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1).map(bkRow).join("")}</div>
+        <div class="day-items">${S.trip.bookings.filter(b=>b.date===d).sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1).map(b=>bkRow(b,true)).join("")}</div>
         <div class="day-add"><button class="btn btn-quiet btn-sm" data-addday="${d}" data-city="${S.trip.arrivalCity}">+ Add booking</button></div>
       </div></div>`;
   before.forEach(d=>{ rows+=edgeRow(d,"Getting there — travel day"); });
@@ -1123,7 +1124,7 @@ function renderItin(){
           ${tt?` · ~${esc(tt)}`:""} · <a href="${schedLink(prevCity,s.cityId,d)}" target="_blank" rel="noopener">schedules ↗</a></span></div>`;
       }
     }
-    const bks=S.trip.bookings.filter(b=>b.date===d).map(bkRow).join("");
+    const bks=S.trip.bookings.filter(b=>b.date===d).sort((x,y)=>(x.time||"99")<(y.time||"99")?-1:1).map(b=>bkRow(b,true)).join("");
     const cityForAdd = here.length? here[0].cityId : (UI.selected||S.trip.arrivalCity);
     rows+=`<div class="day-row">
       <div class="day-date"><div class="dow">${fmtDow(d)}</div><div class="num">${pD(d).getDate()}</div><div class="mon">${pD(d).toLocaleDateString("en-US",{month:"short"})}</div></div>
@@ -2062,7 +2063,7 @@ function renderJournal(){
     groups+=`<div class="j-group">
       <div class="j-city-head"><h3 class="serif">${esc(c.n)}</h3>
         <span class="d">${fmtShort(st.arrive)} → ${fmtShort(addD(st.arrive,st.nights))}</span></div>
-      ${bks.length?`<div class="day-items">${bks.sort((a,b)=>a.date<b.date?-1:1).map(bkRow).join("")}</div>`:""}
+      ${bks.length?`<div class="day-items">${bks.sort((a,b)=>a.date<b.date?-1:1).map(b=>bkRow(b)).join("")}</div>`:""}
       ${notes.map(jNoteRow).join("")}
       ${photoGrid(photosFor(st.cityId))}
       ${!bks.length&&!notes.length&&!photosFor(st.cityId).length?`<div class="empty" style="padding:14px">Nothing booked here yet.</div>`:""}
@@ -2072,7 +2073,7 @@ function renderJournal(){
   const leftJ=S.trip.journal.filter(j=>!usedJ.has(j.id));
   if(leftB.length||leftJ.length){
     groups+=`<div class="j-group"><div class="j-city-head"><h3 class="serif">Elsewhere</h3></div>
-      ${leftB.length?`<div class="day-items">${leftB.map(bkRow).join("")}</div>`:""}
+      ${leftB.length?`<div class="day-items">${leftB.map(b=>bkRow(b)).join("")}</div>`:""}
       ${leftJ.map(jNoteRow).join("")}</div>`;
   }
   if(!groups) groups=`<div class="empty">Add cities on the map — bookings and notes will gather here, grouped by stop.</div>`;
@@ -2593,7 +2594,7 @@ function renderToday(){
         </div>`;
     })()}
     <div class="poi-section"><span class="label">On the books today</span></div>
-    ${todays.length?`<div class="day-items" style="margin-top:8px">${todays.map(bkRow).join("")}</div>`
+    ${todays.length?`<div class="day-items" style="margin-top:8px">${todays.map(b=>bkRow(b,true)).join("")}</div>`
       :`<div class="empty" style="margin-top:8px">Nothing scheduled — wander well.</div>`}
     <div class="poi-section" style="margin-top:20px"><span class="label">Photos this day</span></div>
     ${photoGrid(PHOTOS.filter(p=>p.date===t)) || `<p style="font-size:13px;color:var(--ink-soft);margin:6px 0 0">Nothing pinned to this day yet.</p>`}
@@ -2990,7 +2991,7 @@ function renderWallet(){
     });
     if(plain.length)
       h+=`<div class="poi-section" style="margin-top:18px"><span class="label">Booked, no code yet</span></div>
-        <div class="day-items" style="margin-top:6px">${plain.map(bkRow).join("")}</div>`;
+        <div class="day-items" style="margin-top:6px">${plain.map(b=>bkRow(b)).join("")}</div>`;
   }else{
     const total=DOC_SLOTS.reduce((a,s)=>a+docsFor("doc:"+s.id).length,0);
     h+=`<p class="wallet-note">${total} document${total===1?"":"s"} stored <b>on this device only</b> — they're never
