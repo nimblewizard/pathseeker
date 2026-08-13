@@ -796,7 +796,7 @@ let bkEditing=null, bkType="hotel";
 function openBookingDlg(pre){
   bkEditing = pre && pre.id ? pre : null;
   const d = bkEditing || Object.assign({cityId:UI.selected||S.trip.arrivalCity, type:"hotel", name:"",
-    date:"", time:"", conf:"", price:"", link:"", notes:""}, pre||{});
+    date:"", time:"", conf:"", price:"", link:"", notes:"", from:"", to:"", arrTime:"", loyalty:""}, pre||{});
   bkType = d.type||"hotel";
   $("#dlg-bk-title").textContent = bkEditing? "Edit booking" : "Add a booking";
   const cs=$("#bk-city");
@@ -805,6 +805,8 @@ function openBookingDlg(pre){
   if(!d.date){ const st=stopFor(cs.value); d.date = st? st.arrive : S.trip.startDate; }
   $("#bk-name").value=d.name||""; $("#bk-date").value=d.date||"";
   $("#bk-time").value=d.time||""; $("#bk-price").value=d.price||"";
+  $("#bk-from").value=d.from||""; $("#bk-to").value=d.to||"";
+  $("#bk-arr").value=d.arrTime||""; $("#bk-loyalty").value=d.loyalty||"";
   $("#bk-conf").value=d.conf||""; $("#bk-link").value=d.link||"";
   $("#bk-notes").value=d.notes||"";
   $("#bk-remove").classList.toggle("hidden", !bkEditing);
@@ -830,7 +832,9 @@ function initBookingDlg(){
       if(!name){ toast("Give the booking a name"); return; }
       const data={ cityId:$("#bk-city").value, type:bkType, name,
         date:$("#bk-date").value, time:$("#bk-time").value, conf:$("#bk-conf").value.trim(),
-        price:$("#bk-price").value.trim(), link:$("#bk-link").value.trim(), notes:$("#bk-notes").value.trim() };
+        price:$("#bk-price").value.trim(), link:$("#bk-link").value.trim(), notes:$("#bk-notes").value.trim(),
+        from:$("#bk-from").value.trim(), to:$("#bk-to").value.trim(),
+        arrTime:$("#bk-arr").value, loyalty:$("#bk-loyalty").value.trim() };
       if(bkEditing){ Object.assign(S.trip.bookings.find(b=>b.id===bkEditing.id)||{}, data); toast("Booking updated"); }
       else { S.trip.bookings.push(Object.assign({id:uid()},data)); toast("Saved to your journal"); }
       mutate(); renderAll();
@@ -845,11 +849,13 @@ function initBookingDlg(){
 const typeMeta=(id)=> BK_TYPES.find(t=>t.id===id)||BK_TYPES[5];
 function bkRow(b, detail){
   const t=typeMeta(b.type);
-  const meta=[b.time, b.conf?`#${b.conf}`:"", b.price].filter(Boolean).join(" · ");
+  const clock=[b.time, b.arrTime].filter(Boolean).join(" → ");
+  const route=(b.from||b.to)? `${esc(b.from||"?")} → ${esc(b.to||"?")}` : "";
+  const meta=[clock, b.conf?`#${b.conf}`:"", b.price].filter(Boolean).join(" · ");
   return `<div class="bk" data-bk="${b.id}" role="button" tabindex="0" aria-label="Edit booking ${esc(b.name)}">
     <span class="type-dot" style="background:${t.c}"></span>
     <span class="bk-name">${esc(b.name)}</span>
-    <span class="bk-meta">${esc(t.n)}${meta?" · "+esc(meta):""}</span>
+    <span class="bk-meta">${route?`<b class="bk-route">${route}</b> · `:""}${esc(t.n)}${meta?" · "+esc(meta):""}</span>
     <span class="spacer"></span>
     <button class="icon-btn bk-clip${docsFor("bk:"+b.id).length?" has":""}" data-bkdocs="${b.id}"
       onclick="event.stopPropagation()" aria-label="Tickets & documents for ${esc(b.name)}">📎${docsFor("bk:"+b.id).length||""}</button>
@@ -2896,13 +2902,15 @@ function buildICS(){
     else if(b.type==="hotel"||b.type==="airbnb"){ alarms=["-PT2H"]; time=time||"15:00"; icon="🏨"; }
     else if(b.type==="restaurant"){ alarms=["-PT2H"]; time=time||"19:30"; icon="🍝"; }
     else { alarms=["-PT2H"]; time=time||"10:00"; icon="🎟"; }
-    const desc=[b.conf?`Confirmation: ${b.conf}`:"", b.price?`Price: ${b.price}`:"",
+    const desc=[(b.from||b.to)?`${b.from||"?"} → ${b.to||"?"}`:"",
+      b.conf?`Confirmation: ${b.conf}`:"", b.loyalty?`Loyalty: ${b.loyalty}`:"", b.price?`Price: ${b.price}`:"",
       b.link||"", (b.notes||"").slice(0,400)].filter(Boolean).join("\n");
     V.push("BEGIN:VEVENT",
       `UID:${b.id}@pathseeker`,
       `DTSTAMP:${now}`,
       `DTSTART;TZID=Europe/Rome:${icsDT(b.date,time)}`,
-      "DURATION:PT1H30M",
+      b.arrTime? `DTEND;TZID=Europe/Rome:${icsDT(b.arrTime<time? addD(b.date,1) : b.date, b.arrTime)}`
+               : "DURATION:PT1H30M",
       `SUMMARY:${icsEsc(icon+" "+b.name)}`,
       c?`LOCATION:${icsEsc(c.n+", Italy")}`:"",
       desc?`DESCRIPTION:${icsEsc(desc)}`:"");
