@@ -74,7 +74,81 @@ function persist(){
   S.savedAt = new Date().toISOString();
   try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){}
 }
-function mutate(){ S.dirty = true; persist(); updateSyncUI(); if(typeof cloudPushSoon==="function") cloudPushSoon(); }
+function mutate(){ S.dirty = true; persist(); updateSyncUI(); if(typeof cloudPushSoon==="function") cloudPushSoon(); histMark(); }
+/* ---- undo / redo: whole-trip snapshots, recorded by mutate() after each change ---- */
+const HIST={past:[],future:[],last:null,max:60};
+function histBase(){ HIST.last=JSON.stringify(S.trip); updateHistUI(); }
+function histMark(){
+  const now=JSON.stringify(S.trip);
+  if(HIST.last!==null && now!==HIST.last){
+    HIST.past.push(HIST.last); if(HIST.past.length>HIST.max) HIST.past.shift();
+    HIST.future.length=0;
+  }
+  HIST.last=now; updateHistUI();
+}
+function histApply(json){
+  S.trip=Object.assign(DEFAULT_TRIP(), JSON.parse(json)); HIST.last=json;
+  S.dirty=true; persist(); updateSyncUI(); if(typeof cloudPushSoon==="function") cloudPushSoon();
+  renderAll(); if(typeof renderHome==="function") renderHome(); updateHistUI();
+}
+function undo(){ if(!HIST.past.length){ toast("Nothing to undo"); return; } HIST.future.push(JSON.stringify(S.trip)); histApply(HIST.past.pop()); toast("Undone"); }
+function redo(){ if(!HIST.future.length){ toast("Nothing to redo"); return; } HIST.past.push(JSON.stringify(S.trip)); histApply(HIST.future.pop()); toast("Redone"); }
+function updateHistUI(){
+  document.querySelectorAll("[data-undo]").forEach(b=>b.disabled=!HIST.past.length);
+  document.querySelectorAll("[data-redo]").forEach(b=>b.disabled=!HIST.future.length);
+}
+/* toast with an Undo that reverts the last change */
+function histToast(msg){
+  const t=$("#toast");
+  t.innerHTML=`${esc(msg)} <button class="toast-undo" type="button">Undo</button>`;
+  t.querySelector(".toast-undo").addEventListener("click",()=>{ t.classList.remove("show"); undo(); });
+  t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"), 6500);
+}
+function clearRoute(){
+  if(!S.trip.stops.length){ toast("The route is already empty"); return; }
+  S.trip.stops=[]; mutate(); renderAll(); histToast("Route cleared");
+}
+/* Routes = saved versions (S.variants). "New route" parks the current one and starts blank. */
+function newRoute(){
+  S.variants=S.variants||[];
+  const cur=JSON.stringify(S.trip.stops);
+  const parked=S.variants.some(v=>JSON.stringify((v.trip||{}).stops||[])===cur);
+  if(S.trip.stops.length && !parked){
+    if(S.variants.length>=8){ toast("Eight routes is plenty — delete one in the Itinerary first"); return; }
+    S.variants.push({id:uid(), name:`Route ${S.variants.length+1}`, savedAt:todayISO(), trip:JSON.parse(JSON.stringify(S.trip))});
+  }
+  S.trip.stops=[]; mutate(); renderAll(); renderRouteList();
+  histToast(S.trip.stops.length||parked? "Fresh route started" : "Fresh route — the previous one is saved under Routes");
+}
+function renderRouteList(){
+  const box=$("#route-list"); if(!box) return;
+  const vs=S.variants||[];
+  const cur=JSON.stringify(S.trip.stops);
+  box.innerHTML=`<button class="chip chip-sm" aria-pressed="true">Current<small>${S.trip.stops.length} stops</small></button>`+
+    vs.map(v=>{ const same=JSON.stringify((v.trip||{}).stops||[])===cur;
+      return `<button class="chip chip-sm" data-routeload="${v.id}" aria-pressed="false" title="Load this route">${esc(v.name)}<small>${(v.trip.stops||[]).length} stops${same?" · same as current":""}</small></button>`; }).join("");
+}
+function initRouteTools(){
+  const side=document.querySelector(".map-side"); if(!side) return;
+  side.addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    if(b.hasAttribute("data-undo")) undo();
+    else if(b.hasAttribute("data-redo")) redo();
+    else if(b.hasAttribute("data-clearroute")) clearRoute();
+    else if(b.hasAttribute("data-newroute")) newRoute();
+    else if(b.hasAttribute("data-compare")){ if((S.variants||[]).length) openCompare(); else toast("Save or start a second route first, then compare"); }
+    else if(b.dataset.routeload){ loadVariant(b.dataset.routeload); renderRouteList(); }
+  });
+  document.addEventListener("keydown",e=>{
+    const t=e.target, tag=(t&&t.tagName||"").toLowerCase();
+    if(tag==="input"||tag==="textarea"||tag==="select"||(t&&t.isContentEditable)) return;
+    if(document.querySelector("dialog[open]")) return;
+    if((e.metaKey||e.ctrlKey) && !e.altKey && e.key.toLowerCase()==="z"){ e.preventDefault(); e.shiftKey? redo() : undo(); }
+    else if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="y"){ e.preventDefault(); redo(); }
+  });
+  renderRouteList();
+}
 const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
 /* date helpers */
@@ -191,8 +265,9 @@ function showXMap(id){
   $("#live-map").classList.toggle("hidden",!live);
   $("#live-filter").classList.toggle("hidden",!live);
   $("#live-label").classList.toggle("hidden",!live);
-  $("#live-add").classList.toggle("hidden",!live);
-  $("#live-add-label").classList.toggle("hidden",!live);
+  const planning = live || m.id==="story";
+  ["#live-add","#live-add-label","#route-label","#route-tools","#routes-label","#route-list"].forEach(sel=>$(sel).classList.toggle("hidden",!planning));
+  initLiveSearch();
   $("#map-stage").classList.toggle("livemap",live);
   $("#view-map").classList.toggle("livemap",live);
   if(live){
@@ -324,15 +399,49 @@ function liveDrawTrip(){
   if(pts.length>1) L.polyline(pts,{color:"#C8202F",weight:3,dashArray:"8 7",opacity:.85}).addTo(LIVE.tripLayer);
   CITIES.forEach(c=>{
     if(!c.lat) return;
-    const on=inTrip.has(c.id);
-    const m=L.circleMarker([c.lat,c.lon], on
-      ? {radius:8,color:"#F3E7C9",weight:2,fillColor:"#BE1E3C",fillOpacity:1}
-      : {radius:6,color:"#7A5C2E",weight:1.5,fillColor:"#E9DDB8",fillOpacity:.95});
+    const on=inTrip.has(c.id), st=stopFor(c.id);
+    let m;
+    if(on){
+      const gw=c.id===S.trip.arrivalCity||c.id===S.trip.departureCity;
+      m=L.marker([c.lat,c.lon],{draggable:!!st, icon:L.divIcon({className:"", html:`<div class="live-pin${gw?" gw":""}"></div>`, iconSize:[18,18], iconAnchor:[9,9], popupAnchor:[0,-8]}),
+        title:st? c.n+" — drag to move this stop" : c.n});
+      if(st) m.on("dragend",()=>liveDropStop(st.id, m.getLatLng()));
+    }else{
+      m=L.circleMarker([c.lat,c.lon],{radius:6,color:"#7A5C2E",weight:1.5,fillColor:"#E9DDB8",fillOpacity:.95});
+    }
     m.bindPopup(()=>liveCityPopup(c.id),{maxWidth:260});
-    m.bindTooltip(c.n,{direction:"top",offset:[0,-6],opacity:.9});
+    m.bindTooltip(c.n,{direction:"top",offset:[0,-8],opacity:.9});
     m.addTo(LIVE.tripLayer);
   });
   return pts;
+}
+/* A stop pin was dragged: snap to the nearest known town, else look the spot up, then move the stop */
+async function liveDropStop(stopId, ll){
+  const st=S.trip.stops.find(x=>x.id===stopId); if(!st){ liveDrawTrip(); return; }
+  let best=null, bd=1e9;
+  CITIES.forEach(c=>{ if(!c.lat) return; const d=distKm(c.lat,c.lon,ll.lat,ll.lng); if(d<bd){ bd=d; best=c; } });
+  let id=null;
+  if(best && bd<12) id=best.id;
+  else{
+    toast("Looking up that spot…");
+    const g=await reverseTown(ll);
+    if(g) id=addCustomCity(g.n,g.lat,g.lon,g.region,true);
+  }
+  if(!id){ toast("No town there — stop left where it was"); liveDrawTrip(); return; }
+  if(id===st.cityId){ liveDrawTrip(); return; }
+  const from=CITY_BY_ID[st.cityId].n;
+  const clash=S.trip.stops.find(x=>x.cityId===id && x.id!==stopId);
+  if(clash){ toast(`${CITY_BY_ID[id].n} is already on your route`); liveDrawTrip(); return; }
+  st.cityId=id; mutate(); renderAll();
+  histToast(`${from} → ${CITY_BY_ID[id].n} (${fmtShort(st.arrive)}, ${st.nights}n)`);
+}
+async function reverseTown(ll){
+  try{
+    const r=await fetch(`${NOMI}/reverse?format=jsonv2&lat=${ll.lat}&lon=${ll.lng}&zoom=10&accept-language=en`);
+    const j=await r.json(); const a=j.address||{};
+    const name=nomiName(a, j.name); if(!name) return null;
+    return {n:name, lat:+j.lat, lon:+j.lon, region:a.state||a.county||""};
+  }catch(e){ return null; }
 }
 function liveCityPopup(id){
   const c=CITY_BY_ID[id]; if(!c) return "";
@@ -372,11 +481,21 @@ function initLiveSearch(){
     const b=e.target.closest("[data-liveres]"); if(!b) return;
     const d=JSON.parse(b.dataset.liveres);
     out.innerHTML=""; q.value="";
-    LIVE.map.flyTo([d.lat,d.lon],11);
     const known=CITIES.find(c=>c.lat&&distKm(c.lat,c.lon,d.lat,d.lon)<3);
-    const id=known? known.id : addCustomCity(d.n,d.lat,d.lon,d.region);
-    if(!known) liveDrawTrip();
-    setTimeout(()=>{ L.popup({maxWidth:260}).setLatLng([d.lat,d.lon]).setContent(liveCityPopup(id)).openOn(LIVE.map); },400);
+    if(UI.xmap!=="live"){
+      /* on the painted map: a known town gets scouted in place; anywhere else, jump to the live map */
+      if(known){ selectCity(known.id); panToCity(known.id); return; }
+      if(!(window.claude && window.claude.mcp!==undefined)){ showXMap("live"); }
+      else { const id=addCustomCity(d.n,d.lat,d.lon,d.region); selectCity(id); panToCity(id); return; }
+    }
+    const go=()=>{
+      if(!LIVE.map){ setTimeout(go,300); return; }
+      LIVE.map.flyTo([d.lat,d.lon],11);
+      const id=known? known.id : addCustomCity(d.n,d.lat,d.lon,d.region);
+      if(!known) liveDrawTrip();
+      setTimeout(()=>{ L.popup({maxWidth:260}).setLatLng([d.lat,d.lon]).setContent(liveCityPopup(id)).openOn(LIVE.map); },400);
+    };
+    go();
   });
   /* "add" from a map-tap popup */
   $("#live-map").addEventListener("click",e=>{
@@ -589,7 +708,7 @@ function registerCity(raw){
 function hydrateCustomCities(){ (S.trip.customCities||[]).forEach(registerCity); }
 function slugId(n){ return "c_"+n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"").slice(0,24); }
 /* Add (or find) a custom city from a geocoder hit; returns its id */
-function addCustomCity(name,lat,lon,region){
+function addCustomCity(name,lat,lon,region,quiet){
   const near=CITIES.find(c=>c.lat&&distKm(c.lat,c.lon,lat,lon)<3);
   if(near) return near.id;                       /* it's one we already know */
   const id=slugId(name);
@@ -597,7 +716,7 @@ function addCustomCity(name,lat,lon,region){
     S.trip.customCities=S.trip.customCities||[];
     S.trip.customCities.push({id,n:name,lat:+lat.toFixed(4),lon:+lon.toFixed(4),region:region||""});
     registerCity(S.trip.customCities[S.trip.customCities.length-1]);
-    mutate();
+    if(!quiet) mutate();            /* quiet: caller's own mutate() covers it (one undo step) */
   }
   return id;
 }
@@ -2476,6 +2595,7 @@ function renderAll(){
   hydrateCustomCities();
   updateMapMarks(); renderPanel(); updateTripChip();
   if(LIVE.map) liveDrawTrip();
+  renderRouteList();
   if(UI.view==="itin") renderItin();
   if(UI.view==="journal") renderJournal();
   if(UI.view==="today") renderToday();
@@ -2664,7 +2784,7 @@ function cloudAdopt(payload){
   if(!payload || !payload.trip || payload.device===DEVICE_ID) return;
   cloudApplying=true;
   S.trip=Object.assign(DEFAULT_TRIP(), payload.trip);
-  S.dirty=false; persist();
+  S.dirty=false; persist(); histBase();
   try{ renderAll(); renderHome(); }catch(e){}
   cloudApplying=false;
   cloudStatus("Live");
@@ -3960,6 +4080,7 @@ function init(){
     renderPanel();
   }));
   initStopDlg(); initBookingDlg(); initPasteDlg(); initPhotos(); initSync();
+  histBase(); initRouteTools();
   updateSyncUI();
   mcpInit();
   photoLoadAll().then(()=>{

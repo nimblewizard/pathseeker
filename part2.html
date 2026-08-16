@@ -77,12 +77,22 @@
       <aside class="map-side">
         <span class="side-label">Charts</span>
         <div class="chips" id="map-switch" role="group" aria-label="Choose a map"></div>
-        <span class="side-label hidden" id="live-add-label">Add a stop</span>
-        <div class="hidden" id="live-add">
-          <input id="live-q" type="search" placeholder="Find a town…" autocomplete="off" aria-label="Find a town to add">
+        <span class="side-label" id="live-add-label">Find a place</span>
+        <div id="live-add">
+          <input id="live-q" type="search" placeholder="Search a town…" autocomplete="off" aria-label="Find a town">
           <div id="live-results" role="listbox"></div>
-          <p class="live-tip">Tap any pin — or tap the map on a town — to add it to your route.</p>
+          <p class="live-tip">Tap any pin — or tap the map on a town — to add it to your route. Drag a red pin to move that stop.</p>
         </div>
+        <span class="side-label" id="route-label">Route</span>
+        <div class="chips" id="route-tools" role="group" aria-label="Route tools">
+          <button class="chip chip-sm" data-undo disabled title="Undo (⌘Z)">↶ Undo</button>
+          <button class="chip chip-sm" data-redo disabled title="Redo (⇧⌘Z)">↷ Redo</button>
+          <button class="chip chip-sm" data-clearroute>Clear route</button>
+          <button class="chip chip-sm" data-newroute>＋ New route</button>
+          <button class="chip chip-sm" data-compare>⚖ Compare</button>
+        </div>
+        <span class="side-label" id="routes-label">Routes</span>
+        <div class="chips" id="route-list" role="group" aria-label="Saved routes"></div>
         <span class="side-label hidden" id="live-label">Nearby</span>
         <div class="chips hidden" id="live-filter" role="group" aria-label="Show nearby places">
           <button class="chip" data-live="food" aria-pressed="false">Food &amp; Drink</button>
