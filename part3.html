@@ -401,7 +401,15 @@ function liveDrawTrip(){
   push(S.trip.arrivalCity); sortedStops().forEach(st=>push(st.cityId)); push(S.trip.departureCity);
   const inTrip=new Set(seq);
   const pts=seq.map(id=>[CITY_BY_ID[id].lat,CITY_BY_ID[id].lon]);
-  if(pts.length>1) L.polyline(pts,{color:"#C8202F",weight:3,dashArray:"8 7",opacity:.85}).addTo(LIVE.tripLayer);
+  for(let i=1;i<seq.length;i++){
+    legGeometry(seq[i-1],seq[i]).forEach(h=>{
+      const st = h.mode==="ferry" ? {color:"#2E6BB8",weight:3,dashArray:"2 8",opacity:.9}
+               : h.mode==="air"   ? {color:"#6F6752",weight:2,dashArray:"1 6",opacity:.8}
+               : h.real           ? {color:"#C8202F",weight:3.5,opacity:.9}
+               :                    {color:"#C8202F",weight:3,dashArray:"8 7",opacity:.6};   /* still loading */
+      L.polyline(h.pts,st).addTo(LIVE.tripLayer);
+    });
+  }
   CITIES.forEach(c=>{
     if(!c.lat) return;
     const on=inTrip.has(c.id), st=stopFor(c.id);
@@ -740,6 +748,82 @@ function addCityMarker(c){
   }
   g.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();selectCity(c.id);} });
 }
+/* ---- real route geometry ------------------------------------------------------------
+   Legs are drawn along the roads/rail corridors you'll actually travel (OSRM public router,
+   no key) and ferries as straight water crossings; the same lat/lon polyline is projected
+   onto the painted map with projectArt(). Geometry is cached in localStorage (ps.routegeo). */
+const GEO={cache:{}, pending:{}, t:null};
+try{ GEO.cache=JSON.parse(localStorage.getItem("ps.routegeo")||"{}"); }catch(e){ GEO.cache={}; }
+const OSRM="https://router.project-osrm.org/route/v1/driving/";
+const LL_SALERNO=[40.6767,14.7594], LL_MILANC=[45.4862,9.2044], LL_BARI=[41.1171,16.8719];
+/* legs that aren't one plain road hop: waypoints + mode of each hop (last hop ends at the city) */
+const LEG_VIA={
+  "como>venice":  [{ll:LL_MILANC,mode:"road"},{mode:"road"}],
+  "venice>matera":[{ll:LL_BARI,mode:"road"},{mode:"road"}],
+  "matera>amalfi":[{ll:LL_SALERNO,mode:"road"},{mode:"ferry"}],
+  "amalfi>rome":  [{ll:LL_SALERNO,mode:"ferry"},{mode:"road"}],
+  "amalfi>naples":[{mode:"ferry"}],
+  "amalfi>sorrento":[{mode:"ferry"}],
+  "naples>palermo":[{mode:"air"}], "palermo>rome":[{mode:"air"}], "rome>taormina":[{mode:"air"}],
+};
+function legPlan(a,b){
+  const A=CITY_BY_ID[a],B=CITY_BY_ID[b]; if(!A||!B||!A.lat||!B.lat) return [];
+  let via=LEG_VIA[a+">"+b], rev=false;
+  if(!via && LEG_VIA[b+">"+a]){ via=LEG_VIA[b+">"+a]; rev=true; }
+  let hops;
+  if(via){
+    /* forward: [via1(mode1)..., end(modeN)]; reversed: walk the same waypoints backwards */
+    const pts=[[A.lat,A.lon], ...via.slice(0,-1).map(v=>v.ll), [B.lat,B.lon]];
+    const modes=via.map(v=>v.mode);
+    if(rev){ /* the stored plan is B→A: waypoints in that order, so flip both lists */
+      const wp=[[B.lat,B.lon], ...via.slice(0,-1).map(v=>v.ll), [A.lat,A.lon]].reverse();
+      const md=modes.slice().reverse();
+      hops=md.map((m,i)=>({from:wp[i],to:wp[i+1],mode:m}));
+    }else hops=modes.map((m,i)=>({from:pts[i],to:pts[i+1],mode:m}));
+  }else{
+    const tt=travelInfo(a,b)||"";
+    const mode=/air|fly|flight/i.test(tt)?"air":/ferry/i.test(tt)?"ferry":"road";
+    hops=[{from:[A.lat,A.lon],to:[B.lat,B.lon],mode}];
+  }
+  return hops;
+}
+const geoKey=(h)=> h.mode+":"+h.from.map(x=>(+x).toFixed(3)).join(",")+">"+h.to.map(x=>(+x).toFixed(3)).join(",");
+function rdp(pts,eps){            /* Douglas–Peucker on [lat,lon] */
+  if(pts.length<3) return pts;
+  const d2=(p,a,b)=>{ const x=p[1],y=p[0],x1=a[1],y1=a[0],x2=b[1],y2=b[0]; const dx=x2-x1,dy=y2-y1;
+    if(!dx&&!dy) return (x-x1)**2+(y-y1)**2; const t=Math.max(0,Math.min(1,((x-x1)*dx+(y-y1)*dy)/(dx*dx+dy*dy)));
+    return (x-(x1+t*dx))**2+(y-(y1+t*dy))**2; };
+  const keep=new Uint8Array(pts.length); keep[0]=keep[pts.length-1]=1;
+  const stack=[[0,pts.length-1]];
+  while(stack.length){ const [i,j]=stack.pop(); let mx=0,mi=-1;
+    for(let k=i+1;k<j;k++){ const d=d2(pts[k],pts[i],pts[j]); if(d>mx){ mx=d; mi=k; } }
+    if(mi>0 && mx>eps*eps){ keep[mi]=1; stack.push([i,mi],[mi,j]); } }
+  return pts.filter((_,i)=>keep[i]);
+}
+function geoSave(){ try{ localStorage.setItem("ps.routegeo",JSON.stringify(GEO.cache)); }catch(e){} }
+function geoReady(){ clearTimeout(GEO.t); GEO.t=setTimeout(()=>{ updateMapMarks(); if(LIVE.map) liveDrawTrip(); },80); }
+/* returns [[lat,lon],...] for the hop, or null while it's being fetched (fetch is kicked off) */
+function hopGeometry(h){
+  if(h.mode!=="road") return [h.from,h.to];
+  const k=geoKey(h);
+  if(GEO.cache[k]) return GEO.cache[k];
+  if(!GEO.pending[k]){
+    GEO.pending[k]=fetch(`${OSRM}${h.from[1]},${h.from[0]};${h.to[1]},${h.to[0]}?overview=full&geometries=geojson`)
+      .then(r=>r.json()).then(j=>{
+        const c=j&&j.routes&&j.routes[0]&&j.routes[0].geometry&&j.routes[0].geometry.coordinates;
+        if(!c||c.length<2) throw new Error("no route");
+        let pts=c.map(q=>[+q[1].toFixed(5),+q[0].toFixed(5)]);
+        pts=rdp(pts,0.0025); if(pts.length>240) pts=rdp(pts,0.006);
+        pts[0]=h.from; pts[pts.length-1]=h.to;
+        GEO.cache[k]=pts; geoSave(); delete GEO.pending[k]; geoReady();
+      }).catch(()=>{ delete GEO.pending[k]; GEO.cache[k]=null; /* fall back to straight for this session */ setTimeout(()=>{ if(GEO.cache[k]===null) delete GEO.cache[k]; },120000); geoReady(); });
+  }
+  return null;
+}
+/* full leg a→b as hops with geometry (straight-line stand-in while roads load) */
+function legGeometry(a,b){
+  return legPlan(a,b).map(h=>{ const g=hopGeometry(h); return {mode:h.mode, pts:g||[h.from,h.to], real:!!g}; });
+}
 function initMap(){
   const stage=$("#map-stage");
   mapSvg = buildMapInto(stage, true);
@@ -859,15 +943,26 @@ function updateMapMarks(){
   sortedStops().forEach(s=>push(s.cityId, s.arrive));
   push(S.trip.departureCity, S.trip.endDate);
   if(seq.length>1){
-    const pts=seq.map(s=>ART[s.id]);
+    /* each leg follows the real road/ferry geometry, projected onto the painting; the leg's
+       endpoints are pinned to the hand-placed city markers so lines meet the dots exactly */
+    const legD=(i)=>{
+      const a=seq[i-1].id, b=seq[i].id, A=ART[a], B=ART[b];
+      const hops=legGeometry(a,b);
+      if(!hops.length) return smoothPath([A,B],false);
+      let pts=[];
+      hops.forEach(h=>{ const pp=h.pts.map(q=>projectArt(q[0],q[1])); pts=pts.length? pts.concat(pp.slice(1)) : pp; });
+      pts[0]=A; pts[pts.length-1]=B;
+      return pts.length>2? "M "+pts.map(q=>q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" L ") : smoothPath(pts,false);
+    };
+    const legs=seq.map((_,i)=>i? legD(i) : "");
     if(f){
       let k=0;
       for(let i=0;i<seq.length;i++) if(seq[i].d<=f) k=i;
-      routeDoneEl.setAttribute("d", k>0? smoothPath(pts.slice(0,k+1),false) : "");
-      routeEl.setAttribute("d", k<seq.length-1? smoothPath(pts.slice(k),false) : "");
+      routeDoneEl.setAttribute("d", legs.slice(1,k+1).join(" "));
+      routeEl.setAttribute("d", legs.slice(k+1).join(" "));
     }else{
       routeDoneEl.setAttribute("d","");
-      routeEl.setAttribute("d", smoothPath(pts,false));
+      routeEl.setAttribute("d", legs.slice(1).join(" "));
     }
   }else{ routeEl.setAttribute("d",""); routeDoneEl.setAttribute("d",""); }
   /* day scrubber */
