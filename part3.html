@@ -1600,6 +1600,7 @@ function renderItin(){
       ${nightsPlanned}/${totalNights} nights placed</p>`;
   if(!days.length){ wrap.innerHTML=head+`<div class="empty">Set your trip dates on the home screen first.</div>`; return; }
   const iv=UI.itinView||"list";
+  head+=tripCostHtml();
   head+=`<div class="wallet-seg" role="tablist" style="max-width:520px">
     <button class="wseg" data-iview="list" aria-pressed="${iv==="list"}">☰ Day list</button>
     <button class="wseg" data-iview="cal" aria-pressed="${iv==="cal"}">🗓 Calendar</button>
@@ -1841,6 +1842,48 @@ function priceNum(v){
   return m? parseFloat(m[0].replace(",",".")) : 0;
 }
 function chkPrice(s){ return (s.pr!=null && s.pr!=="") ? +s.pr : priceNum(s.bk && s.bk.price); }
+/* A typed price → euros. "$219.79" is dollars (converted at FX_RATE), "€713 ($822 both)" takes the
+   first amount, "~€13 each" is 13. Money is stored as typed; only the total converts. */
+function priceEur(v){
+  if(v==null||v==="") return 0;
+  const str=String(v).replace(/[.,](\d{3})\b/g,"$1");
+  const m=str.match(/([€$£]|usd|eur|us\$)?\s*(\d+(?:[.,]\d{1,2})?)\s*(€|\$|usd|eur|dollars?|euros?)?/i);
+  if(!m) return 0;
+  const n=parseFloat(m[2].replace(",","."));
+  const cur=((m[1]||"")+(m[3]||"")).toLowerCase();
+  if(/\$|usd|dollar/.test(cur)) return n/FX_RATE;
+  if(/£/.test(cur)) return n*1.17;
+  return n;
+}
+const COST_GROUPS=[
+  {k:"flight",   l:"Flights",   t:["flight"]},
+  {k:"stay",     l:"Lodging",   t:["hotel","airbnb"]},
+  {k:"transport",l:"Transport", t:["train","other"]},
+  {k:"ticket",   l:"Tickets",   t:["ticket"]},
+  {k:"food",     l:"Food",      t:["restaurant"]},
+];
+function tripCost(){
+  const g={}; COST_GROUPS.forEach(x=>g[x.k]={eur:0,n:0});
+  let total=0, priced=0;
+  S.trip.bookings.forEach(b=>{
+    const e=priceEur(b.price); if(!e) return;
+    const grp=COST_GROUPS.find(x=>x.t.includes(b.type))||COST_GROUPS[2];
+    g[grp.k].eur+=e; g[grp.k].n++; total+=e; priced++;
+  });
+  return {total, priced, all:S.trip.bookings.length, groups:g};
+}
+function tripCostHtml(){
+  const c=tripCost();
+  const chips=COST_GROUPS.filter(x=>c.groups[x.k].n).map(x=>
+    `<span class="cost-chip"><b>${money0(c.groups[x.k].eur)}</b> ${esc(x.l)} <small>· ${c.groups[x.k].n}</small></span>`).join("");
+  const budget=S.trip.budget? ` <span class="cost-budget">of ${money0(+S.trip.budget)} budget${c.total>+S.trip.budget?" · over":""}</span>`:"";
+  return `<div class="cost-card">
+    <div class="cost-top"><span class="label">Trip cost so far</span>${curToggle()}</div>
+    <div class="cost-total">${money0(c.total)}${budget}</div>
+    <div class="cost-sub">from ${c.priced} of ${c.all} entries with a price · dollars converted at ${FX_RATE.toFixed(2)}${FX_LIVE?" (live)":""}</div>
+    ${chips?`<div class="cost-chips">${chips}</div>`:""}
+  </div>`;
+}
 function planBlocks(blocks, cityName){
   return `<div class="plan-blocks">${blocks.map(b=>`<div class="plan-block"><h4>${esc(b.h)}</h4><ul>${
     b.items.map(i=>`<li><b>${esc(i.n)}</b>${PRICE(i.p)}${cityName?
