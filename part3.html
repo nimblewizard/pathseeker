@@ -315,7 +315,9 @@ const LIVE_CATS={
   hotel:  {q:'["tourism"~"hotel|guest_house|hostel|bed_and_breakfast|apartment"]', col:"#7A5C2E", label:"Hotels"},
   sight:  {q:'["tourism"~"attraction|museum|viewpoint|gallery|artwork"]', col:"#5B7A2E", label:"Attractions"},
   park:   {q:'["leisure"~"park|garden"]', col:"#2E7A55", label:"Parks"},
-  transit:{q:'["railway"~"station|halt|subway_entrance|tram_stop"]', col:"#2E4E7A", label:"Transit"},
+  train:  {q:['["railway"~"^(station|halt)$"]["station"!="subway"]["subway"!="yes"]'], col:"#2E4E7A", label:"Train stations", z:10},
+  metro:  {q:['["railway"="station"]["station"="subway"]','["railway"="subway_entrance"]','["railway"="tram_stop"]'], col:"#7A2E6C", label:"Metro & tram", z:12},
+  pier:   {q:['["amenity"="ferry_terminal"]','["man_made"="pier"]["name"]','["mooring"="ferry"]'], col:"#1F7A8C", label:"Ferry piers", z:10},
 };
 function liveNote(html){ $("#live-map").innerHTML=`<div class="live-note">${html}</div>`; }
 function initLiveMap(){
@@ -542,13 +544,15 @@ async function liveSearch(){
 function fetchPOIs(){
   if(!LIVE.map||!LIVE.cat) return;
   if(LIVE.reading) return;   /* never redraw markers while the user is reading a popup */
-  if(LIVE.map.getZoom()<13){
+  const minZ=(LIVE_CATS[LIVE.cat].z||13);
+  if(LIVE.map.getZoom()<minZ){
     $("#map-hint").innerHTML=`Zoom in closer to see ${esc(LIVE_CATS[LIVE.cat].label.toLowerCase())} · map data © OpenStreetMap contributors`;
     LIVE.poiLayer.clearLayers(); return;
   }
   const b=LIVE.map.getBounds(), key=LIVE.cat, cat=LIVE_CATS[key];
   const bbox=`(${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()})`;
-  const q=`[out:json][timeout:15];(node${cat.q}${bbox};way${cat.q}${bbox};);out center 150;`;
+  const filters=Array.isArray(cat.q)? cat.q : [cat.q];
+  const q=`[out:json][timeout:15];(${filters.map(f=>`node${f}${bbox};way${f}${bbox};`).join("")});out center 150;`;
   $("#map-hint").textContent="Searching this area…";
   /* hard client timeout — the public mirrors sometimes accept a request and then stall */
   const ac=new AbortController();
@@ -622,8 +626,9 @@ function wireLiveFilter(){
         if(d<bd){ bd=d; best=[ct.lat,ct.lon]; }
       });
       const farKm = Math.sqrt(bd)*111;   /* rough degrees → km */
-      if(best && (LIVE.map.getZoom()<13 || farKm>150)){
-        LIVE.map.flyTo(best,15);         /* moveend triggers the search on arrival */
+      const minZ=LIVE_CATS[cat].z||13;
+      if(best && (LIVE.map.getZoom()<minZ || farKm>150)){
+        LIVE.map.flyTo(best, minZ<13? Math.max(minZ,11) : 15);   /* moveend triggers the search on arrival */
         return;
       }
     }
