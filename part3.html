@@ -2330,7 +2330,7 @@ function renderPlan(){
   const pkDone=pkAll.filter(i=>S.trip.packing[i.id]).length;
   h+=`<section class="plan-section" id="p-pack">
     <h2 class="serif">Packing list</h2>
-    <p class="plan-lead">Built from your route — mountain evenings, coast days, strict churches and one zipline.
+    <p class="plan-lead">Built from your route — lake evenings, train days, strict churches and ferry decks.
       <b>${pkDone} of ${pkAll.length} packed.</b></p>
     <div class="plan-grid2">
       ${PACK.map(g=>`<div class="plan-panel"><h3>${esc(g.h)}</h3>
