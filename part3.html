@@ -1724,6 +1724,7 @@ function chkMatchBooking(item){
     (!kw || kw.test(b.name+" "+(b.notes||""))));
 }
 function chkState(item){
+  if(!item) return {st:"todo", pr:undefined, bk:null, auto:false};
   const raw=S.trip.checklist[item.id];
   const o = raw===true ? {st:"booked"} : (raw && typeof raw==="object" ? raw : {});
   const bk=chkMatchBooking(item);
@@ -2108,10 +2109,12 @@ function lintTrip(){
   /* paperwork deadlines */
   const daysTo=Math.round((pD(S.trip.startDate)-pD(todayISO()))/864e5);
   if(daysTo>0){
-    const idp=chkState(CHECKLIST.find(i=>i.id==="idp"));
-    if(daysTo<35 && !(idp.st==="booked"||idp.st==="paid"))
+    const idpItem=CHECKLIST.find(i=>i.id==="idp");            /* only exists on routes with a rental car */
+    const idp=idpItem? chkState(idpItem) : null;
+    if(idp && daysTo<35 && !(idp.st==="booked"||idp.st==="paid"))
       out.push({sev:daysTo<21?"warn":"info", msg:`International Driving Permits take 2+ weeks at AAA — ${daysTo} days to departure.`});
-    const et=chkState(CHECKLIST.find(i=>i.id==="etias"));
+    const etItem=CHECKLIST.find(i=>i.id==="etias");
+    const et=etItem? chkState(etItem) : {st:"paid"};
     if(daysTo<30 && !(et.st==="booked"||et.st==="paid"))
       out.push({sev:"info", msg:`ETIAS isn't marked done — the application takes minutes (${daysTo} days out).`});
   }
