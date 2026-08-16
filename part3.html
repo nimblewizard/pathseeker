@@ -196,9 +196,11 @@ const TT = {
  "milan|santostefano":"6h by car — break the journey",
  "castelmezzano|naples":"2h30 by car",
  "como|venice":"3h45 by train via Milano Centrale (Trenord 64m + Frecciarossa 2h15, 45–60 min buffer)",
- "matera|venice":"9h — coach (Itabus/FlixBus), or train to Bari + onward; the trip's big transfer",
- "amalfi|matera":"4h — Itabus coach to Salerno + Travelmar ferry (35m)",
- "amalfi|rome":"3h — Travelmar ferry to Salerno + high-speed train to Roma Termini",
+ "matera|venice":"7h30 by car — A13/A14 down the Adriatic; break it with the open night",
+ "c_openroad|venice":"4h by car — A13 to Bologna, A14 down the Adriatic; stop where the day feels right",
+ "c_openroad|matera":"3h30 by car — A14 to Bari, then SS96/SS99 inland to Matera",
+ "amalfi|matera":"3h45 by car — A2 to Salerno, then the SS163 coast road",
+ "amalfi|rome":"3h30 by car — coast road to Salerno, then A3/A1; drop the car at FCO",
  "amalfi|salerno":"35m by ferry",
 };
 const travelInfo=(a,b)=> TT[[a,b].sort().join("|")] || null;
@@ -760,8 +762,8 @@ const LL_SALERNO=[40.6767,14.7594], LL_MILANC=[45.4862,9.2044], LL_BARI=[41.1171
 const LEG_VIA={
   "como>venice":  [{ll:LL_MILANC,mode:"road"},{mode:"road"}],
   "venice>matera":[{ll:LL_BARI,mode:"road"},{mode:"road"}],
-  "matera>amalfi":[{ll:LL_SALERNO,mode:"road"},{mode:"ferry"}],
-  "amalfi>rome":  [{ll:LL_SALERNO,mode:"ferry"},{mode:"road"}],
+  "matera>amalfi":[{ll:LL_SALERNO,mode:"road"},{mode:"road"}],
+  "amalfi>rome":  [{ll:LL_SALERNO,mode:"road"},{mode:"road"}],
   "amalfi>naples":[{mode:"ferry"}],
   "amalfi>sorrento":[{mode:"ferry"}],
   "naples>palermo":[{mode:"air"}], "palermo>rome":[{mode:"air"}], "rome>taormina":[{mode:"air"}],
@@ -2347,9 +2349,10 @@ function renderPlan(){
     "milan>venice":"Frecciarossa & Italo run all day, roughly every 30 min from ~6 AM. Book 2–3 months out and morning seats are ~€25–35; day-of can triple.",
     "milan>como":"Trenord regionals to Varenna-Esino roughly hourly (Tirano/Sondrio line); ~€7, buy on the app or day-of. Aim for 8:30–9:30.",
     "como>venice":"Trenord back to Centrale hourly; then Frecciarossa/Italo to Venezia S. Lucia every ~30 min. Book the fast train with a 45–60 min buffer after the regional.",
-    "venice>matera":"Book first. Itabus/FlixBus coaches run Venice → Bari/Matera (long, often overnight or full-day); or Frecciarossa Venice → Bari (~7h) + FAL train/coach to Matera (~1h30). Pick from the timetable nearest travel.",
-    "matera>amalfi":"Itabus Matera (Via Don Luigi Sturzo) → Salerno (Piazza della Concordia) ~2h; Travelmar Salerno → Amalfi runs several times daily in season, ~35 min. Confirm the Sep 28 schedule before booking.",
-    "amalfi>rome":"Morning Travelmar to Salerno (~35 min, weather permitting; SITA bus backup), then Frecciarossa/Italo Salerno → Roma Termini ~2h, several per day — book ahead.",
+    "venice>c_openroad":"Collect the rental at Piazzale Roma or Mestre by ~9 AM (rentals open 8–8:30). A13 → Bologna → A14; tolls to Bari ~€60. Tonight is unbooked on purpose — decide the stop by mid-afternoon and book on the spot.",
+    "c_openroad>matera":"A14 to Bari, then SS96/SS99 to Matera — 3–4 h from most Adriatic stops. Reach the sassi by late afternoon; park on the rim.",
+    "matera>amalfi":"~3½–4 h: A2 to Salerno, SS163 from Vietri. Leave mid-morning for daylight on the corniche; hand the car to the hotel garage on arrival.",
+    "amalfi>rome":"~3½ h: coast road to Salerno, then A3/A1. Leave after breakfast to reach Rome by lunchtime; garage the car (or drop at Termini) — return at FCO Oct 2 by ~10:45.",
     "naples>rome":"High-speed trains several times an hour, ~1h10. Booking ahead roughly halves the fare.",
   };
   const LEG_LINKS={
