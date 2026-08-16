@@ -1213,14 +1213,16 @@ function renderItin(){
       ${nightsPlanned}/${totalNights} nights placed</p>`;
   if(!days.length){ wrap.innerHTML=head+`<div class="empty">Set your trip dates on the home screen first.</div>`; return; }
   const iv=UI.itinView||"list";
-  head+=`<div class="wallet-seg" role="tablist" style="max-width:340px">
+  head+=`<div class="wallet-seg" role="tablist" style="max-width:520px">
     <button class="wseg" data-iview="list" aria-pressed="${iv==="list"}">☰ Day list</button>
     <button class="wseg" data-iview="cal" aria-pressed="${iv==="cal"}">🗓 Calendar</button>
+    <button class="wseg" data-gomap aria-pressed="false" title="Edit stops on the map — the itinerary updates itself">🗺 Trip map</button>
   </div>`;
   if(iv==="cal"){
     wrap.innerHTML=head+calendarHtml()+
       `<p class="times-note">Tap any trip day for its schedule · dots are bookings, ✎ marks journal notes.</p>`;
     wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
+  wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>setView("map")));
     wrap.querySelectorAll("[data-calday]").forEach(c=>{
       const open=()=>openDayDlg(c.dataset.calday);
       c.addEventListener("click",open);
@@ -1295,6 +1297,7 @@ function renderItin(){
   after.forEach(d=>{ rows+=edgeRow(d,"After the trip"); });
   wrap.innerHTML=head+rows;
   wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
+  wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>setView("map")));
   wireBkRows(wrap);
   wrap.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",()=>
     openBookingDlg({date:b.dataset.addday, cityId:b.dataset.city})));
