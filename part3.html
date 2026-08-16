@@ -195,6 +195,11 @@ const TT = {
  "rome|sorrento":"1h drive to Naples (drop the car) + 1h10 by train",
  "milan|santostefano":"6h by car — break the journey",
  "castelmezzano|naples":"2h30 by car",
+ "como|venice":"3h45 by train via Milano Centrale (Trenord 64m + Frecciarossa 2h15, 45–60 min buffer)",
+ "matera|venice":"9h — coach (Itabus/FlixBus), or train to Bari + onward; the trip's big transfer",
+ "amalfi|matera":"4h — Itabus coach to Salerno + Travelmar ferry (35m)",
+ "amalfi|rome":"3h — Travelmar ferry to Salerno + high-speed train to Roma Termini",
+ "amalfi|salerno":"35m by ferry",
 };
 const travelInfo=(a,b)=> TT[[a,b].sort().join("|")] || null;
 const schedLink=(a,b,d)=> "https://www.google.com/search?q="+encodeURIComponent(
@@ -515,6 +520,7 @@ async function liveSearch(){
     if(q.value.trim()!==v) return;
     const seen=new Set(), rows=[];
     list.forEach(j=>{
+      if(/^(state|region|county|country|province|state_district)$/.test(j.addresstype||"")) return;   /* towns, not regions */
       const a=j.address||{}; const name=nomiName(a, j.name||j.display_name.split(",")[0]);
       const key=name+"|"+(a.state||""); if(!name||seen.has(key)) return; seen.add(key);
       rows.push({n:name,lat:+j.lat,lon:+j.lon,region:a.state||a.county||""});
@@ -970,7 +976,7 @@ function renderPanel(){
     </div>`;
   p.classList.remove("hidden");
   fillWxSlots(p);
-  const DEP_HINT={milan:"Milano Centrale",venice:"Venezia S. Lucia",rome:"Roma Termini",
+  const DEP_HINT={milan:"Milano Centrale",venice:"Venezia S. Lucia",rome:"Roma Termini",como:"Varenna-Esino",matera:"Matera Centrale",amalfi:"Salerno",
     naples:"Napoli Centrale",florence:"Firenze Santa Maria Novella",turin:"Torino Porta Nuova",
     bologna:"Bologna Centrale",verona:"Verona Porta Nuova",pisa:"Pisa Centrale",
     sorrento:"Sorrento",matera:"Matera Centrale",lecce:"Lecce",palermo:"Palermo Centrale",
@@ -2241,12 +2247,18 @@ function renderPlan(){
   /* schedule guidance + booking links per leg — the trains-and-such booking desk */
   const LEG_SCHED={
     "milan>venice":"Frecciarossa & Italo run all day, roughly every 30 min from ~6 AM. Book 2–3 months out and morning seats are ~€25–35; day-of can triple.",
-    "naples>rome":"High-speed trains several times an hour, ~1h10. Booking ahead roughly halves the fare; any mid-day departure works after the car drop.",
+    "milan>como":"Trenord regionals to Varenna-Esino roughly hourly (Tirano/Sondrio line); ~€7, buy on the app or day-of. Aim for 8:30–9:30.",
+    "como>venice":"Trenord back to Centrale hourly; then Frecciarossa/Italo to Venezia S. Lucia every ~30 min. Book the fast train with a 45–60 min buffer after the regional.",
+    "venice>matera":"Book first. Itabus/FlixBus coaches run Venice → Bari/Matera (long, often overnight or full-day); or Frecciarossa Venice → Bari (~7h) + FAL train/coach to Matera (~1h30). Pick from the timetable nearest travel.",
+    "matera>amalfi":"Itabus Matera (Via Don Luigi Sturzo) → Salerno (Piazza della Concordia) ~2h; Travelmar Salerno → Amalfi runs several times daily in season, ~35 min. Confirm the Sep 28 schedule before booking.",
+    "amalfi>rome":"Morning Travelmar to Salerno (~35 min, weather permitting; SITA bus backup), then Frecciarossa/Italo Salerno → Roma Termini ~2h, several per day — book ahead.",
+    "naples>rome":"High-speed trains several times an hour, ~1h10. Booking ahead roughly halves the fare.",
   };
   const LEG_LINKS={
-    train:[["Trenitalia","https://www.trenitalia.com/en.html"],["Italo","https://www.italotreno.com/en"],["Compare · Omio","https://www.omio.com/trains"]],
+    train:[["Trenitalia","https://www.trenitalia.com/en.html"],["Italo","https://www.italotreno.com/en"],["Trenord","https://www.trenord.it/en/"],["Compare · Omio","https://www.omio.com/trains"]],
     car:[["Auto Europe","https://www.autoeurope.com/"],["DiscoverCars","https://www.discovercars.com/"]],
-    ferry:[["Ferry timetables","https://www.traghettilines.it/en/"]],
+    ferry:[["Travelmar","https://www.travelmar.it/en/"],["Itabus","https://www.itabus.it/en"],["Trenitalia","https://www.trenitalia.com/en.html"]],
+    "":[["Itabus","https://www.itabus.it/en"],["FlixBus","https://www.flixbus.com/"],["Trenitalia","https://www.trenitalia.com/en.html"],["Compare · Omio","https://www.omio.com/"]],
   };
   seq.forEach((s,i)=>{
     if(!i) return;

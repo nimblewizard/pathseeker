@@ -780,22 +780,20 @@ const CITY_BY_ID = Object.fromEntries(CITIES.map(c=>[c.id,c]));
 
 /* ================= PLAN TAB: guide content + concierge checklist ================= */
 const GUIDE = {
- kicker:"A fairy-tale road trip",
- sub:"Hidden hilltop villages, cave cities, castles & coastline — the storybook route through Italy",
+ kicker:"A fairy-tale journey by rail & sea",
+ sub:"A lakeside village, the floating city, a cave city glowing at dusk, and the vertical coast by ferry — the storybook route through Italy, no car needed",
  legNotes:{
-  "milan>venice":"Frecciarossa or Italo from Milano Centrale to Venezia S. Lucia — you step off the train straight onto the Grand Canal. Stay car-free in Venice; the rental comes later.",
-  "venice>santostefano":"Pick up the car at Venezia Mestre. The trip's longest drive — break it in Ravenna (1.5h in) for the shimmering 6th-century Byzantine mosaics of San Vitale.",
-  "santostefano>matera":"Down from the Gran Sasso, across to Basilicata. Time it to reach the sassi at golden hour.",
-  "matera>sorrento":"Swing west toward the coast; optional detour to the Greek temples of Paestum (~2h from Matera, then ~1.5h on).",
-  "sorrento>rome":"Drive to Naples (~1h), drop the rental there to skip Rome's ZTL maze, then Frecciarossa/Italo to Roma Termini (~1h10)."},
+  "milan>como":"Trenord regional from Milano Centrale to Varenna-Esino — direct, ~64 min, roughly hourly. Leave around 8:30–9:30, drop the bags at the hotel and you're on the lake by 11.",
+  "como>venice":"Slow morning on the lake, then Trenord back to Milano Centrale (~64 min). Allow 45–60 min for the connection, then Frecciarossa/Italo to Venezia S. LUCIA — not Mestre — and step off the train onto the Grand Canal by mid-afternoon.",
+  "venice>matera":"The trip's big transfer. Compare the coach (Itabus/FlixBus toward Matera) with train to Bari + onward regional/coach; fewer changes beats faster with luggage. Book this leg first, from the timetable closest to travel.",
+  "matera>amalfi":"Itabus coach Matera (Via Don Luigi Sturzo) → Salerno (Piazza della Concordia), then the Travelmar ferry from Molo Concordia — ~35 min — so you arrive in Amalfi by sea.",
+  "amalfi>rome":"Morning Travelmar ferry back to Salerno (SITA bus is the weather backup), then a high-speed train Salerno → Roma Termini. Aim to be in Rome by lunchtime with the whole afternoon ahead."},
  days:{
   milan:{vibe:"One golden evening in the fashion capital — first espresso, first duomo.",
-   getting:"Land MXP 7:30 AM → Malpensa Express to Centrale or Cadorna (~40–50 min, every 30 min, ~€13) → drop bags at the hotel → Duomo by midday. The full step-by-step lives in your Sep 22 itinerary notes.",
+   getting:"Land MXP 7:30 AM → Malpensa Express to Centrale or Cadorna (~40–50 min, every 30 min, ~€13) → drop bags at CVM 19 → Duomo by midday. If you're carrying luggage, a taxi from Centrale beats hauling bags through Metro changes. The full step-by-step lives in your Sep 22 itinerary notes.",
    blocks:[
-    {h:"Where to stay",items:[
-     {n:"Room Mate Giulia",p:3,d:"Designer rooms literally next to the Duomo."},
-     {n:"Hotel Gran Duca di York",p:2,d:"Elegant little palazzo five minutes from the Duomo."},
-     {n:"Ostello Bello Grande",p:1,d:"Italy's most-loved hostel — private rooms, near Centrale."}]},
+    {h:"Where you're staying",items:[
+     {n:"CVM 19 – Boutique Rooms",p:2,d:"Booked · Corso Ventidue Marzo 19 · check-in 3 PM, bags held before that."}]},
     {h:"Where to eat",items:[
      {n:"Luini",p:1,d:"The panzerotto institution behind the Duomo — the perfect first bite of Italy."},
      {n:"Camparino in Galleria",p:2,d:"The historic bar where Campari was born — aperitivo under the glass dome."},
@@ -803,12 +801,34 @@ const GUIDE = {
     {h:"What to do",items:[
      {n:"Duomo rooftop",d:"Walk among the marble spires — your 12:30 timed entry."},
      {n:"Galleria Vittorio Emanuele II",d:"Spin your heel on the bull mosaic for luck."},
-     {n:"Evening passeggiata",d:"Aperitivo in Brera's lanes or along the Navigli canals."}]},
+     {n:"Brera, if energy allows",d:"Cobbled art-school lanes for a wander before dinner."},
+     {n:"Evening in Navigli (optional)",d:"Canalside aperitivo — or an early night; tomorrow the lake."}]},
     {h:"Why just one night",items:[
-     {n:"The warm-up act",d:"You'll be jet-lagged — one rooftop, one aperitivo, one good sleep, then the lagoon."}]}],
-   callout:"<b>Before you fly:</b> book Duomo + rooftop tickets (duomomilano.it) and tell the hotel you'll drop bags around 10:30 AM."},
-  venice:{vibe:"Floating city of the imagination — get gloriously lost, then escape the crowds to the rainbow island of Burano.",
-   getting:"Train from Milano Centrale, ~2h15 — you'll be dropping bags by early afternoon.",
+     {n:"The warm-up act",d:"You'll be jet-lagged — one rooftop, one aperitivo, one good sleep, then the lake."}]}],
+   callout:"<b>Before you fly:</b> book Duomo + rooftop tickets (duomomilano.it) and tell the hotel you'll drop bags around 10:30 AM. Keep the morning-after simple: Centrale → Varenna is a 64-minute regional."},
+  como:{vibe:"A pastel fishing village on Lake Como, a ferry across to Bellagio, and the waterfront to yourselves once the day-trippers leave.",
+   getting:"Trenord from Milano Centrale to Varenna-Esino, ~64 min, roughly hourly — no car needed. Arrive 10–11 AM, leave the bags at the hotel and walk down to the lake.",
+   blocks:[
+    {h:"Where to stay",items:[
+     {n:"Hotel Villa Cipressi",p:3,d:"Terraced lakeside gardens right in Varenna."},
+     {n:"Albergo Milano",p:2,d:"Small, beloved, balconies over the water in the old lanes."},
+     {n:"Hotel Olivedo",p:1,d:"Old-fashioned charm opposite the ferry pier — handy for Bellagio."},
+     {n:"Where to base",d:"In Varenna village itself, close to the pier — one night, minimal luggage-hauling."}]},
+    {h:"Where to eat",items:[
+     {n:"Il Cavatappi",p:2,d:"Six tables in a lane off the piazza — book ahead."},
+     {n:"Nilus Bar",p:1,d:"Lunch or an aperitivo on the water's edge."},
+     {n:"Bar Il Molo",p:1,d:"Sunset drinks by the pier."},
+     {n:"Taste",d:"Missoltini (sun-dried lake fish), risotto with perch, and a glass of Valtellina red."}]},
+    {h:"What to do",items:[
+     {n:"Varenna waterfront + Passeggiata degli Innamorati",d:"The 'lovers' walk' along the lake, then the stairways of the old town."},
+     {n:"Ferry to Bellagio",d:"Central-lake boat across; give Bellagio 3–4 hours — waterfront, historic centre, gardens if timing works. Back late afternoon."},
+     {n:"Villa Monastero (next morning)",d:"Botanic garden and villa on the water — only if opening hours fit before the train."},
+     {n:"Evening in Varenna",d:"Dinner overlooking the lake, then a sunset / night walk on the waterfront."}]},
+    {h:"Keep it simple",items:[
+     {n:"Don't add Como city",d:"One night here means Varenna + Bellagio, nothing else — that's the whole point."}]}],
+   callout:"<b>Ferries:</b> Sep 23 is inside the published 2026 summer Lake Como timetable — check the day's boats at the pier or navigazionelaghi.it. <b>Next morning:</b> breakfast over the lake, then Trenord back to Milano Centrale for the Venice train — no dawn departure needed."},
+  venice:{vibe:"Floating city of the imagination — arrive by train onto the Grand Canal, get gloriously lost, and walk it after dark.",
+   getting:"Varenna → Milano Centrale (Trenord ~64 min), 45–60 min buffer, then Frecciarossa/Italo to Venezia Santa Lucia — mid-afternoon arrival right in the historic city.",
    blocks:[
     {h:"Where to stay",items:[
      {n:"Oltre il Giardino",p:3,d:"Romantic garden villa in quiet San Polo, once Alma Mahler's home."},
@@ -821,159 +841,136 @@ const GUIDE = {
      {n:"Osteria al Squero",p:1,d:"Cicchetti facing the gondola boatyard."},
      {n:"Alle Testiere",p:2,d:"Tiny, superb seafood; reserve well ahead."},
      {n:"Bacareto Da Lele",p:1,d:"€1 wine and panini with the students; pure local."}]},
-    {h:"What to do",items:[
-     {n:"Wander with no map",d:"Dawn or dusk — the real Venice magic."},
-     {n:"St. Mark's & Doge's Palace",d:"Book skip-the-line slots."},
-     {n:"Rialto market + traghetto",d:"Cross the Grand Canal standing in a €2 gondola."},
-     {n:"Libreria Acqua Alta",d:"The flooded bookshop with a gondola full of books."}]},
-    {h:"Fairy-tale detour",items:[
-     {n:"Burano",d:"Vaporetto ~45 min — candy-colored fishermen's houses and lace. Storybook perfection."},
-     {n:"Torcello",d:"The lagoon's oldest settlement — golden mosaics and Hemingway's haunt."}]}],
-   callout:"<b>Tip:</b> arrive, check in, get lost before dinner. Book the Milan→Venice train ahead for cheap reserved seats."},
-  santostefano:{vibe:"A restored medieval hamlet at 1,250m and a ruined mountaintop castle straight out of a film set — the single most storybook stop of the trip.",
-   getting:"The trip's longest drive (~4.5h from Venezia Mestre, Ravenna break recommended). Worth every kilometer.",
-   blocks:[
-    {h:"Where to stay",items:[
-     {n:"Sextantio Albergo Diffuso",p:3,d:"Rooms in restored stone village houses, candlelit, no TVs — a genuine step back in time."},
-     {n:"Locanda Sotto gli Archi",p:2,d:"Cozy inn + kitchen in the village."}]},
-    {h:"Where to eat",items:[
-     {n:"Sextantio's Locanda",p:2,d:"Candlelit Abruzzese tasting of mountain ingredients."},
-     {n:"Rifugio della Rocca",p:1,d:"Simple plates at the foot of the castle."},
-     {n:"Taste",d:"Santo Stefano lentils, arrosticini, maccheroni alla chitarra, aged pecorino."}]},
-    {h:"What to do",items:[
-     {n:"Rocca Calascio",d:"One of Italy's highest castles (1,460m) — Ladyhawke's film set. Short steep walk; unreal at sunset."},
-     {n:"Campo Imperatore",d:"The \"Little Tibet\" plateau with wild horses, 20 min away."},
-     {n:"The hamlet at dusk",d:"When the day-trippers leave, it's yours."}]},
-    {h:"Relaxed alternative",items:[
-     {n:"Termoli",d:"Prefer a ~3h coastal day instead? A walled seaside borgo of pastel lanes — less epic, more easygoing."}]}],
-   callout:"<b>Pack for altitude:</b> Santo Stefano sits at 1,250m — evenings are properly crisp even in September."},
+    {h:"Arrival afternoon (Sep 24)",items:[
+     {n:"Cannaregio → Rialto → Grand Canal → San Marco",d:"Drop bags and wander on foot; small streets over big sights today."},
+     {n:"Dinner off the San Marco strip",d:"Then a first walk through Venice after dark."}]},
+    {h:"Full Venice day (Sep 25)",items:[
+     {n:"Early: Piazza San Marco",d:"Basilica area and Doge's Palace before the day-trippers land — book slots."},
+     {n:"Midday: Castello or Cannaregio",d:"Cicchetti lunch; cross the Grand Canal by vaporetto or traghetto."},
+     {n:"Afternoon: Dorsoduro",d:"Canals, campos, quiet churches; optional vaporetto ride down the Grand Canal."},
+     {n:"Evening",d:"Sunset aperitivo, dinner, second night walk. No transfers today — that's deliberate."}]}],
+   callout:"<b>Tip:</b> don't turn Venice into a checklist — leave time to wander. Book the Milan→Venice train ahead for cheap reserved seats, and the Venice→Matera leg even earlier."},
   matera:{vibe:"The sassi — a honeycomb of cave dwellings carved into the rock for 9,000 years. Sleeping in a cave hotel here is unforgettable.",
-   getting:"Arrive in time to watch the sassi glow at golden hour.",
+   getting:"The longest transfer of the trip: coach or train + coach via Bari from Venice. Arrive, check in, dinner — then a first walk through the illuminated Sassi.",
    blocks:[
     {h:"Where to stay",items:[
      {n:"Sextantio Le Grotte della Civita",p:3,d:"The definitive candlelit cave hotel, carved into the cliff."},
      {n:"Aquatio Cave Luxury Hotel & Spa",p:3,d:"Caves plus a subterranean spa."},
-     {n:"Caveoso Hotel",p:2,d:"Lovely sassi views at a gentler price."}]},
+     {n:"Caveoso Hotel",p:2,d:"Lovely sassi views at a gentler price."},
+     {n:"Where to base",d:"In or immediately beside the Sassi — a cave room is the experience."}]},
     {h:"Where to eat",items:[
      {n:"Trattoria del Caveoso",p:1,d:"Honest Lucanian home cooking in a cave."},
      {n:"La Lopa",p:2,d:"Famous ferricelli pasta with red-pepper sauce."},
      {n:"Regiacorte",p:2,d:"Terrace over the sassi for a special dinner."},
      {n:"Vitantonio Lombardo",p:3,d:"Michelin-starred, for a blow-out."},
      {n:"Taste",d:"Peperoni cruschi, pane di Matera, fave e cicoria, orecchiette."}]},
-    {h:"What to do",items:[
-     {n:"Sasso Caveoso & Barisano",d:"Wander the two sassi and the rock-cut chiese rupestri with faded frescoes."},
-     {n:"Casa Grotta",d:"A preserved cave home showing how families (and animals) once lived."},
-     {n:"Belvedere Murgia Timone",d:"The postcard panorama across the gorge — magic at sunset. (Bond's No Time to Die filmed here.)"}]},
+    {h:"Full day (Sep 27)",items:[
+     {n:"Morning: Sasso Caveoso",d:"Cave dwellings, rock churches, stairways and overlooks."},
+     {n:"Midday: lunch in the Sassi, then Sasso Barisano",d:""},
+     {n:"Afternoon: the Gravina",d:"Ravine viewpoints; optional hike across to the Murgia rock churches if weather and legs allow."},
+     {n:"Sunset + night",d:"A panoramic belvedere for sunset, dinner, then the illuminated old city once more."}]},
     {h:"Practical",items:[
-     {n:"Park at the top",d:"The sassi are a maze of steps, not roads — comfortable shoes essential."}]}]},
-  sorrento:{vibe:"Lemon groves, pastel cliffside towns and turquoise sea — the glamorous counterpoint to the wild south.",
-   getting:"Base in Sorrento: easy parking, ferries, trains and dining — far less white-knuckle than staying on the corniche.",
+     {n:"Two nights on purpose",d:"So the middle day is complete and unrushed — no intercity travel."},
+     {n:"Stairs, not roads",d:"The sassi are a maze of steps — comfortable shoes and light bags."}]}],
+   callout:"<b>Arrival night:</b> keep sightseeing light after the long journey — one walk to an overlook over Sasso Barisano / Sasso Caveoso is enough."},
+  amalfi:{vibe:"The vertical coast, arrived at by sea — Amalfi as home base, Positano and Ravello as day trips by boat and bus.",
+   getting:"Coach Matera → Salerno, then the Travelmar ferry from Molo Concordia (~35 min) into Amalfi harbour. Walk or taxi up to the hotel depending on how high it sits.",
    blocks:[
     {h:"Where to stay",items:[
-     {n:"Grand Hotel Excelsior Vittoria",p:3,d:"Cliff-top grande dame with citrus gardens over the bay."},
-     {n:"Maison Tofani",p:3,d:"Chic boutique in Sorrento's old town."},
-     {n:"Hotel Antiche Mura",p:2,d:"Central, garden pool, great value."}]},
+     {n:"Hotel Santa Caterina",p:3,d:"Cliffside grande dame just outside town, lift to the sea."},
+     {n:"Hotel Marina Riviera",p:3,d:"Terraces over the harbour, a short walk from the piazza."},
+     {n:"Hotel Residence",p:2,d:"On the seafront, steps from the ferry."},
+     {n:"Where to base",d:"Amalfi town, low and near the harbour — three nights, ferries at your feet, no hairpin driving."}]},
     {h:"Where to eat",items:[
-     {n:"O'Parrucchiano",p:2,d:"Historic lemon-grove trattoria that claims to have invented cannelloni."},
-     {n:"Da Emilia",p:1,d:"Unfussy seafood on the Marina Grande harbor."},
-     {n:"Il Buco",p:3,d:"Michelin-starred, in a former monk's cellar."},
-     {n:"La Tagliata",p:2,d:"No menu — a mountainside family feast above Positano."}]},
-    {h:"What to do",items:[
-     {n:"Ferry-hop the coast",d:"Sorrento → Positano → Amalfi by boat — skip the traffic, and the coast from the water is the definitive view."},
-     {n:"Ravello",d:"Villa Rufolo and Villa Cimbrone's \"Terrace of Infinity,\" high above the sea."},
-     {n:"Path of the Gods",d:"The cliff-top hike Bomerano → Nocelle — one of Italy's great walks."},
-     {n:"Ruins, optionally",d:"Pompeii, Herculaneum and Vesuvius are close if they call."}]},
+     {n:"Da Gemma",p:2,d:"The Amalfi classic since 1872 — seafood and lemons."},
+     {n:"Marina Grande",p:2,d:"On the beach, family-run for generations."},
+     {n:"Pasticceria Pansa",p:1,d:"Sfogliatelle and lemon everything on the cathedral piazza."},
+     {n:"Da Adolfo (Positano)",p:2,d:"Boat-only beach shack — the long lunch of the trip."}]},
+    {h:"Three days",items:[
+     {n:"Sep 28 · arrive by sea",d:"Cathedral and its staircase, the central piazza, waterfront, dinner. Rest."},
+     {n:"Sep 29 · Positano by ferry",d:"Travelmar across; stairways, beachfront, lanes, a long lunch with a view. Ferry back late afternoon."},
+     {n:"Sep 30 · Ravello",d:"Bus or taxi uphill; Villa Rufolo and/or Villa Cimbrone's Terrace of Infinity, lunch up high, back for a free final coastal evening. Alternative: the Path of the Gods (Travelmar ferry + shuttle to Bomerano) — only with good weather and legs."}]},
     {h:"Practical",items:[
-     {n:"Garage the car",d:"The coast road is slow and stressful, and ZTL rules bite — use ferries and buses."},
-     {n:"Ferry timetables",d:"Confirm the late-September schedule the night before; last boats run early evening."}]}]},
-  rome:{vibe:"The Eternal City to close the loop — ancient ruins, baroque piazzas and the best carbonara of your life, before flying home.",
-   getting:"Arrive early afternoon with the day still ahead of you.",
+     {n:"Ferries beat buses",d:"Confirm the day's Travelmar timetable each evening; weather can cancel sailings — SITA bus is the backup."},
+     {n:"Stairs",d:"Amalfi hotels climb — pack light and check the hotel's height."}]}],
+   callout:"<b>Departure Oct 1:</b> morning ferry to Salerno, then the high-speed train to Rome — book the train, keep the SITA bus as plan B if the sea is rough."},
+  rome:{vibe:"One night, one perfect afternoon in the Eternal City — Ancient Rome by daylight, Trevi after dark, the best carbonara of your life.",
+   getting:"Ferry Amalfi → Salerno, then high-speed Salerno → Roma Termini. Aim to arrive around lunchtime; drop bags and go.",
    blocks:[
     {h:"Where to stay",items:[
      {n:"Hotel de Russie",p:3,d:"A secret garden between Piazza del Popolo and the Spanish Steps."},
      {n:"The Hoxton, Rome",p:2,d:"Stylish and buzzy, near Villa Borghese."},
      {n:"Hotel Artemide",p:2,d:"Polished and central on Via Nazionale."},
-     {n:"Where to base",d:"Monti or the Centro Storico — walk to almost everything."}]},
+     {n:"Where to base",d:"Monti or the Centro Storico — walk to the Colosseum and everything else."}]},
     {h:"Where to eat",items:[
      {n:"Da Enzo al 29",p:2,d:"The Trastevere classic: cacio e pepe, carbonara, carciofi. Go early or queue."},
      {n:"Armando al Pantheon",p:2,d:"Roman institution steps from the Pantheon (reserve)."},
      {n:"Flavio al Velavevodetto",p:2,d:"Roman soul food set into a wall of ancient amphora shards."},
      {n:"Sweet endings",d:"Supplì at Supplizio; gelato at Giolitti or Fatamorgana."}]},
-    {h:"Arrival afternoon",items:[
-     {n:"The classic loop",d:"Pantheon → Piazza Navona → Trevi → Spanish Steps, then dinner in Trastevere."}]},
-    {h:"Full day",items:[
-     {n:"Morning",d:"Colosseum, Forum & Palatine — timed tickets essential."},
-     {n:"Afternoon",d:"Vatican (pre-book) — or with only 1.5 days, savor Ancient Rome instead of racing both."}]}],
-   callout:"<b>Departure, Fri Oct 2:</b> Leonardo Express from Termini reaches FCO in ~32 min. Your flight is 2:20 PM — leave Termini by ~10:45 to be 3h ahead."}},
- daytrips:{matera:{title:"Castelmezzano & Pietrapertosa",when:"Day trip · Sunday",cityId:"castelmezzano",
-  vibe:"Two villages wedged into the jagged spires of the Piccole Dolomiti Lucane.",
-  getting:"~1h each way from Matera. Sunday is ideal — the Flight of the Angel runs weekends this late in the season.",
-  blocks:[
-   {h:"What to do",items:[
-    {n:"Volo dell'Angelo",d:"Soar between the villages on a steel cable at up to 120 km/h (~€45 single / €78 pairs; book ahead)."},
-    {n:"Percorso delle 7 Pietre",d:"The \"Path of the 7 Stones\" — a 2h folklore trail linking the villages."},
-    {n:"Gradinata Normanna",d:"Climb the rock-cut Norman steps for the view."}]},
-   {h:"Where to eat",items:[
-    {n:"Al Becco della Civetta",p:2,d:"Beloved inn of mountain Lucanian cooking (also has rooms)."},
-    {n:"La Locanda di Pietra",p:1,d:"Cozy stop in Pietrapertosa across the valley."}]}],
-  callout:"<b>Verify before you go:</b> the zipline's 2026 calendar isn't published far ahead — confirm the Sunday operating day at volodellangelo.com. Not running? The villages and the trail are worth the trip alone."}},
+    {h:"The one afternoon (Oct 1)",items:[
+     {n:"Colosseum → Forum / Imperial Fora",d:"Timed tickets essential — they sell out."},
+     {n:"Piazza Venezia → Pantheon",d:"Then coffee, then keep walking."},
+     {n:"Trevi Fountain after dark",d:"And the final dinner of the trip."},
+     {n:"Skip the Vatican",d:"With one night, savor Ancient Rome instead of racing both."}]}],
+   callout:"<b>Departure, Fri Oct 2:</b> breakfast, an optional last neighbourhood walk, then Leonardo Express from Termini to FCO (~32 min). Your flight is 2:20 PM — leave Termini by ~10:45 to be 3h ahead."}},
+ daytrips:{},
  gems:[
   {t:"Duomo rooftop",d:"A forest of marble spires above Milan — your first hour in Italy."},
-  {t:"Burano",d:"A lagoon village of rainbow houses and lace — Venice's most enchanting escape."},
-  {t:"Rocca Calascio",d:"A ruined mountaintop castle at 1,460m — literally a film-set fantasy."},
+  {t:"Varenna & Bellagio",d:"Pastel villages on Lake Como, crossed by ferry, kept for yourselves after dark."},
+  {t:"Venice after dark",d:"The floating city with the day-trippers gone — twice."},
   {t:"Matera",d:"A 9,000-year-old cave city glowing gold at dusk; sleep inside the rock."},
-  {t:"Castelmezzano",d:"Houses fused into jagged stone spires — then fly between them by zipline."},
+  {t:"Amalfi by sea",d:"Arriving by ferry with the coast stacked above you — then Positano the same way."},
   {t:"Ravello",d:"Cliff gardens floating above the Amalfi blue at the Terrace of Infinity."}],
  flex:[
-  {b:"Sleep in Castelmezzano.",d:"Trade your 2nd Matera night for Al Becco della Civetta — the RPG village to yourselves after the day-trippers leave."},
-  {b:"Re-add San Leo.",d:"Trim Venice to 1 night and overnight in the Montefeltro fortress village between Venice and Abruzzo — restores the doc's original arc."},
-  {b:"Keep drives shorter.",d:"Swap the Abruzzo mountains for coastal Termoli to hold every leg near 3h — easier driving, but you lose the trip's most magical castle."},
-  {b:"More beach, less capital.",d:"A 3rd Sorrento night and 1 Rome night is possible, but 2 Rome nights is the safer bet before an international departure."},
+  {b:"A second Rome night.",d:"Trade the third Amalfi night for Oct 1 arriving earlier — safer buffer before an international flight, and time for the Vatican."},
+  {b:"Bellagio instead of Varenna.",d:"Sleep on the other side of the ferry — livelier evenings, slightly more day-trippers."},
+  {b:"Path of the Gods.",d:"Swap the Ravello day for the cliff-top hike (Travelmar ferry + shuttle to Bomerano) — weather and legs permitting."},
+  {b:"Rail all the way to Matera.",d:"Frecciarossa Venice → Bari + FAL/coach — longer than the coach but easier on the back; compare when the timetables publish."},
   {b:"A different Italy entirely.",d:"Tuscany/Umbria hill towns (San Gimignano, Orvieto, Civita, Assisi) are an alternate central route — ask your travel agent to redraw it."}],
  essentials:[
-  {t:"Driving & the car",items:[
-   "Pick up in <b>Venezia Mestre</b>, drop in <b>Naples</b> — one-way domestic drops are routine but carry a fee; Auto Europe / DiscoverCars price them well.",
-   "<b>International Driving Permit</b> required alongside your US license (~$20 at AAA). Police can fine you without it.",
-   "<b>ZTL zones</b> (camera-enforced historic centers): never drive into old centers — park at the edge and walk. Hotel inside a ZTL? Give them your plate.",
-   "<b>Autostrada tolls</b> add up — keep a card handy. Confirm fuel type at pickup.",
-   "<b>Amalfi Coast road</b>: base in Sorrento, garage the car, ride ferries instead."]},
-  {t:"Trains, ferries & booking",items:[
-   "<b>Milan→Venice</b> and <b>Naples→Rome</b>: book Frecciarossa (Trenitalia) or Italo ahead for cheaper reserved seats.",
-   "<b>Amalfi ferries</b> run ~April–October — verify the late-September timetable; they beat road traffic and the views win.",
-   "<b>Timed tickets sell out:</b> Flight of the Angel, St. Mark's, Duomo rooftop, Colosseum, Vatican. Reserve popular dinners too.",
-   "<b>Paperwork:</b> ETIAS authorization for both travelers + passports valid 3+ months past your return date. IDPs from AAA before you fly.",
-   "<b>Weather</b> late Sept–early Oct: ~20–25°C days, cool evenings, crisp in Abruzzo; the sea is still swimmable-ish."]}]
+  {t:"Trains, coaches & ferries",items:[
+   "<b>Regional trains</b> (Milan↔Varenna): buy on the Trenord app or at the machine; validate paper tickets. No need to pre-book far ahead.",
+   "<b>High-speed</b> (Milan→Venice, Salerno→Rome): book Frecciarossa/Italo 2–3 months out for cheap reserved seats; always Venezia <b>S. Lucia</b>, never Mestre.",
+   "<b>Venice→Matera</b> is the leg to nail first: Itabus/FlixBus coach, or train to Bari + onward. Fewer changes with luggage beats a faster paper time.",
+   "<b>Amalfi ferries</b> (Travelmar) run ~April–October — check the day's board every evening; weather cancels sailings, SITA buses are the fallback.",
+   "<b>Luggage rule:</b> one carry-on-size bag each — platforms, ferry gangways and Amalfi stairs will thank you."]},
+  {t:"Booking & paperwork",items:[
+   "<b>Book early:</b> Venice→Matera transport, Milan→Venice and Salerno→Rome trains, hotels in Varenna, Venice, Matera (Sassi) and Amalfi, timed Colosseum + Doge's Palace slots.",
+   "<b>Can stay flexible:</b> Milan↔Varenna regionals, vaporetti, Lake Como and Amalfi ferries (still check the day's timetable).",
+   "<b>Paperwork:</b> ETIAS authorization for both travelers + passports valid 3+ months past your return date.",
+   "<b>Timed tickets sell out:</b> Duomo rooftop, St. Mark's / Doge's Palace, Colosseum. Reserve popular dinners too.",
+   "<b>Weather</b> late Sept–early Oct: ~20–25°C days, cool lake and ferry evenings; the sea is still swimmable off Amalfi."]}]
 };
-/* smart packing list — built from the route: 10 nights, mountain evenings, coast, churches, zipline */
+/* smart packing list — built from the route: 10 nights, lake, lagoon, cave city, coast by ferry, churches */
 const PACK=[
  {h:"Papers & money", items:[
   {id:"pk-pass", n:"Passports", d:"valid 3+ months past Oct 2"},
-  {id:"pk-idp", n:"International Driving Permits ×2", d:"required with your US licenses"},
   {id:"pk-etias", n:"ETIAS approval", d:"screenshot it + one printout"},
   {id:"pk-ins", n:"Insurance card / policy number", d:"also tuck it in the document wallet"},
   {id:"pk-cards", n:"Two credit cards + a debit card", d:"tap-to-pay covers nearly everything"},
   {id:"pk-cash", n:"~€50 starter cash", d:"markets, small bars, parking meters"},
   {id:"pk-copies", n:"Passport photocopies", d:"kept separate from the real ones"}]},
  {h:"Clothing — layers win", items:[
-  {id:"pk-outfits", n:"7–8 day outfits", d:"10 nights — plan one laundry drop in Sorrento"},
-  {id:"pk-layers", n:"Warm layer + light jacket", d:"Abruzzo nights dip toward 10°"},
+  {id:"pk-outfits", n:"7–8 day outfits", d:"10 nights — plan one laundry drop in Amalfi"},
+  {id:"pk-layers", n:"Warm layer + light jacket", d:"lake evenings and ferry decks get breezy"},
   {id:"pk-rain", n:"Packable rain shell", d:"late September can turn"},
-  {id:"pk-modest", n:"Shoulder cover + knee-length option", d:"Duomo, St. Mark's & Vatican dress codes"},
-  {id:"pk-swim", n:"Swimwear", d:"the sea is still warm off Sorrento"},
+  {id:"pk-modest", n:"Shoulder cover + knee-length option", d:"Duomo & St. Mark's dress codes"},
+  {id:"pk-swim", n:"Swimwear", d:"the sea is still warm off Amalfi and Positano"},
   {id:"pk-shoes", n:"Broken-in walking shoes", d:"sassi stairs and cobblestones eat soles"},
   {id:"pk-nice", n:"One nicer evening outfit", d:"Venice dinner deserves it"},
   {id:"pk-hat", n:"Sun hat & sunglasses", d:"the light is half the reason you're going"}]},
  {h:"Tech", items:[
   {id:"pk-adapter", n:"EU plug adapters ×2 (type C/F/L)", d:"Italian sockets vary — type L is the odd one"},
   {id:"pk-bank", n:"Power bank", d:"live-map days drain phones fast"},
+  {id:"pk-luggage", n:"One carry-on-size bag each", d:"train platforms, ferry gangways and Amalfi stairs — pack light"},
   {id:"pk-esim", n:"eSIM / roaming plan", d:"set up before wheels-up"},
   {id:"pk-offline", n:"Offline maps + Italian language pack", d:"Google Maps areas + Translate offline"},
-  {id:"pk-cables", n:"Cables + car charger", d:"the driving days are long"}]},
+  {id:"pk-cables", n:"Cables", d:"the Venice → Matera day is long — keep everything charged"}]},
  {h:"Health & misc", items:[
   {id:"pk-meds", n:"Prescriptions in original packaging", d:"plus a small first-aid kit"},
   {id:"pk-sun", n:"Sunscreen & after-sun", d:""},
-  {id:"pk-motion", n:"Motion-sickness tabs", d:"the Amalfi road is a corkscrew"},
-  {id:"pk-daypack", n:"Day pack", d:"zipline day and city wandering"},
+  {id:"pk-motion", n:"Motion-sickness tabs", d:"ferries and the SITA coast bus, just in case"},
+  {id:"pk-daypack", n:"Day pack", d:"Bellagio, Positano and Ravello days"},
   {id:"pk-bottle", n:"Water bottles", d:"Rome's nasoni fountains are free refills"},
   {id:"pk-laundry", n:"Laundry bag + detergent sheets", d:""}]}
 ];
@@ -984,19 +981,19 @@ const CHECKLIST = [
  {id:"etias",     label:"ETIAS travel authorization",         sub:"Both travelers · required for US passports — apply online, minutes to do, valid 3 years", href:"https://travel-europe.europa.eu/etias_en"},
  {id:"insurance", label:"Travel insurance",                   sub:"Cover the non-refundable bookings before the big deposits land", href:"https://www.squaremouth.com/"},
  {id:"duomo",     label:"Duomo + rooftop tickets",            sub:"Timed entry for Tue Sep 22 midday — book before you fly", href:"https://www.duomomilano.it/en/", match:{type:"ticket", kw:"duomo"}},
- {id:"stay-milan",label:"Book Milan — 1 night",               sub:"Tue Sep 22 · near the Duomo or Centrale", stay:"milan"},
- {id:"train-ven", label:"Train Milan → Venice",               sub:"Wed Sep 23 · Frecciarossa or Italo, ~2h15 — early booking = cheap seats · reserve seats!", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"venice"}},
- {id:"stay-venice",label:"Book Venice — 2 nights",            sub:"Sep 23–24 · Cannaregio, Dorsoduro or Castello", stay:"venice"},
- {id:"marks",     label:"St. Mark's & Doge's Palace slots",   sub:"Skip-the-line for Thu Sep 24", href:"https://www.basilicasanmarco.it/?lang=en", match:{type:"ticket", kw:"marco|doge"}},
- {id:"car",       label:"Rental car — Mestre → Naples",       sub:"Pick up Fri Sep 25, drop Wed Sep 30 · one-way within Italy · automatic = book early", href:"https://www.autoeurope.com/", match:{kw:"rental|car pickup|autoeurope|europcar|hertz|avis|sixt|maggiore"}},
- {id:"idp",       label:"International Driving Permits",      sub:"Both drivers · ~$20 at any AAA office — legally required in Italy, allow 2+ weeks", href:"https://www.aaa.com/vacation/idpf.html"},
- {id:"stay-ss",   label:"Book Santo Stefano — 1 night",       sub:"Fri Sep 25 · Sextantio if you can — the bucket-list stay", stay:"santostefano", href:"https://www.sextantio.it/en/santo-stefano-sessanio/"},
- {id:"stay-matera",label:"Book a Matera cave hotel — 2 nights",sub:"Sep 26–27 · sleep inside the rock", stay:"matera"},
- {id:"volo",      label:"Volo dell'Angelo zipline",           sub:"Sun Sep 27 · verify the 2026 weekend calendar, then book", href:"https://www.volodellangelo.com/", match:{type:"ticket", kw:"volo|angelo|zipline"}},
- {id:"stay-sorrento",label:"Book Sorrento — 2 nights",        sub:"Sep 28–29 · base here, not on the corniche", stay:"sorrento"},
- {id:"stay-rome", label:"Book Rome — 2 nights",               sub:"Sep 30 – Oct 1 · Monti or Centro Storico", stay:"rome"},
- {id:"train-rome",label:"Train Naples → Rome",                sub:"Wed Sep 30 · ~1h10, after dropping the car · reserve seats", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"rome"}},
- {id:"colosseum", label:"Colosseum / Forum timed tickets",    sub:"Thu Oct 1 morning — they sell out", href:"https://parcocolosseo.it/en/", match:{type:"ticket", kw:"colosse|forum|foro"}},
- {id:"vatican",   label:"Vatican Museums (optional)",         sub:"Thu Oct 1 afternoon — or savor Ancient Rome only", href:"https://www.museivaticani.va/", match:{type:"ticket", kw:"vatican"}}
+ {id:"stay-milan",label:"Book Milan — 1 night",               sub:"Tue Sep 22 · CVM 19 booked — near Centrale for the Varenna train", stay:"milan"},
+ {id:"train-varenna",label:"Train Milan → Varenna",           sub:"Wed Sep 23 · Trenord regional, direct, ~64 min, hourly — buy day-of or on the Trenord app; leave ~8:30–9:30", href:"https://www.trenord.it/en/", match:{type:"train", city:"como"}},
+ {id:"stay-varenna",label:"Book Varenna — 1 night",           sub:"Wed Sep 23 · in the village, near the ferry pier · Book early — small town, few rooms", stay:"como"},
+ {id:"train-ven", label:"Train Milan → Venice",               sub:"Thu Sep 24 · Frecciarossa or Italo to Venezia S. LUCIA (not Mestre) · allow 45–60 min at Centrale after the Varenna train · reserve seats!", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"venice"}},
+ {id:"stay-venice",label:"Book Venice — 2 nights",            sub:"Sep 24–25 · Cannaregio, Dorsoduro or Castello", stay:"venice"},
+ {id:"marks",     label:"St. Mark's & Doge's Palace slots",   sub:"Fri Sep 25 morning — skip-the-line, before the day-trip crowds", href:"https://www.basilicasanmarco.it/?lang=en", match:{type:"ticket", kw:"marco|doge"}},
+ {id:"coach-matera",label:"Venice → Matera long-distance transport", sub:"Sat Sep 26 · the trip's big transfer — coach (Itabus/FlixBus) or train to Bari + onward · fewest changes wins · BOOK FIRST", href:"https://www.itabus.it/en", match:{type:"train", city:"matera"}},
+ {id:"stay-matera",label:"Book a Matera cave hotel — 2 nights",sub:"Sep 26–27 · in or beside the Sassi — sleep inside the rock", stay:"matera"},
+ {id:"bus-salerno",label:"Coach Matera → Salerno",            sub:"Mon Sep 28 · Itabus, Via Don Luigi Sturzo → Piazza della Concordia · confirm the Sep 28 timetable", href:"https://www.itabus.it/en", match:{kw:"salerno", type:"other"}},
+ {id:"ferry-amalfi",label:"Ferry Salerno → Amalfi",           sub:"Mon Sep 28 · Travelmar from Molo Concordia, ~35 min · arrive by sea", href:"https://www.travelmar.it/en/", match:{kw:"travelmar|salerno → amalfi"}},
+ {id:"stay-amalfi",label:"Book Amalfi — 3 nights",            sub:"Sep 28–30 · Amalfi town, near the harbour if you can (luggage + stairs)", stay:"amalfi"},
+ {id:"train-rome",label:"Ferry + train Amalfi → Rome",         sub:"Thu Oct 1 · morning Travelmar to Salerno (SITA bus backup), then high-speed Salerno → Roma Termini · book the train ahead", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"rome"}},
+ {id:"stay-rome", label:"Book Rome — 1 night",                sub:"Thu Oct 1 · Monti or Centro Storico, near the ancient sites", stay:"rome"},
+ {id:"colosseum", label:"Colosseum / Forum timed tickets",    sub:"Thu Oct 1 afternoon — they sell out; skip the Vatican this trip", href:"https://parcocolosseo.it/en/", match:{type:"ticket", kw:"colosse|forum|foro"}}
 ];
 </script>
