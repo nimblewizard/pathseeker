@@ -191,6 +191,8 @@ function showXMap(id){
   $("#live-map").classList.toggle("hidden",!live);
   $("#live-filter").classList.toggle("hidden",!live);
   $("#live-label").classList.toggle("hidden",!live);
+  $("#live-add").classList.toggle("hidden",!live);
+  $("#live-add-label").classList.toggle("hidden",!live);
   $("#map-stage").classList.toggle("livemap",live);
   $("#view-map").classList.toggle("livemap",live);
   if(live){
@@ -257,20 +259,25 @@ function buildLiveMap(){
   LIVE.map=L.map(el,{zoomControl:true}).setView([42.5,12.5],6);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     {maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(LIVE.map);
-  /* trip stops */
-  const seq=[S.trip.arrivalCity, ...sortedStops().map(s=>s.cityId), S.trip.departureCity];
-  const pts=[];
-  [...new Set(seq)].forEach(id=>{
-    const c=CITY_BY_ID[id]; if(!c||!c.lat) return;
-    pts.push([c.lat,c.lon]);
-    L.circleMarker([c.lat,c.lon],{radius:8,color:"#F3E7C9",weight:2,fillColor:"#BE1E3C",fillOpacity:1})
-      .addTo(LIVE.map).bindPopup(`<b>${esc(c.n)}</b><br><a href="https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lon}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`);
-  });
-  if(pts.length>1){
-    L.polyline(pts,{color:"#C8202F",weight:3,dashArray:"8 7",opacity:.85}).addTo(LIVE.map);
-    LIVE.map.fitBounds(pts,{padding:[40,40]});
-  }
+  /* trip stops + every known town as a tappable pin */
+  LIVE.tripLayer=L.layerGroup().addTo(LIVE.map);
+  const pts=liveDrawTrip();
+  if(pts.length>1) LIVE.map.fitBounds(pts,{padding:[40,40]});
   LIVE.poiLayer=L.layerGroup().addTo(LIVE.map);
+  /* popup buttons: add / change dates for a town */
+  el.addEventListener("click",e=>{
+    const b=e.target.closest("[data-livestop]"); if(!b) return;
+    e.preventDefault(); LIVE.map.closePopup(); openStopDlg(b.dataset.livestop);
+  });
+  /* tap on bare map → look the town up and offer to add it */
+  LIVE.map.on("click",e=>{
+    const t=e.originalEvent && e.originalEvent.target;
+    if(t && t.closest && t.closest(".leaflet-interactive,.leaflet-popup,.leaflet-control,.live-locate")) return;
+    if(LIVE.justClosed && Date.now()-LIVE.justClosed<350) return;   /* that tap only closed a popup */
+    livePickPoint(e.latlng);
+  });
+  LIVE.map.on("popupclose",()=>{ LIVE.justClosed=Date.now(); });
+  initLiveSearch();
   const btn=document.createElement("button");
   btn.className="live-locate"; btn.textContent="📍"; btn.title="Go to my location";
   btn.addEventListener("click",()=>{ startLocate(true); });
@@ -304,6 +311,99 @@ const OVERPASS_URLS=["https://overpass-api.de/api/interpreter",
                      "https://overpass.kumi.systems/api/interpreter",
                      "https://overpass.osm.jp/api/interpreter",
                      "https://overpass.private.coffee/api/interpreter"];
+/* Redraw trip pins + route on the live map. Trip stops are red, gateways get ✈, every
+   other known town is a small tan pin — all tappable to add/change dates. */
+function liveDrawTrip(){
+  if(!LIVE.map||!LIVE.tripLayer) return [];
+  LIVE.tripLayer.clearLayers();
+  const seq=[];
+  const push=id=>{ const c=CITY_BY_ID[id]; if(c&&c.lat&&(!seq.length||seq[seq.length-1]!==id)) seq.push(id); };
+  push(S.trip.arrivalCity); sortedStops().forEach(st=>push(st.cityId)); push(S.trip.departureCity);
+  const inTrip=new Set(seq);
+  const pts=seq.map(id=>[CITY_BY_ID[id].lat,CITY_BY_ID[id].lon]);
+  if(pts.length>1) L.polyline(pts,{color:"#C8202F",weight:3,dashArray:"8 7",opacity:.85}).addTo(LIVE.tripLayer);
+  CITIES.forEach(c=>{
+    if(!c.lat) return;
+    const on=inTrip.has(c.id);
+    const m=L.circleMarker([c.lat,c.lon], on
+      ? {radius:8,color:"#F3E7C9",weight:2,fillColor:"#BE1E3C",fillOpacity:1}
+      : {radius:6,color:"#7A5C2E",weight:1.5,fillColor:"#E9DDB8",fillOpacity:.95});
+    m.bindPopup(()=>liveCityPopup(c.id),{maxWidth:260});
+    m.bindTooltip(c.n,{direction:"top",offset:[0,-6],opacity:.9});
+    m.addTo(LIVE.tripLayer);
+  });
+  return pts;
+}
+function liveCityPopup(id){
+  const c=CITY_BY_ID[id]; if(!c) return "";
+  const st=stopFor(id);
+  const gw=id===S.trip.arrivalCity? "✈ Fly in here" : id===S.trip.departureCity? "✈ Fly home from here" : "";
+  const when=st? `${fmtShort(st.arrive)} → ${fmtShort(addD(st.arrive,st.nights))} · ${st.nights}n` : (gw||(c.region||"Not on the route yet"));
+  return `<div class="live-pop"><b>${esc(c.n)}</b><div class="lp-sub">${esc(when)}</div>
+    <div class="lp-acts">
+      <button type="button" class="${st?"":"lp-add"}" data-livestop="${esc(id)}">${st? "✎ Change dates" : "＋ Add to trip"}</button>
+      <a href="https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lon}" target="_blank" rel="noopener">Google Maps ↗</a>
+    </div></div>`;
+}
+/* Nominatim (OpenStreetMap) geocoding — light use, browser sends the Referer as our identity */
+const NOMI="https://nominatim.openstreetmap.org";
+function nomiName(a,fallback){ return a.city||a.town||a.village||a.municipality||a.hamlet||a.island||a.county||fallback||""; }
+async function livePickPoint(ll){
+  const pop=L.popup({maxWidth:260}).setLatLng(ll).setContent('<div class="live-pop"><b>Looking up this spot…</b></div>').openOn(LIVE.map);
+  try{
+    const r=await fetch(`${NOMI}/reverse?format=jsonv2&lat=${ll.lat}&lon=${ll.lng}&zoom=10&accept-language=en`);
+    const j=await r.json(); const a=j.address||{};
+    const name=nomiName(a, j.name);
+    if(!name){ pop.setContent('<div class="live-pop"><b>No town here</b><div class="lp-sub">Try tapping closer to a place name.</div></div>'); return; }
+    const lat=+j.lat, lon=+j.lon;
+    const region=a.state||a.county||"";
+    const known=CITIES.find(c=>c.lat&&distKm(c.lat,c.lon,lat,lon)<3);
+    if(known){ pop.setContent(liveCityPopup(known.id)); return; }
+    pop.setContent(`<div class="live-pop"><b>${esc(name)}</b><div class="lp-sub">${esc(region)}</div>
+      <div class="lp-acts"><button type="button" class="lp-add" data-livepick="${esc(JSON.stringify({n:name,lat,lon,region}))}">＋ Add to trip</button></div></div>`);
+  }catch(e){ pop.setContent('<div class="live-pop"><b>Couldn\'t look that up</b><div class="lp-sub">Check your connection and try again.</div></div>'); }
+}
+function initLiveSearch(){
+  const q=$("#live-q"), out=$("#live-results"); if(!q||q.dataset.wired) return; q.dataset.wired="1";
+  let t=null;
+  q.addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(liveSearch,450); });
+  q.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); clearTimeout(t); liveSearch(); } });
+  out.addEventListener("click",e=>{
+    const b=e.target.closest("[data-liveres]"); if(!b) return;
+    const d=JSON.parse(b.dataset.liveres);
+    out.innerHTML=""; q.value="";
+    LIVE.map.flyTo([d.lat,d.lon],11);
+    const known=CITIES.find(c=>c.lat&&distKm(c.lat,c.lon,d.lat,d.lon)<3);
+    const id=known? known.id : addCustomCity(d.n,d.lat,d.lon,d.region);
+    if(!known) liveDrawTrip();
+    setTimeout(()=>{ L.popup({maxWidth:260}).setLatLng([d.lat,d.lon]).setContent(liveCityPopup(id)).openOn(LIVE.map); },400);
+  });
+  /* "add" from a map-tap popup */
+  $("#live-map").addEventListener("click",e=>{
+    const b=e.target.closest("[data-livepick]"); if(!b) return;
+    const d=JSON.parse(b.dataset.livepick);
+    const id=addCustomCity(d.n,d.lat,d.lon,d.region);
+    liveDrawTrip(); LIVE.map.closePopup(); openStopDlg(id);
+  });
+}
+async function liveSearch(){
+  const q=$("#live-q"), out=$("#live-results"); const v=q.value.trim();
+  if(v.length<2){ out.innerHTML=""; return; }
+  out.innerHTML='<button type="button" disabled>Searching…</button>';
+  try{
+    const r=await fetch(`${NOMI}/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=it&accept-language=en&q=${encodeURIComponent(v)}`);
+    const list=await r.json();
+    if(q.value.trim()!==v) return;
+    const seen=new Set(), rows=[];
+    list.forEach(j=>{
+      const a=j.address||{}; const name=nomiName(a, j.name||j.display_name.split(",")[0]);
+      const key=name+"|"+(a.state||""); if(!name||seen.has(key)) return; seen.add(key);
+      rows.push({n:name,lat:+j.lat,lon:+j.lon,region:a.state||a.county||""});
+    });
+    out.innerHTML = rows.length? rows.map(d=>`<button type="button" data-liveres="${esc(JSON.stringify(d))}">${esc(d.n)}<small>${esc(d.region)}</small></button>`).join("")
+      : '<button type="button" disabled>Nothing found in Italy</button>';
+  }catch(e){ out.innerHTML='<button type="button" disabled>Search unavailable</button>'; }
+}
 function fetchPOIs(){
   if(!LIVE.map||!LIVE.cat) return;
   if(LIVE.reading) return;   /* never redraw markers while the user is reading a popup */
@@ -445,26 +545,84 @@ function clientToMap(x,y){
   const ox=(r.width - VB.w/scale)/2, oy=(r.height - VB.h/scale)/2;
   return [VB.x+(x-r.left-ox)*scale, VB.y+(y-r.top-oy)*scale];
 }
+/* ---- towns picked on the live map: real lat/lon, projected onto the painted map ----
+   Custom cities live in S.trip.customCities (synced with the trip). registerCity() folds
+   them into CITIES/CITY_BY_ID so every stop-based feature works unchanged; ART[id] is
+   estimated with an affine fit lat/lon → painted x/y from the 21 hand-placed cities. */
+let ART_FIT=null;
+function fitArt(){
+  const rows=CITIES.filter(c=>ART[c.id]&&c.lat&&!c.custom);
+  const solve=(pick)=>{               /* least squares: v = a*lon + b*lat + c */
+    let sxx=0,sxy=0,sx=0,syy=0,sy=0,n=0,sxv=0,syv=0,sv=0;
+    rows.forEach(c=>{ const x=c.lon,y=c.lat,v=pick(c); sxx+=x*x;sxy+=x*y;sx+=x;syy+=y*y;sy+=y;n++;sxv+=x*v;syv+=y*v;sv+=v; });
+    const M=[[sxx,sxy,sx],[sxy,syy,sy],[sx,sy,n]], b=[sxv,syv,sv];
+    for(let i=0;i<3;i++){ let mx=i; for(let r=i+1;r<3;r++) if(Math.abs(M[r][i])>Math.abs(M[mx][i])) mx=r;
+      [M[i],M[mx]]=[M[mx],M[i]]; [b[i],b[mx]]=[b[mx],b[i]];
+      for(let r=i+1;r<3;r++){ const f=M[r][i]/M[i][i]; for(let k=i;k<3;k++) M[r][k]-=f*M[i][k]; b[r]-=f*b[i]; } }
+    const o=[0,0,0]; for(let i=2;i>=0;i--){ let t=b[i]; for(let k=i+1;k<3;k++) t-=M[i][k]*o[k]; o[i]=t/M[i][i]; }
+    return o;
+  };
+  ART_FIT={x:solve(c=>ART[c.id][0]), y:solve(c=>ART[c.id][1]), rows};
+  /* the painting is stylized: remember each anchor's residual so nearby towns inherit it */
+  ART_FIT.res=rows.map(c=>{ const [px,py]=affineArt(c.lat,c.lon); return {lat:c.lat,lon:c.lon,dx:ART[c.id][0]-px,dy:ART[c.id][1]-py}; });
+}
+function affineArt(lat,lon){ const f=ART_FIT; return [f.x[0]*lon+f.x[1]*lat+f.x[2], f.y[0]*lon+f.y[1]*lat+f.y[2]]; }
+function projectArt(lat,lon){
+  if(!ART_FIT) fitArt();
+  let [x,y]=affineArt(lat,lon), sw=0, dx=0, dy=0;
+  ART_FIT.res.forEach(r=>{                    /* inverse-distance-weighted local correction */
+    const d2=(r.lat-lat)**2+((r.lon-lon)*0.72)**2;
+    const w=1/Math.max(d2,1e-4);
+    sw+=w; dx+=w*r.dx; dy+=w*r.dy;
+  });
+  if(sw){ x+=dx/sw; y+=dy/sw; }
+  return [x,y];
+}
+function registerCity(raw){
+  if(!raw||!raw.id||CITY_BY_ID[raw.id]) return CITY_BY_ID[raw?.id];
+  const c=Object.assign({pois:[],tag:"",note:"",region:"",custom:true},raw);
+  CITIES.push(c); CITY_BY_ID[c.id]=c;
+  if(!ART[c.id]&&c.lat) ART[c.id]=projectArt(c.lat,c.lon);
+  if(mapSvg&&cityLayer) addCityMarker(c);
+  return c;
+}
+function hydrateCustomCities(){ (S.trip.customCities||[]).forEach(registerCity); }
+function slugId(n){ return "c_"+n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"").slice(0,24); }
+/* Add (or find) a custom city from a geocoder hit; returns its id */
+function addCustomCity(name,lat,lon,region){
+  const near=CITIES.find(c=>c.lat&&distKm(c.lat,c.lon,lat,lon)<3);
+  if(near) return near.id;                       /* it's one we already know */
+  const id=slugId(name);
+  if(!CITY_BY_ID[id]){
+    S.trip.customCities=S.trip.customCities||[];
+    S.trip.customCities.push({id,n:name,lat:+lat.toFixed(4),lon:+lon.toFixed(4),region:region||""});
+    registerCity(S.trip.customCities[S.trip.customCities.length-1]);
+    mutate();
+  }
+  return id;
+}
+function addCityMarker(c){
+  const [x,y]=ART[c.id]||[MAP_W/2,MAP_H/2];
+  const g=el("g",{class:"city","data-city":c.id,transform:`translate(${x.toFixed(1)} ${y.toFixed(1)})`,
+    tabindex:"0",role:"button"},cityLayer);
+  g.setAttribute("aria-label", c.n);
+  el("circle",{class:"halo",r:24},g);
+  el("circle",{class:"dot",r:11},g);
+  if(!ART_LABELED.has(c.id)){
+    const left = LBL_LEFT.has(c.id);
+    const t=el("text",{x:left?-20:20,y:8,"text-anchor":left?"end":"start"},g);
+    t.textContent=c.n;
+  }
+  g.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();selectCity(c.id);} });
+}
 function initMap(){
   const stage=$("#map-stage");
   mapSvg = buildMapInto(stage, true);
   routeDoneEl = el("path",{class:"route-done",d:""},mapSvg);
   routeEl = el("path",{class:"route",d:""},mapSvg);
   cityLayer = el("g",{},mapSvg);
-  for(const c of CITIES){
-    const [x,y]=ART[c.id]||[MAP_W/2,MAP_H/2];
-    const g=el("g",{class:"city","data-city":c.id,transform:`translate(${x.toFixed(1)} ${y.toFixed(1)})`,
-      tabindex:"0",role:"button"},cityLayer);
-    g.setAttribute("aria-label", c.n);
-    el("circle",{class:"halo",r:24},g);
-    el("circle",{class:"dot",r:11},g);
-    if(!ART_LABELED.has(c.id)){
-      const left = LBL_LEFT.has(c.id);
-      const t=el("text",{x:left?-20:20,y:8,"text-anchor":left?"end":"start"},g);
-      t.textContent=c.n;
-    }
-    g.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();selectCity(c.id);} });
-  }
+  hydrateCustomCities();
+  for(const c of CITIES) addCityMarker(c);
   /* City taps are resolved from the stage click, not per-marker listeners: the pan handler's
      setPointerCapture redirects the composed click to the svg, so g-level click never fires. */
   const ptrs=new Map(); let panStart=null, pinchStart=null, moved=false;
@@ -676,7 +834,9 @@ function renderPanel(){
         <div class="postcards">${CITY_PHOTOS[c.id].map((ph,i)=>
           `<button class="postcard" data-pc="${i}" aria-label="View photo of ${esc(c.n)}"><img src="${ph.d}" alt="" loading="lazy" decoding="async"></button>`).join("")}
         </div></div>`:""}
-      ${sections || '<p style="color:var(--ink-soft);margin-top:16px">Nothing in this filter here — try another.</p>'}
+      ${sections || (c.custom
+        ? '<p style="color:var(--ink-soft);margin-top:16px">A town you picked on the live map — no scouting notes yet. Use the 🧭 Live Map\'s <b>Nearby</b> chips to explore food, hotels and sights there.</p>'
+        : '<p style="color:var(--ink-soft);margin-top:16px">Nothing in this filter here — try another.</p>')}
       ${(UI.filter==="all"||UI.filter==="stay")? bookBlock : ""}
       ${UI.filter==="all"? `<div class="poi-section"><span class="label">Your photos${photosFor(c.id).length?` (${photosFor(c.id).length})`:""}</span>
         ${photoGrid(photosFor(c.id))}
@@ -1222,7 +1382,11 @@ function renderItin(){
     wrap.innerHTML=head+calendarHtml()+
       `<p class="times-note">Tap any trip day for its schedule · dots are bookings, ✎ marks journal notes.</p>`;
     wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
-  wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>setView("map")));
+  wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>{
+    setView("map");
+    /* plan on the accurate live map wherever it can load (not inside the claude.ai artifact) */
+    if(!(window.claude && window.claude.mcp!==undefined) && !LIVE.failed) showXMap("live");
+  }));
     wrap.querySelectorAll("[data-calday]").forEach(c=>{
       const open=()=>openDayDlg(c.dataset.calday);
       c.addEventListener("click",open);
@@ -1297,7 +1461,11 @@ function renderItin(){
   after.forEach(d=>{ rows+=edgeRow(d,"After the trip"); });
   wrap.innerHTML=head+rows;
   wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
-  wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>setView("map")));
+  wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>{
+    setView("map");
+    /* plan on the accurate live map wherever it can load (not inside the claude.ai artifact) */
+    if(!(window.claude && window.claude.mcp!==undefined) && !LIVE.failed) showXMap("live");
+  }));
   wireBkRows(wrap);
   wrap.querySelectorAll("[data-addday]").forEach(b=>b.addEventListener("click",()=>
     openBookingDlg({date:b.dataset.addday, cityId:b.dataset.city})));
@@ -2305,7 +2473,9 @@ function setView(v){
   if(v==="translate" && !$("#tr-q")) renderTranslate();
 }
 function renderAll(){
+  hydrateCustomCities();
   updateMapMarks(); renderPanel(); updateTripChip();
+  if(LIVE.map) liveDrawTrip();
   if(UI.view==="itin") renderItin();
   if(UI.view==="journal") renderJournal();
   if(UI.view==="today") renderToday();

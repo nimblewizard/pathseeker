@@ -77,6 +77,12 @@
       <aside class="map-side">
         <span class="side-label">Charts</span>
         <div class="chips" id="map-switch" role="group" aria-label="Choose a map"></div>
+        <span class="side-label hidden" id="live-add-label">Add a stop</span>
+        <div class="hidden" id="live-add">
+          <input id="live-q" type="search" placeholder="Find a town…" autocomplete="off" aria-label="Find a town to add">
+          <div id="live-results" role="listbox"></div>
+          <p class="live-tip">Tap any pin — or tap the map on a town — to add it to your route.</p>
+        </div>
         <span class="side-label hidden" id="live-label">Nearby</span>
         <div class="chips hidden" id="live-filter" role="group" aria-label="Show nearby places">
           <button class="chip" data-live="food" aria-pressed="false">Food &amp; Drink</button>
