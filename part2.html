@@ -431,6 +431,36 @@
   </form>
 </dialog>
 
+<dialog id="dlg-showcard">
+  <form method="dialog" novalidate>
+    <div class="showcard-wrap">
+      <div class="showcard-flag">🇮🇹 Mostra · show this</div>
+      <div class="showcard-it" id="sc-it"></div>
+      <div class="showcard-en" id="sc-en"></div>
+    </div>
+    <div class="dlg-foot" style="justify-content:space-between">
+      <div style="display:flex;gap:8px"><button type="button" class="btn" id="sc-say">▷ Say it</button>
+        <button type="button" class="btn btn-quiet" id="sc-del" hidden>Delete card</button></div>
+      <button class="btn btn-primary" value="close">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-cardadd">
+  <form method="dialog" novalidate>
+    <div class="dlg-head"><h3>New show-card</h3><p>Write it in English; translate offline, or type the Italian yourself.</p></div>
+    <div class="dlg-body">
+      <div class="field"><label class="label" for="ca-en">English</label>
+        <textarea id="ca-en" rows="2" placeholder="My wife is allergic to shellfish."></textarea></div>
+      <div class="field"><label class="label" for="ca-it">Italiano</label>
+        <textarea id="ca-it" rows="2" placeholder="Mia moglie è allergica ai frutti di mare."></textarea>
+        <p class="times-note" id="ca-note" style="margin-top:6px"></p></div>
+      <button type="button" class="btn btn-sm" id="ca-translate">Translate offline →</button>
+    </div>
+    <div class="dlg-foot"><button class="btn" value="cancel">Cancel</button><button class="btn btn-primary" value="ok">Save card</button></div>
+  </form>
+</dialog>
+
 <dialog id="dlg-bigcode">
   <form method="dialog" novalidate>
     <div class="bigcode-wrap"><div id="bigcode-txt"></div></div>

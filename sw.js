@@ -1,4 +1,4 @@
-const CACHE = "pathseeker-v2";
+const CACHE = "pathseeker-v3";
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => {
   e.waitUntil(
@@ -9,6 +9,8 @@ self.addEventListener("activate", (e) => {
 });
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  // Map tiles and translator models keep their own caches (ps-tiles-v1, transformers-cache).
+  if (/tile\.openstreetmap\.org|huggingface\.co|hf\.co/.test(e.request.url)) return;
   // The page itself always comes from the network, bypassing the HTTP cache — a stale
   // shell used to survive even a hard refresh. Assets stay network-first with cache fallback.
   const isDoc = e.request.mode === "navigate";

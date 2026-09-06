@@ -1124,6 +1124,63 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 .stop-x:hover{color:var(--accent);border-color:var(--accent)}
 .stop-warn{color:var(--accent);font-size:13px;margin:2px 0 0}
 .stop-editor-hint{color:var(--ink-soft);font-size:13px;margin:6px 0 0}
+/* ---- offline kit (2026-09-06): show-cards, sign decoder, translator, offline pack ---- */
+[hidden]{display:none !important}   /* .btn/.t-acts set display, which would otherwise beat the attribute */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.show-chip{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;background:var(--surface);
+  display:flex;flex-direction:column;gap:2px;cursor:pointer;min-height:64px;color:var(--ink)}
+.show-chip:hover{box-shadow:var(--shadow-sm);border-color:var(--gold)}
+.show-chip .sc-it{font-weight:700;font-size:14px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.show-chip .sc-en{font-size:11.5px;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.show-chip.auto{border-style:dashed;border-color:var(--gold)}
+#dlg-showcard{width:min(760px,calc(100vw - 16px))}
+.showcard-wrap{padding:34px 22px 26px;text-align:center;background:#FFFDF6;border-radius:16px 16px 0 0;min-height:46vh;
+  display:flex;flex-direction:column;justify-content:center;gap:14px}
+.showcard-it{font-family:"Avenir Next",Avenir,"Segoe UI",system-ui,sans-serif;font-weight:800;color:#12100A;line-height:1.18;
+  font-size:clamp(26px,6.4vw,48px);text-wrap:balance;overflow-wrap:anywhere}
+.showcard-en{font-size:clamp(13px,2.6vw,17px);color:#6F6752;font-style:italic}
+.showcard-flag{font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:#B8862B}
+.sign-row{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px dotted var(--line)}
+.sign-row:last-child{border-bottom:none}
+.sg{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:800;line-height:1.05;
+  text-align:center;white-space:pre-line;border:3px solid #C8202F;background:#fff;color:#12100A;box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
+.sg.blue{background:#1F5FA8;border-color:#1F5FA8;color:#fff}
+.sg.redbar{background:#C8202F;border-color:#C8202F;color:#fff}
+.sg.redbar::before{content:"";width:24px;height:6px;background:#fff;border-radius:2px}
+.sg.nostop{background:#1F5FA8;border-color:#C8202F}
+.sg.nostop::before{content:"";position:absolute;width:5px;height:70px;background:#C8202F;transform:rotate(45deg)}
+.sg.nowait{background:#1F5FA8;border-color:#C8202F}
+.sg.nowait::before,.sg.nowait::after{content:"";position:absolute;width:5px;height:70px;background:#C8202F;transform:rotate(45deg)}
+.sg.nowait::after{transform:rotate(-45deg)}
+.sg.square{border-radius:7px;border-color:#1F5FA8;background:#1F5FA8;color:#fff;font-size:15px}
+.sg.white{background:#fff;border-color:#8a8a8a;color:#12100A}
+.sg.yellow{background:#F2C230;border-color:#F2C230;color:#12100A}
+.sg.green{background:#2E7A55;border-color:#2E7A55;color:#fff}
+.sg.black{background:#12100A;border-color:#12100A;color:#fff;font-size:15px}
+.sg.line{border-radius:7px;background:#6b6b6b;border-color:#6b6b6b}
+.sg.line::before{content:"";position:absolute;left:0;right:0;top:50%;height:7px;margin-top:-3.5px;background:var(--lc,#1F5FA8)}
+.sg.line::after{content:"";position:absolute;left:0;right:0;top:calc(50% + 12px);height:7px;background:var(--lc,#1F5FA8)}
+.sign-row .s-txt{flex:1;min-width:0}
+.sign-row .s-it{font-weight:700;font-size:14.5px}
+.sign-row .s-en{font-size:13px;color:var(--ink-soft)}
+.sign-row .s-tip{font-size:12.5px;margin-top:2px}
+.mt-box{display:grid;gap:8px;margin-top:8px}
+.mt-box textarea{min-height:76px;resize:vertical;font-size:16px}
+.mt-out{background:var(--surface2);border-radius:10px;padding:12px 14px;font-size:18px;font-weight:600;min-height:48px;white-space:pre-wrap}
+.mt-out.muted{font-weight:400;font-size:13.5px;color:var(--ink-soft)}
+.mt-dir{display:flex;gap:6px}
+.mt-dir button{flex:1;padding:8px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);font-weight:700;font-size:13px;color:var(--ink-soft)}
+.mt-dir button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.mt-prog{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden}
+.mt-prog i{display:block;height:100%;background:var(--olive);width:0;transition:width .2s}
+.pack-list{display:grid;gap:5px;margin-top:8px;font-size:13.5px}
+.pack-list .pk{display:flex;gap:8px;align-items:baseline}
+.pack-list .pk b{min-width:96px;flex:none}
+.pack-list .pk .st{color:var(--ink-soft)}
+.pack-list .pk.ok .st{color:#4C6B23}
+:root[data-theme="dark"] .pack-list .pk.ok .st{color:#B5CC7E}
+.live-lodge{background:#FFF7EF;border:2px solid #7A5C2E;border-radius:50%;width:26px;height:26px;display:grid;place-items:center;font-size:14px;box-shadow:var(--shadow-sm)}
+@media (max-width:520px){ .card-grid{grid-template-columns:1fr 1fr} }
 @media (prefers-reduced-motion: reduce){
   *{transition:none !important;animation:none !important}
 }
@@ -1560,6 +1617,36 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
     <div class="dlg-head"><h3 class="serif" id="dlg-day-title"></h3></div>
     <div class="dlg-body" id="dlg-day-body"></div>
     <div class="dlg-foot"><button class="btn btn-primary" value="close">Close</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlg-showcard">
+  <form method="dialog" novalidate>
+    <div class="showcard-wrap">
+      <div class="showcard-flag">🇮🇹 Mostra · show this</div>
+      <div class="showcard-it" id="sc-it"></div>
+      <div class="showcard-en" id="sc-en"></div>
+    </div>
+    <div class="dlg-foot" style="justify-content:space-between">
+      <div style="display:flex;gap:8px"><button type="button" class="btn" id="sc-say">▷ Say it</button>
+        <button type="button" class="btn btn-quiet" id="sc-del" hidden>Delete card</button></div>
+      <button class="btn btn-primary" value="close">Close</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-cardadd">
+  <form method="dialog" novalidate>
+    <div class="dlg-head"><h3>New show-card</h3><p>Write it in English; translate offline, or type the Italian yourself.</p></div>
+    <div class="dlg-body">
+      <div class="field"><label class="label" for="ca-en">English</label>
+        <textarea id="ca-en" rows="2" placeholder="My wife is allergic to shellfish."></textarea></div>
+      <div class="field"><label class="label" for="ca-it">Italiano</label>
+        <textarea id="ca-it" rows="2" placeholder="Mia moglie è allergica ai frutti di mare."></textarea>
+        <p class="times-note" id="ca-note" style="margin-top:6px"></p></div>
+      <button type="button" class="btn btn-sm" id="ca-translate">Translate offline →</button>
+    </div>
+    <div class="dlg-foot"><button class="btn" value="cancel">Cancel</button><button class="btn btn-primary" value="ok">Save card</button></div>
   </form>
 </dialog>
 
@@ -2210,7 +2297,7 @@ const LS_KEY = "pathseeker.v1";
 const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
 const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-22", endDate:"2026-10-02",
   arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{},
-  packing:{}, packCustom:[], budget:null, shortlist:[]});
+  packing:{}, packCustom:[], budget:null, shortlist:[], cards:[], guestName:""});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
 let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
 
@@ -2492,8 +2579,7 @@ function initLiveMap(){
 function buildLiveMap(){
   const el=$("#live-map"); el.innerHTML="";
   LIVE.map=L.map(el,{zoomControl:true}).setView([42.5,12.5],6);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {maxZoom:19, attribution:'© OpenStreetMap contributors'}).addTo(LIVE.map);
+  cachedTileLayer().addTo(LIVE.map);   /* tiles come from the offline cache first (offline kit) */
   /* trip stops + every known town as a tappable pin */
   LIVE.tripLayer=L.layerGroup().addTo(LIVE.map);
   const pts=liveDrawTrip();
@@ -2556,6 +2642,7 @@ function liveDrawTrip(){
   push(S.trip.arrivalCity); sortedStops().forEach(st=>push(st.cityId)); push(S.trip.departureCity);
   const inTrip=new Set(seq);
   const pts=seq.map(id=>[CITY_BY_ID[id].lat,CITY_BY_ID[id].lon]);
+  liveDrawLodging();   /* 🏨 pins for lodgings that have been geocoded (offline pack) */
   for(let i=1;i<seq.length;i++){
     legGeometry(seq[i-1],seq[i]).forEach(h=>{
       const st = h.mode==="ferry" ? {color:"#2E6BB8",weight:3,dashArray:"2 8",opacity:.9}
@@ -4055,8 +4142,10 @@ const WX={}, WX_TTL=30*60*1000;
 const WX_ICON=(c)=> c===0?"☀️":c<=2?"🌤":c===3?"☁️":c<=48?"🌫":c<=57?"🌦":c<=67?"🌧":c<=77?"🌨":c<=82?"🌧":c<=86?"🌨":"⛈";
 async function getWx(cityId){
   const c=CITY_BY_ID[cityId]; if(!c||!c.lat) return null;
-  const w=WX[cityId];
-  if(w!==undefined && (!w || Date.now()-w.at<WX_TTL)) return w;
+  let w=WX[cityId];
+  if(w===undefined && WX_DISK[cityId]) w=WX[cityId]=WX_DISK[cityId];   /* remembered from the last pack */
+  if(w===null) return null;
+  if(w && Date.now()-w.at<WX_TTL) return w;
   try{
     const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}`+
       `&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min`+
@@ -4066,7 +4155,8 @@ async function getWx(cityId){
     WX[cityId]={at:Date.now(), t:Math.round(d.current.temperature_2m), code:d.current.weather_code,
       days:(d.daily.time||[]).map((t,i)=>({d:t, hi:Math.round(d.daily.temperature_2m_max[i]),
         lo:Math.round(d.daily.temperature_2m_min[i]), code:d.daily.weather_code[i]}))};
-  }catch(e){ WX[cityId]=null; }
+    WX_DISK[cityId]=WX[cityId]; wxDiskSave();
+  }catch(e){ WX[cityId]=WX_DISK[cityId]||null; }   /* offline: keep the last saved forecast */
   return WX[cityId];
 }
 let WX_UNIT=localStorage.getItem("ps.unit")||"F";
@@ -4115,10 +4205,10 @@ async function showTimes(title, fromLL, toLL, date){
   $("#times-list").innerHTML='<p class="times-note">Checking timetables…</p>';
   dlg.returnValue=""; if(!dlg.open) dlg.showModal();
   try{
-    let its=await fetchPlan(fromLL,toLL,date), fallback=null;
+    let its=await fetchPlanCached(fromLL,toLL,date), fallback=null;
     if(!its.length){
       fallback=sameWeekdaySoon(date);
-      its=await fetchPlan(fromLL,toLL,fallback);
+      its=await fetchPlanCached(fromLL,toLL,fallback);
     }
     if(!its.length){
       $("#times-list").innerHTML='<p class="times-note">No timetable found — check Trenitalia or Italo directly.</p>';
@@ -4137,7 +4227,8 @@ async function showTimes(title, fromLL, toLL, date){
         <div class="times-note" style="margin:0 0 4px">${esc(dep.from&&dep.from.name||"")} → ${esc(arr.to&&arr.to.name||"")}</div>`;
     }).join("");
     $("#times-list").innerHTML =
-      (fallback?`<p class="times-note" style="margin:0 0 8px"><b>${fmtShort(date)} isn't published yet</b> — showing a typical ${fmtDow(fallback)} (${fmtShort(fallback)}). Times barely change week to week.</p>`:"")
+      (its.cachedAt?`<p class="times-note" style="margin:0 0 8px"><b>Offline</b> — showing the times saved ${new Date(its.cachedAt).toLocaleString([],{weekday:"short",hour:"2-digit",minute:"2-digit"})}.</p>`:"")
+      +(fallback?`<p class="times-note" style="margin:0 0 8px"><b>${fmtShort(date)} isn't published yet</b> — showing a typical ${fmtDow(fallback)} (${fmtShort(fallback)}). Times barely change week to week.</p>`:"")
       + rows
       + '<p class="times-note">Open timetable data via Transitous — verify against the operator when booking.</p>';
   }catch(e){
@@ -5370,11 +5461,14 @@ function beginTrip(){
   if(mapSvg){ updateMapMarks(); }
   toast("Andiamo — Day 1. Step through your route with ‹ ›");
 }
-const QUICK_TOOLS = `<div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button>
+const QUICK_TOOLS = `<div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-cards">🪧 Show-cards</button>
+      <button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button>
       <button class="btn btn-quiet btn-sm" id="td-ics">📅 Phone reminders</button>
       <button class="btn btn-quiet btn-sm" id="td-deps">🚉 Departures</button>
       <button class="btn btn-quiet btn-sm" id="td-sync">☁ Sync &amp; backup</button></div>`;
 function wireQuickTools(){
+  const c=$("#td-cards"); if(c) c.addEventListener("click",()=>{ setView("translate"); const sc=$("#showcards"); if(sc) sc.scrollIntoView({behavior:"smooth",block:"start"}); });
+  wireOfflinePack(document);
   const s=$("#td-sheet"); if(s) s.addEventListener("click",exportTripSheet);
   const i=$("#td-ics");   if(i) i.addEventListener("click",exportICS);
   const y=$("#td-sync");  if(y) y.addEventListener("click",()=>$("#btn-sync").click());
@@ -5401,7 +5495,7 @@ function renderToday(){
           ${S.trip.stops.length?
             `<div style="margin-top:18px"><button class="btn btn-primary" id="td-begin">Begin your trip — walk it day by day</button></div>`
             :`<p style="margin-top:12px">Add cities on the map first, then walk the whole route from here.</p>`}
-        </div>${QUICK_TOOLS}${ESSENTIALS_HTML}`;
+        </div>${QUICK_TOOLS}${offlinePackHtml()}${ESSENTIALS_HTML}`;
       const bb=$("#td-begin"); if(bb) bb.addEventListener("click",beginTrip);
       wireQuickTools();
       return;
@@ -5516,6 +5610,7 @@ function renderToday(){
       <span style="font-size:12.5px;color:var(--ink-soft)">${spentToday?`today: ${money(spentToday)}`:""}</span>
     </div>
     ${QUICK_TOOLS}
+    ${offlinePackHtml()}
     ${ESSENTIALS_HTML}`;
   wireBkRows(wrap);
   $("#td-to-map").addEventListener("click",()=>{ setView("map"); if(city) selectCity(city.id); });
@@ -5674,7 +5769,7 @@ function distKm(la1,lo1,la2,lo2){
   return 2*R*Math.asin(Math.sqrt(a));
 }
 function cmpUpdate(){
-  const c=CITY_BY_ID[CMP.target];
+  const c=cmpTarget();
   if(!CMP.pos||!c) return;
   const br=bearingTo(CMP.pos.lat,CMP.pos.lon,c.lat,c.lon);
   const d=distKm(CMP.pos.lat,CMP.pos.lon,c.lat,c.lon);
@@ -5716,8 +5811,11 @@ async function cmpStart(){
 function openCompass(defaultCity){
   const dlg=$("#dlg-compassnav"), sel=$("#cmp-target");
   const ids=[...new Set([S.trip.arrivalCity,...sortedStops().map(s=>s.cityId),S.trip.departureCity])].filter(id=>CITY_BY_ID[id]);
-  sel.innerHTML=ids.map(id=>`<option value="${id}">${esc(CITY_BY_ID[id].n)}</option>`).join("");
-  CMP.target=(defaultCity&&ids.includes(defaultCity))?defaultCity:ids[0];
+  const lodges=S.trip.bookings.filter(b=>(b.type==="hotel"||b.type==="airbnb")&&Array.isArray(b.ll));
+  sel.innerHTML=ids.map(id=>`<option value="${id}">${esc(CITY_BY_ID[id].n)}</option>`).join("")
+    +lodges.map(b=>`<option value="bk:${b.id}">🏨 ${esc(b.name)}</option>`).join("");
+  const dl=defaultCity&&lodges.find(b=>b.cityId===defaultCity);
+  CMP.target=dl?("bk:"+dl.id):((defaultCity&&ids.includes(defaultCity))?defaultCity:ids[0]);
   sel.value=CMP.target;
   sel.onchange=()=>{ CMP.target=sel.value; cmpUpdate(); };
   $("#cmp-info").textContent="Tap Start to aim the needle.";
@@ -6074,14 +6172,17 @@ function trResults(q){
         ${g.list.map(phraseRow).join("")}</details>`).join("")
       +`<h3 class="serif" style="font-size:22px;margin:26px 0 4px">Menu decoder</h3>
        <p style="font-size:13px;color:var(--ink-soft);margin:0 0 6px">Search any word you see on a menu, or browse:</p>`
-      +MENU_TERMS.map(g=>`<details class="ess"><summary>${esc(g.c)}</summary>${g.list.map(menuRow).join("")}</details>`).join("");
+      +MENU_TERMS.map(g=>`<details class="ess"><summary>${esc(g.c)}</summary>${g.list.map(menuRow).join("")}</details>`).join("")
+      +signsHtml();
   }
   const ph=PHRASES.flatMap(g=>g.list).filter(([en,it])=>en.toLowerCase().includes(q)||it.toLowerCase().includes(q));
   const mt=MENU_TERMS.flatMap(g=>g.list).filter(([it,en])=>it.toLowerCase().includes(q)||en.toLowerCase().includes(q));
   let out="";
   if(ph.length) out+=`<div class="poi-section"><span class="label">Phrases</span></div>`+ph.map(phraseRow).join("");
   if(mt.length) out+=`<div class="poi-section"><span class="label">On the menu</span></div>`+mt.map(menuRow).join("");
-  if(!out) out=`<div class="empty">No match here — try Google Translate below for anything else.</div>
+  const sg=SIGNS.flatMap(g=>g.list).filter(s=>(s.it+" "+s.en+" "+(s.tip||"")).toLowerCase().includes(q));
+  if(sg.length) out+=`<div class="poi-section"><span class="label">Signs &amp; driving</span></div>`+sg.map(signRow).join("");
+  if(!out) out=`<div class="empty">No match here — ${ONLINE_OK?"type it into the offline translator above, or":"try"} Google Translate below.</div>
     <p style="text-align:center;margin-top:10px"><a href="https://translate.google.com/?sl=en&tl=it&text=${encodeURIComponent(q)}" target="_blank" rel="noopener">Translate "${esc(q)}" on Google Translate ↗</a></p>`;
   return out;
 }
@@ -6135,9 +6236,11 @@ function renderTranslate(){
       on the bill. Round up or leave a euro or two for great service. Card is fine nearly everywhere;
       keep ~€50 cash for markets, small bars, and ZTL parking meters.</p>
     </div>
-    <div class="tr-search"><input id="tr-q" placeholder="Search — try 'check please' or 'vongole'…" autocomplete="off"></div>
+    ${showCardsHtml()}
+    ${mtHtml()}
+    <div class="tr-search"><input id="tr-q" placeholder="Search — try 'check please', 'vongole' or 'ZTL'…" autocomplete="off"></div>
     <div id="tr-body">${trResults("")}</div>`;
-  wireFx();
+  wireFx(); wireShowCards(wrap); wireMt(wrap);
   const q=$("#tr-q");
   q.addEventListener("input",()=>{ $("#tr-body").innerHTML=trResults(q.value); });
   wrap.addEventListener("click",(e)=>{
@@ -6145,6 +6248,456 @@ function renderTranslate(){
     if(b) speakIt(b.dataset.say);
   });
 }
+
+
+/* ================= OFFLINE KIT (2026-09-06) =================
+   Show-cards, sign decoder, offline translator, offline street-map tiles and the
+   "cache for the road" pack. Cards + signs are pure data and work everywhere; tiles,
+   translator and the pack need the hosted site (the artifact blocks every external fetch). */
+const ONLINE_OK = !window.claude;
+const GUEST_DEFAULT="Christopher";
+const guestName=()=> (S.trip.guestName||"").trim()||GUEST_DEFAULT;
+const IT_NAMES={milan:"Milano",venice:"Venezia",rome:"Roma",florence:"Firenze",naples:"Napoli",turin:"Torino",
+  como:"Varenna",amalfi:"Amalfi",matera:"Matera",cinqueterre:"Cinque Terre",bologna:"Bologna",verona:"Verona",sorrento:"Sorrento"};
+const itName=(c)=> IT_NAMES[c.id]||c.short||c.n;
+const SHOW_CARDS=[
+ {g:"Table & food", list:[
+  ["A table for two, please.","Un tavolo per due, per favore."],
+  ["The bill, please.","Il conto, per favore."],
+  ["We'd like to order.","Vorremmo ordinare."],
+  ["Does this contain gluten / dairy?","Contiene glutine / latticini?"],
+  ["I'm allergic to shellfish.","Sono allergico ai frutti di mare."],
+  ["We're vegetarian.","Siamo vegetariani."],
+  ["Still / sparkling water, please.","Acqua naturale / frizzante, per favore."],
+  ["Can we pay by card?","Possiamo pagare con la carta?"],
+  ["What do you recommend that's local?","Cosa ci consiglia di tipico?"]]},
+ {g:"Getting around", list:[
+  ["Which platform for this train?","Quale binario per questo treno?"],
+  ["Is this the right train?","È questo il treno giusto?"],
+  ["Where do I validate the ticket?","Dove si convalida il biglietto?"],
+  ["Where is the ferry pier?","Dov'è l'imbarcadero del traghetto?"],
+  ["Where can I park the car?","Dove posso parcheggiare la macchina?"],
+  ["Is this the way to the old town?","È questa la strada per il centro storico?"],
+  ["We're looking for the pharmacy.","Cerchiamo la farmacia."],
+  ["Could you call us a taxi?","Potrebbe chiamarci un taxi?"],
+  ["Fill it up, please (petrol).","Il pieno di benzina, per favore."]]},
+ {g:"Help", list:[
+  ["We only speak English — could you write it down?","Parliamo solo inglese — può scriverlo?"],
+  ["Slowly, please.","Lentamente, per favore."],
+  ["Can you show me on the map?","Può mostrarmi sulla mappa?"],
+  ["I need a doctor.","Ho bisogno di un medico."],
+  ["Where is the nearest hospital?","Dov'è l'ospedale più vicino?"],
+  ["We've lost our way.","Ci siamo persi."],
+  ["Thank you, you've been very kind.","Grazie, è stato gentilissimo."]]},
+ {g:"Hotel", list:[
+  ["What time is checkout?","A che ora è il check-out?"],
+  ["Could you keep our luggage until this afternoon?","Può tenere i bagagli fino al pomeriggio?"],
+  ["The Wi-Fi password, please.","La password del Wi-Fi, per favore."],
+  ["Is breakfast included?","La colazione è inclusa?"],
+  ["Do you have parking for our car?","Avete un parcheggio per la macchina?"]]}
+];
+/* cards written from the trip itself: taxi-to-hotel, reservation-under, next platform */
+function autoCards(){
+  const out=[], seen=new Set(), day=focusDayClamped();
+  const here=(stopsOn(day)[0]||{}).cityId;
+  const order=[...new Set([here, ...sortedStops().filter(s=>addD(s.arrive,Math.max(1,s.nights))>=day).map(s=>s.cityId)])].filter(Boolean);
+  order.forEach(cid=>{
+    const c=CITY_BY_ID[cid], l=lodgingFor(cid); if(!c||!l) return;
+    const where=l.address ? l.address : `${l.name}, ${itName(c)}`;
+    out.push({auto:true, k:"taxi:"+cid, en:`Please take us to: ${where}`, it:`Per favore, ci porti a: ${where}`});
+    out.push({auto:true, k:"res:"+cid, en:`We have a reservation under ${guestName()}${l.conf?` — code ${l.conf}`:""}. ${l.name}.`,
+              it:`Abbiamo una prenotazione a nome ${guestName()}${l.conf?` — codice ${l.conf}`:""}. ${l.name}.`});
+  });
+  const seq=sortedStops(), nx=seq.find(s=>s.arrive>day);
+  if(nx && here && nx.cityId!==here){
+    const B=CITY_BY_ID[nx.cityId], mode=legMode(travelInfo(here,nx.cityId)||"");
+    if(B && mode==="train") out.push({auto:true,k:"plat",en:`Which platform for the train to ${B.short||B.n}?`,it:`Quale binario per il treno per ${itName(B)}?`});
+    if(B && mode==="ferry") out.push({auto:true,k:"pier",en:`Which pier for the boat to ${B.short||B.n}?`,it:`Da quale pontile parte il battello per ${itName(B)}?`});
+  }
+  return out.filter(c=>{ if(seen.has(c.k)) return false; seen.add(c.k); return true; });
+}
+const cardChip=(c)=>`<button type="button" class="show-chip${c.auto?" auto":""}" data-card-it="${esc(c.it)}" data-card-en="${esc(c.en)}"${c.id?` data-card-id="${c.id}"`:""}>
+  <span class="sc-it">${esc(c.it)}</span><span class="sc-en">${esc(c.en)}</span></button>`;
+function showCardsHtml(){
+  const custom=S.trip.cards||[], auto=autoCards();
+  return `<div class="t-card" id="showcards" style="margin-bottom:4px"><span class="label">🪧 Show it — hold up the phone</span>
+    <p>Tap a card and it fills the screen in big Italian type, with a button that says it aloud.
+    The dashed ones are written from your own bookings; "Write your own" cards sync to both phones.</p>
+    ${auto.length||custom.length?`<div class="card-grid">${auto.map(cardChip).join("")}${custom.map(cardChip).join("")}</div>`:""}
+    ${SHOW_CARDS.map((g,i)=>`<details class="ess" style="margin-top:10px"${i===0?" open":""}><summary>${esc(g.g)}</summary><div class="card-grid" style="margin-bottom:8px">${g.list.map(([en,it])=>cardChip({en,it})).join("")}</div></details>`).join("")}
+    <div class="t-acts" style="align-items:center"><button type="button" class="btn btn-sm" id="card-add">+ Write your own card</button>
+      <label style="font-size:12.5px;color:var(--ink-soft)">Name on reservations
+        <input id="card-name" value="${esc(S.trip.guestName||"")}" placeholder="${GUEST_DEFAULT}" style="width:140px;padding:4px 8px;display:inline-block;margin-left:6px"></label></div>
+  </div>`;
+}
+function wireShowCards(root){
+  root.addEventListener("click",e=>{
+    const b=e.target.closest("[data-card-it]"); if(b){ openShowCard(b.dataset.cardIt,b.dataset.cardEn,b.dataset.cardId); return; }
+    if(e.target.closest("#card-add")) openCardAdd();
+  });
+  root.addEventListener("change",e=>{
+    if(e.target.id==="card-name"){ S.trip.guestName=e.target.value.trim(); mutate(); rerenderCards(); }
+  });
+}
+function rerenderCards(){
+  const old=$("#showcards"); if(!old) return;
+  const tmp=document.createElement("div"); tmp.innerHTML=showCardsHtml(); old.replaceWith(tmp.firstElementChild);
+}
+function openShowCard(it,en,id){
+  const dlg=$("#dlg-showcard"); $("#sc-it").textContent=it; $("#sc-en").textContent=en||"";
+  const say=$("#sc-say"); say.hidden=!SPEECH_OK; say.onclick=()=>speakIt(it);
+  const del=$("#sc-del"); del.hidden=!id;
+  del.onclick=()=>{ S.trip.cards=(S.trip.cards||[]).filter(c=>c.id!==id); mutate(); dlg.close(); rerenderCards(); toast("Card removed"); };
+  dlg.returnValue=""; if(!dlg.open) dlg.showModal();
+}
+function openCardAdd(preEn,preIt){
+  const dlg=$("#dlg-cardadd"); $("#ca-en").value=preEn||""; $("#ca-it").value=preIt||"";
+  const note=$("#ca-note");
+  note.textContent = !ONLINE_OK ? "Type the Italian yourself here — the offline translator lives in the web version."
+    : (mtFlags().enit ? "Offline translator ready on this device." : "Translate offline downloads the EN→IT model first (≈140 MB, do it on Wi-Fi).");
+  $("#ca-translate").hidden=!ONLINE_OK;
+  $("#ca-translate").onclick=async()=>{
+    const en=$("#ca-en").value.trim(); if(!en){ toast("Write the English first"); return; }
+    note.textContent="Translating…";
+    try{ $("#ca-it").value=await mtTranslate("enit",en,p=>{ if(p.status==="progress") note.textContent=`Downloading model… ${Math.round(p.progress||0)}%`; });
+      note.textContent="Check it reads right, then save."; }
+    catch(err){ note.textContent=mtErrText(err); }
+  };
+  dlg.returnValue=""; if(!dlg.open) dlg.showModal();
+  dlg.addEventListener("close",()=>{
+    if(dlg.returnValue!=="ok") return;
+    const en=$("#ca-en").value.trim(), it=$("#ca-it").value.trim();
+    if(!it){ toast("The card needs its Italian line"); return; }
+    S.trip.cards=S.trip.cards||[]; S.trip.cards.push({id:uid(),en,it}); mutate(); rerenderCards(); toast("Card saved — it syncs to every device");
+  },{once:true});
+}
+
+/* ---- signs & driving decoder (pure data, offline) ---- */
+const SIGNS=[
+ {g:"Parking — read the paint", list:[
+  {sg:"line",lc:"#1F5FA8",it:"Strisce blu",en:"Blue lines — paid parking",tip:"Pay at the parcometro (meter, coins or card), put the ticket on the dash. Often free 8 PM–8 AM and Sundays — the meter says."},
+  {sg:"line",lc:"#fff",it:"Strisce bianche",en:"White lines — free parking",tip:"Free, but look for a 'disco orario' sign: then you must display a parking disc set to your arrival time."},
+  {sg:"line",lc:"#F2C230",it:"Strisce gialle",en:"Yellow lines — residents, disabled, loading",tip:"Never. Towed fast in tourist towns."},
+  {sg:"blue",t:"P",it:"Parcheggio",en:"Parking",tip:"'A pagamento' = paid · 'custodito' = attended · 'riservato' = reserved · 'libero' = spaces free · 'completo' = full."},
+  {sg:"blue",t:"disco",it:"Disco orario",en:"Parking-disc zone",tip:"Show the blue cardboard clock (rental cars usually have one in the glovebox — ask) set to your arrival time. The sign gives the maximum stay."},
+  {sg:"nostop",it:"Divieto di sosta",en:"No parking (a brief stop is OK)",tip:"Blue circle, one red slash. 'Zona rimozione' underneath = tow-away zone."},
+  {sg:"nowait",it:"Divieto di fermata",en:"No stopping at all",tip:"Blue circle, red border, two red slashes. Not even for a minute."}]},
+ {g:"ZTL — the tourist trap", list:[
+  {sg:"white",t:"ZTL",it:"Zona a Traffico Limitato",en:"Restricted-traffic zone with cameras",tip:"White circle, red border, 'ZTL'. Driving past an active gate = a fine by post months later, one per entry. Matera's sassi, Amalfi town centre and all of central Rome are ZTL."},
+  {sg:"green",t:"NON\nATTIVO",it:"Varco non attivo",en:"Gate NOT active — you may enter",tip:"The electronic panel at the gate: 'varco attivo' (red) = active, do not enter · 'varco non attivo' (green) = you can pass right now."},
+  {sg:"square",t:"🏨",it:"Hotel inside a ZTL",en:"Send the hotel your plate",tip:"Hotels can register your number plate for a temporary permit — email it before arrival or you still get the fine."}]},
+ {g:"On the road", list:[
+  {sg:"redbar",it:"Divieto di accesso",en:"Do not enter (wrong way)",tip:"Red circle, white bar — the far end of a 'senso unico' (one-way) street."},
+  {sg:"square",t:"→",it:"Senso unico",en:"One way",tip:"White arrow on blue."},
+  {sg:"white",t:"▽",it:"Dare precedenza",en:"Give way",tip:"Inverted triangle. On a 'rotonda' (roundabout) the traffic already inside has priority."},
+  {sg:"white",t:"STOP",it:"Stop",en:"Full stop",tip:"Police do fine rolling stops."},
+  {sg:"yellow",t:"↺",it:"Deviazione",en:"Detour",tip:"Yellow signs = temporary roadworks routing. 'Strada chiusa' = road closed · 'lavori in corso' = works ahead."},
+  {sg:"green",t:"A1",it:"Autostrada",en:"Motorway — green signs, tolls",tip:"Green = autostrada · blue = ordinary roads · brown = sights · white = town streets. Limits: 130 km/h (110 in rain), 90 on country roads, 50 in town."},
+  {sg:"black",t:"📷",it:"Autovelox · Tutor",en:"Speed camera · average-speed check",tip:"Always signed in advance ('controllo elettronico della velocità'). Tutor measures your average speed over a whole stretch."},
+  {sg:"yellow",t:"T",it:"Telepass",en:"Toll lane — electronic only",tip:"At the 'casello' (toll booth): YELLOW lane = Telepass only (not you) · BLUE = cards · WHITE = cash or card with an attendant / machine. Take a ticket on entry, pay on exit."},
+  {sg:"white",t:"⛽",it:"Benzina · Gasolio",en:"Petrol · DIESEL",tip:"'Gasolio' is diesel, 'benzina' (senza piombo) is unleaded — check the fuel type on the rental key tag. 'Servito' = attendant (costs more) · 'fai da te' / 'self' = self-service."},
+  {sg:"square",t:"🍴",it:"Area di servizio",en:"Motorway services (Autogrill)",tip:"Good espresso, sandwiches, clean bathrooms. Pay at the cassa first, then hand the receipt to the barista."}]},
+ {g:"Doors, boards & platforms", list:[
+  {sg:"white",t:"→",it:"Uscita · Entrata",en:"Exit · Entrance",tip:"'Uscita di sicurezza' = emergency exit."},
+  {sg:"white",t:"⇄",it:"Spingere · Tirare",en:"Push · Pull",tip:""},
+  {sg:"white",t:"✕",it:"Chiuso · Aperto",en:"Closed · Open",tip:"'Riposo settimanale' = the weekly closing day (often Monday) · 'chiuso per ferie' = closed for holidays."},
+  {sg:"white",t:"!",it:"Sciopero",en:"STRIKE",tip:"Transport strikes are announced days ahead; trains keep 'fasce di garanzia' (guaranteed rush-hour services). Check the evening before each train."},
+  {sg:"white",t:"🚆",it:"Binario · Soppresso · In ritardo",en:"Platform · Cancelled · Delayed",tip:"On the departures board. 'Coincidenza' = connection · 'convalidare' = validate the ticket (regional trains only, green machines)."},
+  {sg:"green",t:"✚",it:"Farmacia",en:"Pharmacy (green cross)",tip:"'Farmacia di turno' = the one on night or holiday duty — the rota is posted on every pharmacy door."},
+  {sg:"white",t:"WC",it:"Signori · Signore",en:"Gents · Ladies",tip:"Also 'Uomini' / 'Donne'. Bars let customers use the bathroom — buy an espresso."},
+  {sg:"white",t:"€",it:"Coperto · Servizio incluso",en:"Cover charge · service included",tip:"€1–3 per person for bread and the table — legal and normal. 'Servizio incluso' means don't tip beyond rounding up."},
+  {sg:"white",t:"⛔",it:"Vietato · Attenzione",en:"Forbidden · Caution",tip:"'Vietato l'ingresso' = no entry · 'vietato fumare' = no smoking · 'attenti al cane' = beware of the dog · 'fuori servizio' = out of order."}]}
+];
+const sgHtml=(s)=>`<span class="sg ${s.sg||""}"${s.lc?` style="--lc:${s.lc}"`:""}>${/^(line|redbar|nostop|nowait)$/.test(s.sg||"")?"":esc(s.t||"")}</span>`;
+const signRow=(s)=>`<div class="sign-row">${sgHtml(s)}<div class="s-txt"><div class="s-it">${esc(s.it)}</div><div class="s-en">${esc(s.en)}</div>${s.tip?`<div class="s-tip">${esc(s.tip)}</div>`:""}</div></div>`;
+function signsHtml(){
+  return `<h3 class="serif" style="font-size:22px;margin:26px 0 4px">Signs &amp; driving decoder</h3>
+    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 6px">What the paint on the road and the words on the signs mean. Works offline.</p>`
+    + SIGNS.map(g=>`<details class="ess"><summary>${esc(g.g)}</summary>${g.list.map(signRow).join("")}</details>`).join("");
+}
+
+/* ---- offline translator: Marian opus-mt models via transformers.js in a module worker.
+   Models (≈140 MB per direction, int8) download once on Wi-Fi into the browser cache
+   and run on the phone itself afterwards. Hosted site only. ---- */
+/* EN→IT uses the multi-target Romance model (with a ">>it<<" prefix): tested 2026-09-06 against
+   opus-mt-en-it, which garbled "allergic to" into nonsense — the Romance one gets accents and
+   allergies right. Text is split into sentences first; Marian models are sentence-level. */
+const MT={w:null, q:{}, n:0, models:{enit:"Xenova/opus-mt-en-ROMANCE", iten:"Xenova/opus-mt-it-en"}, prefix:{enit:">>it<< ",iten:""}, size:"≈150 MB"};
+function mtFlags(){ try{ return JSON.parse(localStorage.getItem("ps.mt")||"{}"); }catch(e){ return {}; } }
+function mtSetFlag(dir,v){ const f=mtFlags(); f[dir]=v; try{ localStorage.setItem("ps.mt",JSON.stringify(f)); }catch(e){} }
+function mtWorker(){
+  if(MT.w) return MT.w;
+  if(!ONLINE_OK || typeof Worker==="undefined") throw new Error("web");
+  const src=`import {pipeline, env} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+env.allowLocalModels=false; env.useBrowserCache=true; env.backends.onnx.wasm.numThreads=1;
+const P={}, M=${JSON.stringify(MT.models)}, PRE=${JSON.stringify(MT.prefix)}; let last=0;
+const split=(t)=>t.replace(/\\s+/g," ").trim().split(/(?<=[.!?…])\\s+(?=[^a-z])/).filter(Boolean);
+onmessage=async e=>{ const {id,cmd,dir,text}=e.data; try{
+  if(!P[dir]) P[dir]=pipeline("translation", M[dir], {dtype:"q8", progress_callback:p=>{
+      if(p.status==="progress"){ const now=Date.now(); if(now-last<250) return; last=now; }
+      postMessage({id,prog:{status:p.status,file:p.file,progress:p.progress||0}}); }})
+    .catch(err=>{ delete P[dir]; throw err; });
+  const t=await P[dir];
+  if(cmd==="tr"){ const parts=split(text); if(!parts.length) throw new Error("empty");
+    /* one sentence per call — batching pads the short ones and the Marian decoder degenerates into "No. No. No." */
+    const outs=[]; for(const p of parts){ const o=await t(PRE[dir]+p,{max_new_tokens:160}); outs.push(o[0].translation_text.trim()); }
+    postMessage({id,ok:true,text:outs.join(" ")}); }
+  else postMessage({id,ok:true});
+}catch(err){ postMessage({id,ok:false,err:String(err&&err.message||err)}); } };`;
+  MT.w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})),{type:"module"});
+  MT.w.onmessage=e=>{ const d=e.data, job=MT.q[d.id]; if(!job) return;
+    if(d.prog){ job.onprog&&job.onprog(d.prog); return; }
+    delete MT.q[d.id]; d.ok? job.res(d.text) : job.rej(new Error(d.err||"translator failed")); };
+  MT.w.onerror=e=>{ const err=new Error(e.message||"worker error"); Object.values(MT.q).forEach(j=>j.rej(err)); MT.q={}; try{ MT.w.terminate(); }catch(x){} MT.w=null; };
+  return MT.w;
+}
+function mtCall(cmd,dir,text,onprog){
+  return new Promise((res,rej)=>{
+    let w; try{ w=mtWorker(); }catch(e){ rej(e); return; }
+    const id=++MT.n; MT.q[id]={res,rej,onprog}; w.postMessage({id,cmd,dir,text});
+  });
+}
+async function mtLoad(dir,onprog){
+  await mtCall("load",dir,"",onprog); mtSetFlag(dir,true);
+  try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+}
+async function mtTranslate(dir,text,onprog){ const out=await mtCall("tr",dir,text,onprog); mtSetFlag(dir,true); return out; }
+const mtErrText=(err)=> (!ONLINE_OK || String(err&&err.message)==="web")
+  ? "The offline translator lives in the web version of Pathseeker."
+  : (navigator.onLine===false ? "You're offline and this model isn't on the phone yet — download it on Wi-Fi first."
+     : "Translator unavailable — "+String(err&&err.message||err).slice(0,140));
+function mtHtml(){
+  if(!ONLINE_OK) return `<div class="t-card" style="margin-bottom:4px"><span class="label">Offline translator</span>
+    <p>Type-anything translation with no signal lives in the web version of Pathseeker — it downloads a language model once, on Wi-Fi, then runs on the phone.
+    <a href="https://nimblewizard.github.io/pathseeker/" target="_blank" rel="noopener"><b>Open Pathseeker on the web ↗</b></a></p></div>`;
+  const f=mtFlags();
+  return `<div class="t-card" style="margin-bottom:4px" id="mt-card"><span class="label">Offline translator — type anything</span>
+    <p>Runs on the phone itself once its language model is downloaded (${MT.size} each way — do it on hotel Wi-Fi).
+    After that it works in a tunnel, on a ferry, anywhere. Short sentences translate best.</p>
+    <div class="mt-box">
+      <div class="mt-dir"><button type="button" data-mtdir="enit" aria-pressed="true">English → Italiano</button>
+        <button type="button" data-mtdir="iten" aria-pressed="false">Italiano → English</button></div>
+      <textarea id="mt-in" placeholder="Type or paste — e.g. 'Is there a pharmacy open tonight?'"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="btn btn-primary btn-sm" id="mt-go">Translate</button>
+        <button type="button" class="btn btn-sm" id="mt-dl" data-dir="enit">${f.enit?"✓ EN→IT on this phone":"⬇ Download EN→IT"}</button>
+        <button type="button" class="btn btn-sm" id="mt-dl2" data-dir="iten">${f.iten?"✓ IT→EN on this phone":"⬇ Download IT→EN"}</button>
+      </div>
+      <div class="mt-prog" id="mt-prog" hidden><i></i></div>
+      <p class="times-note" id="mt-note" style="margin:0">${f.enit||f.iten?"Downloaded on this device: "+[f.enit?"EN→IT":"",f.iten?"IT→EN":""].filter(Boolean).join(", ")+".":"Nothing downloaded on this device yet."}</p>
+      <div class="mt-out muted" id="mt-out">The translation appears here — hear it, or turn it into a show-card.</div>
+      <div class="t-acts" id="mt-acts" hidden><button type="button" class="btn btn-sm" id="mt-say">▷ Say it</button>
+        <button type="button" class="btn btn-sm" id="mt-card">🪧 Show as a card</button>
+        <button type="button" class="btn btn-sm" id="mt-save">＋ Save as my card</button></div>
+    </div></div>`;
+}
+function wireMt(root){
+  if(!ONLINE_OK || !root.querySelector("#mt-card")) return;
+  let dir="enit", lastOut="", lastIn="";
+  const q=(s)=>root.querySelector(s);
+  const note=q("#mt-note"), out=q("#mt-out"), prog=q("#mt-prog"), acts=q("#mt-acts");
+  const setProg=(p)=>{ if(p==null){ prog.hidden=true; return; } prog.hidden=false; prog.firstElementChild.style.width=Math.round(p)+"%"; };
+  const onprog=(p)=>{
+    if(p.status==="progress"){ setProg(p.progress); note.textContent=`Downloading ${p.file||"model"} … ${Math.round(p.progress||0)}%`; }
+    else if(p.status==="ready"){ setProg(null); note.textContent="Model ready."; }
+    else if(p.status==="initiate"||p.status==="download") note.textContent=`Fetching ${p.file||""}…`;
+  };
+  root.querySelectorAll("[data-mtdir]").forEach(b=>b.addEventListener("click",()=>{
+    dir=b.dataset.mtdir; root.querySelectorAll("[data-mtdir]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    q("#mt-in").placeholder = dir==="enit" ? "Type or paste — e.g. 'Is there a pharmacy open tonight?'" : "Scrivi o incolla — es. 'Il treno è soppresso'";
+  }));
+  const dl=async(btn)=>{
+    const d=btn.dataset.dir; btn.disabled=true; btn.textContent="Downloading…";
+    try{ await mtLoad(d,onprog); btn.textContent=d==="enit"?"✓ EN→IT on this phone":"✓ IT→EN on this phone"; note.textContent="Downloaded and cached on this device — works offline from now on."; }
+    catch(err){ btn.textContent=d==="enit"?"⬇ Download EN→IT":"⬇ Download IT→EN"; note.textContent=mtErrText(err); }
+    btn.disabled=false; setProg(null);
+  };
+  q("#mt-dl").addEventListener("click",e=>dl(e.currentTarget));
+  q("#mt-dl2").addEventListener("click",e=>dl(e.currentTarget));
+  const go=async()=>{
+    const txt=q("#mt-in").value.trim(); if(!txt){ toast("Type something first"); return; }
+    out.className="mt-out muted"; out.textContent="Translating…"; acts.hidden=true; q("#mt-go").disabled=true;
+    try{ const r=await mtTranslate(dir,txt,onprog); lastOut=r; lastIn=txt; out.className="mt-out"; out.textContent=r; acts.hidden=false; }
+    catch(err){ out.className="mt-out muted"; out.textContent=mtErrText(err); }
+    q("#mt-go").disabled=false; setProg(null);
+  };
+  q("#mt-go").addEventListener("click",go);
+  q("#mt-in").addEventListener("keydown",e=>{ if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)) go(); });
+  q("#mt-say").addEventListener("click",()=>speakIt(dir==="enit"?lastOut:lastIn));
+  q("#mt-card").addEventListener("click",()=>openShowCard(dir==="enit"?lastOut:lastIn, dir==="enit"?lastIn:lastOut));
+  q("#mt-save").addEventListener("click",()=>{
+    const en=dir==="enit"?lastIn:lastOut, it=dir==="enit"?lastOut:lastIn;
+    S.trip.cards=S.trip.cards||[]; S.trip.cards.push({id:uid(),en,it}); mutate(); rerenderCards(); toast("Saved to your cards");
+  });
+}
+
+/* ---- offline street maps: OSM tiles kept per town in the Cache API ---- */
+const TILES={cacheName:"ps-tiles-v1", url:(z,x,y)=>`https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+             ok: ONLINE_OK && typeof caches!=="undefined"};
+const lon2x=(lon,z)=>Math.floor((lon+180)/360*Math.pow(2,z));
+const lat2y=(lat,z)=>Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*Math.pow(2,z));
+function cachedTileLayer(){
+  const opts={maxZoom:19, attribution:"© OpenStreetMap contributors"};
+  if(!TILES.ok) return L.tileLayer(TILES.url("{z}","{x}","{y}"),opts);
+  const Layer=L.TileLayer.extend({
+    createTile:function(coords,done){
+      const img=document.createElement("img"); img.alt="";
+      const url=TILES.url(coords.z,coords.x,coords.y);
+      (async()=>{
+        let r=null;
+        try{ const c=await caches.open(TILES.cacheName); r=await c.match(url); }catch(e){}
+        if(!r){ try{ const f=await fetch(url,{mode:"cors"}); if(f.ok){ r=f; try{ const c=await caches.open(TILES.cacheName); await c.put(url,f.clone()); }catch(e){} } }catch(e){} }
+        if(!r){ done(new Error("no tile"),img); return; }
+        try{ const u=URL.createObjectURL(await r.blob());
+          img.onload=()=>{ URL.revokeObjectURL(u); done(null,img); };
+          img.onerror=()=>{ URL.revokeObjectURL(u); done(new Error("bad tile"),img); };
+          img.src=u; }catch(e){ done(e,img); }
+      })();
+      return img;
+    }
+  });
+  return new Layer("",opts);
+}
+function townTileList(lat,lon){
+  const spec=[[12,8],[13,5],[14,3],[15,1.8],[16,1.3]];   /* zoom, half-width in km — ~150 tiles / 3 MB a town */
+  const list=[];
+  spec.forEach(([z,km])=>{
+    const dLat=km/111, dLon=km/(111*Math.cos(lat*Math.PI/180));
+    const x0=lon2x(lon-dLon,z), x1=lon2x(lon+dLon,z), y0=lat2y(lat+dLat,z), y1=lat2y(lat-dLat,z);
+    for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++) list.push(TILES.url(z,x,y));
+  });
+  return list;
+}
+async function cacheTiles(urls,onProgress){
+  const c=await caches.open(TILES.cacheName); let done=0, fail=0; const q=urls.slice();
+  const worker=async()=>{ while(q.length){ const u=q.shift();
+    try{ if(!(await c.match(u))){ const r=await fetch(u,{mode:"cors"}); if(r.ok) await c.put(u,r); else fail++; } }catch(e){ fail++; }
+    done++; if(onProgress) onProgress(done,urls.length,fail); } };
+  await Promise.all([0,1,2,3].map(worker));
+  return {done,fail};
+}
+const townTilesKey=(cid)=>"ps.tiles."+cid;
+function townCached(cid){ try{ return JSON.parse(localStorage.getItem(townTilesKey(cid))||"null"); }catch(e){ return null; } }
+async function cacheTown(cid,onProgress){
+  const c=CITY_BY_ID[cid]; if(!c||!c.lat||!TILES.ok) return null;
+  const pts=[[c.lat,c.lon]]; const l=lodgingFor(cid); if(l&&l.ll) pts.push(l.ll);
+  const urls=[...new Set(pts.flatMap(p=>townTileList(p[0],p[1])))];
+  const res=await cacheTiles(urls,onProgress);
+  const rec={at:Date.now(), n:urls.length, fail:res.fail};
+  try{ localStorage.setItem(townTilesKey(cid),JSON.stringify(rec)); }catch(e){}
+  return rec;
+}
+/* hotel pins: one polite Nominatim lookup per lodging, saved on the booking (synced) */
+async function geocodeLodging(b){
+  if(!ONLINE_OK || !b || b.ll || !(b.address||b.name)) return null;
+  const c=CITY_BY_ID[b.cityId]; const town=c?(IT_NAMES[c.id]||c.n):"";
+  const tries=[];
+  if(b.address){
+    tries.push(b.address+(/italy|italia/i.test(b.address)?"":", Italy"));
+    const first=b.address.split(",")[0].trim();                      /* "Calle dei Stagneri o de la Fava" */
+    if(first && town) tries.push(`${first}, ${town}, Italy`);
+    const bare=first.split(/\s+o\s+/)[0].replace(/\s+\d+[a-z]?$/i,"").trim();   /* drop "o <alias>" and a trailing number */
+    if(bare && bare!==first && town) tries.push(`${bare}, ${town}, Italy`);
+  }
+  tries.push(`${b.name}, ${town}, Italy`);
+  for(const q of tries){
+    try{
+      const r=await fetch(`${NOMI}/search?format=jsonv2&limit=1&countrycodes=it&q=${encodeURIComponent(q)}`);
+      const j=await r.json();
+      if(j&&j[0]){ b.ll=[+(+j[0].lat).toFixed(5),+(+j[0].lon).toFixed(5)]; persist(); if(typeof cloudPushSoon==="function") cloudPushSoon(); return b.ll; }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,1100));
+  }
+  return null;
+}
+const lodgePin=()=>L.divIcon({className:"",html:'<div class="live-lodge">🏨</div>',iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-12]});
+function liveDrawLodging(){
+  S.trip.bookings.filter(b=>(b.type==="hotel"||b.type==="airbnb")&&Array.isArray(b.ll)).forEach(b=>{
+    L.marker(b.ll,{icon:lodgePin()}).bindPopup(`<b>${esc(b.name)}</b><br>${esc(b.address||"")}${b.conf?`<br>code <b>${esc(b.conf)}</b>`:""}`).addTo(LIVE.tripLayer);
+  });
+}
+function cmpTarget(){
+  if(String(CMP.target||"").startsWith("bk:")){ const b=S.trip.bookings.find(x=>x.id===CMP.target.slice(3)); return b&&b.ll ? {n:b.name,lat:b.ll[0],lon:b.ll[1]} : null; }
+  return CITY_BY_ID[CMP.target];
+}
+
+/* ---- weather + timetables remembered on disk so the chips still make sense offline ---- */
+const WX_DISK=(()=>{ try{ return JSON.parse(localStorage.getItem("ps.wx")||"{}"); }catch(e){ return {}; } })();
+function wxDiskSave(){ try{ localStorage.setItem("ps.wx",JSON.stringify(WX_DISK)); }catch(e){} }
+function wxDiskNote(){ const ats=Object.values(WX_DISK).map(w=>w&&w.at).filter(Boolean); if(!ats.length) return "nothing saved yet";
+  return `saved ${new Date(Math.max(...ats)).toLocaleString([],{weekday:"short",hour:"2-digit",minute:"2-digit"})} for ${Object.keys(WX_DISK).length} town${Object.keys(WX_DISK).length===1?"":"s"}`; }
+const TIMES_DISK=(()=>{ try{ return JSON.parse(localStorage.getItem("ps.times")||"{}"); }catch(e){ return {}; } })();
+const timesKey=(fromLL,toLL,date)=>`${date}|${fromLL.map(n=>(+n).toFixed(3)).join(",")}|${toLL.map(n=>(+n).toFixed(3)).join(",")}`;
+const timesDiskCount=()=>Object.keys(TIMES_DISK).length;
+async function fetchPlanCached(fromLL,toLL,date){
+  const k=timesKey(fromLL,toLL,date);
+  try{
+    const its=await fetchPlan(fromLL,toLL,date);
+    TIMES_DISK[k]={at:Date.now(),its};
+    const keys=Object.keys(TIMES_DISK); if(keys.length>16) keys.sort((a,b)=>TIMES_DISK[a].at-TIMES_DISK[b].at).slice(0,keys.length-16).forEach(x=>delete TIMES_DISK[x]);
+    try{ localStorage.setItem("ps.times",JSON.stringify(TIMES_DISK)); }catch(e){}
+    return its;
+  }catch(err){
+    const c=TIMES_DISK[k]; if(c){ const its=c.its.slice(); its.cachedAt=c.at; return its; }
+    throw err;
+  }
+}
+/* the next two city changes from the focused day, keyed like the Plan tab's Times buttons */
+function upcomingLegs(){
+  const day=focusDayClamped(), seq=sortedStops(), out=[];
+  for(let i=1;i<seq.length && out.length<2;i++){
+    if(seq[i].arrive<day) continue;
+    const A=CITY_BY_ID[seq[i-1].cityId], B=CITY_BY_ID[seq[i].cityId];
+    if(A&&B&&A.lat&&B.lat && legMode(travelInfo(A.id,B.id)||"")!=="car") out.push({A,B,date:seq[i].arrive});
+  }
+  return out;
+}
+async function cacheUpcomingTimes(){
+  for(const l of upcomingLegs()){ try{ await fetchPlanCached([l.A.lat,l.A.lon],[l.B.lat,l.B.lon],l.date); }catch(e){} }
+}
+
+/* ---- the offline pack: one tap on Wi-Fi before the phone goes dark ---- */
+function upcomingTowns(){
+  const day=focusDayClamped(), ids=[];
+  sortedStops().forEach(s=>{ if(addD(s.arrive,Math.max(1,s.nights))>=day && !ids.includes(s.cityId) && CITY_BY_ID[s.cityId]) ids.push(s.cityId); });
+  if(!ids.length && CITY_BY_ID[S.trip.departureCity]) ids.push(S.trip.departureCity);
+  return ids.slice(0,3);
+}
+function offlinePackHtml(){
+  if(!ONLINE_OK) return "";
+  const at=+localStorage.getItem("ps.pack.at")||0, towns=upcomingTowns(), cached=towns.filter(id=>townCached(id)), f=mtFlags(), nT=timesDiskCount();
+  return `<div class="t-card" id="pack-card" style="margin-top:12px"><span class="label">📦 Offline pack — before you lose signal</span>
+    <p>One tap on hotel Wi-Fi each morning: street maps of the next towns with your hotel pinned, the weather, the next train times. Then the phone can go dark.</p>
+    <div class="pack-list">
+      <div class="pk${towns.length&&cached.length===towns.length?" ok":""}"><b>Street maps</b><span class="st">${cached.length}/${towns.length} towns saved${towns.length?` — ${towns.map(id=>CITY_BY_ID[id].short||CITY_BY_ID[id].n).join(", ")}`:""}</span></div>
+      <div class="pk${Object.keys(WX_DISK).length?" ok":""}"><b>Weather</b><span class="st">${wxDiskNote()}</span></div>
+      <div class="pk${nT?" ok":""}"><b>Train times</b><span class="st">${nT} journey${nT===1?"":"s"} saved</span></div>
+      <div class="pk${f.enit||f.iten?" ok":""}"><b>Translator</b><span class="st">${f.enit||f.iten?"model on this phone":"not downloaded — see the Translate tab"}</span></div>
+    </div>
+    <div class="t-acts" style="align-items:center"><button type="button" class="btn btn-primary btn-sm" id="pack-go">⬇ Cache for the road</button>
+      <span class="times-note" id="pack-st" style="margin:0">${at?`Last packed ${new Date(at).toLocaleString([],{weekday:"short",hour:"2-digit",minute:"2-digit"})}`:"Never packed on this device"}</span></div>
+  </div>`;
+}
+async function cacheForRoad(){
+  const st=$("#pack-st"), btn=$("#pack-go"); if(!st||!btn) return;
+  btn.disabled=true; const say=(m)=>{ st.textContent=m; };
+  try{
+    say("Fetching the map engine…");
+    await Promise.all(["https://unpkg.com/leaflet@1.9.4/dist/leaflet.css","https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"].map(u=>fetch(u,{mode:"no-cors"}).catch(()=>{})));
+    const towns=upcomingTowns();
+    for(const cid of towns){ const l=lodgingFor(cid); if(l&&!l.ll){ say(`Pinning ${l.name}…`); await geocodeLodging(l); } }
+    for(const cid of towns){ const c=CITY_BY_ID[cid]; await cacheTown(cid,(d,n,f)=>say(`${c.short||c.n}: ${d}/${n} map tiles${f?` (${f} failed)`:""}`)); }
+    say("Weather…"); for(const cid of towns){ delete WX[cid]; await getWx(cid); }
+    say("Train times…"); await cacheUpcomingTimes();
+    try{ localStorage.setItem("ps.pack.at",String(Date.now())); }catch(e){}
+    say("Packed ✓ — maps, hotel pins, weather and train times are on this phone.");
+    toast("Offline pack ready");
+    if(LIVE.map) liveDrawTrip();
+  }catch(err){ say("Stopped: "+String(err&&err.message||err).slice(0,120)); }
+  btn.disabled=false;
+  setTimeout(()=>{ if(UI.view==="today") renderToday(); },2500);
+}
+function wireOfflinePack(root){ const b=root.querySelector("#pack-go"); if(b) b.addEventListener("click",cacheForRoad); }
 
 /* ================= CONFIRMATION PASTE-IMPORT ================= */
 const MONTHS={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
