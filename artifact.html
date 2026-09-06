@@ -2320,7 +2320,7 @@ const LS_KEY = "pathseeker.v1";
 const DRIVE_FILE = "Pathseeker-Italy.pathseeker.json";
 const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09-22", endDate:"2026-10-02",
   arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{},
-  packing:{}, packCustom:[], budget:null, shortlist:[], cards:[], guestName:""});
+  packing:{}, packCustom:[], budget:null, shortlist:[], cards:[], guestName:"", carSpot:null});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
 let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
 
@@ -4380,9 +4380,9 @@ function planBookedHtml(st){
     const icon=isStay?"🏨":/✈/.test(b.name)||b.type==="flight"?"✈":b.type==="train"?"🚆":/🚗|rental|car/i.test(b.name)?"🚗":b.type==="ticket"?"🎟":"📌";
     const when=isStay? `${fmtDow(b.date)} ${fmtShort(b.date)}${b.time?` from ${b.time}`:""}${b.checkOut?` → out ${fmtShort(b.checkOut)}${b.checkOutTime?` by ${b.checkOutTime}`:""}`:""}`
                      : `${fmtDow(b.date)} ${fmtShort(b.date)}${b.time?` · ${b.time}`:""}${b.arrTime?` → ${b.arrTime}`:""}`;
-    const phone=(b.notes||"").match(/\+39[\d\s]{8,14}/); 
+    const phone=(b.notes||"").match(/\+39[\d\s-]{8,16}/); 
     return `<li><span class="pb-ic">${icon}</span><div class="pb-t"><b>${esc(b.name.replace(/^[^\w(]+/,""))}</b>
-      <div class="pb-meta">${esc(when)}${b.address?` · ${esc(b.address)}`:""}${phone?` · ${esc(phone[0].trim())}`:""}</div>
+      <div class="pb-meta">${esc(when)}${b.address?` · ${esc(b.address)}`:""}${phone?` · <a href="tel:${phone[0].replace(/\s+/g,"")}">${esc(phone[0].trim())}</a>`:""}</div>
       <div class="pb-code">code <b>${esc(b.conf)}</b>${b.price?` · ${esc(b.price)}`:""}${b.party?` · ${esc(b.party)}`:""}</div></div></li>`;
   };
   return `<div class="plan-booked"><h4>✅ Booked for ${esc(c.short||c.n)} <span class="pb-dates">${fmtShort(st.arrive)} → ${fmtShort(out)}</span></h4>
@@ -4583,6 +4583,38 @@ function nextBestAction(lints){
   return "✨ All clear. Andiamo!";
 }
 
+/* ---- before you fly: the phone-setup steps, ticked per trip (synced) (2026-09-06) ---- */
+const PREFLIGHT=[
+ {id:"pf-home",  label:"Add Pathseeker to the Home Screen on both phones", sub:"Safari → Share → Add to Home Screen, from nimblewizard.github.io/pathseeker. Then do the rest INSIDE that app."},
+ {id:"pf-join",  label:"Join the shared trip inside the Home Screen app", sub:"Sync → paste the join link (copy it from a phone that's already Live). The Home Screen copy has its own storage — Safari alone doesn't count."},
+ {id:"pf-mt",    label:"Download both translator models on Wi-Fi", sub:"Translate tab → ⬇ Download EN→IT and IT→EN (≈150 MB each). One-time; then it works with no signal."},
+ {id:"pf-cache", label:"Tap 'Cache for the road' on the Today tab", sub:"Saves street maps of the next towns with your hotel pins, weather and train times. Repeat each morning on hotel Wi-Fi."},
+ {id:"pf-air",   label:"Airplane-mode rehearsal", sub:"Turn off Wi-Fi + data, then try: live map, a show-card, the translator, a saved train time. If anything fails, fix it before you fly."},
+ {id:"pf-voice", label:"Install an Italian voice on the phone", sub:"Settings → Accessibility → Spoken Content → Voices → Italian → download one. Otherwise 'Say it' reads Italian in an English accent."},
+ {id:"pf-gmaps", label:"Download Google Maps offline areas for the drive", sub:"Venice→Bologna→Bari→Matera, Matera→Salerno→Positano, Positano→Rome. Pathseeker plans; Google Maps navigates."},
+ {id:"pf-ics",   label:"Import the phone reminders (.ics)", sub:"Today → 📅 Phone reminders. Calendar alarms for every flight, train, check-in and checkout — they fire offline and locked."},
+ {id:"pf-docs",  label:"Attach the Booking.com PDFs + boarding passes in the Wallet", sub:"On the phone you'll hand over at check-in — documents stay on the device that added them."},
+ {id:"pf-meta",  label:"Meta glasses: download the Italian pack and test live translation", sub:"Meta AI app → Settings → Languages. Test 'Hey Meta, start live translation' at home."},
+ {id:"pf-backup",label:"Export a JSON backup the night before", sub:"Sync → Export JSON. Belt and braces."}
+];
+const preflightDone=()=>PREFLIGHT.filter(i=>chkDone(i)).length;
+function preflightRow(item){
+  const done=chkDone(item);
+  return `<div class="agent-item${done?" done":""}">
+    <button class="agent-check" role="checkbox" aria-checked="${done}" data-pf="${item.id}" aria-label="${esc(item.label)}">${done?"✓":""}</button>
+    <div class="t"><strong>${esc(item.label)}</strong><p>${esc(item.sub)}</p></div></div>`;
+}
+function preflightSectionHtml(){
+  const n=preflightDone();
+  return `<section class="plan-section" id="p-preflight">
+    <h2 class="serif">Before you fly — phone setup</h2>
+    <p class="plan-lead">The app is only as good as the phone it's on. ${n}/${PREFLIGHT.length} done — tick them as you go; ticks sync to both phones.</p>
+    <div class="plan-panel">
+      <div class="agent-progress"><i style="width:${Math.round(n/PREFLIGHT.length*100)}%"></i></div>
+      ${PREFLIGHT.map(preflightRow).join("")}
+    </div></section>`;
+}
+const preflightNudge=()=>{ const n=preflightDone(); if(todayISO()>=S.trip.startDate) return ""; return n>=PREFLIGHT.length? "" : `<p class="nudge" style="margin-top:8px">📱 Phone setup: ${n} of ${PREFLIGHT.length} steps done — see Plan → Before you fly.</p>`; };
 function agentItemRow(item){
   const s=chkState(item), done=s.st==="booked"||s.st==="paid";
   let acts="";
@@ -4643,7 +4675,7 @@ function renderPlan(){
       <div class="plan-fact"><div class="n">${anyCar?1:0}</div><div class="l">Rented car</div></div>
     </div>
     <div class="plan-nav">
-      <a href="#p-agent">Travel agent</a><a href="#p-route">Route</a><a href="#p-days">Day by day</a>
+      <a href="#p-agent">Travel agent</a><a href="#p-preflight">Before you fly</a><a href="#p-route">Route</a><a href="#p-days">Day by day</a>
       <a href="#p-gems">Fairy-tale gems</a><a href="#p-flex">Flex options</a><a href="#p-ess">Essentials</a>
       <a href="#p-pack">Packing</a>
       <a href="#" id="btn-print" title="Print or save as PDF">🖨 Print</a>
@@ -4673,6 +4705,7 @@ function renderPlan(){
       <p class="nudge">${nextBestAction(lints)}</p>
       ${CHECKLIST.map(agentItemRow).join("")}
     </div></section>`;
+  h+=preflightSectionHtml();
   /* trip check — the linter's problems panel */
   h+=`<section class="plan-section" id="p-lint">
     <h2 class="serif">Trip check</h2>
@@ -4803,6 +4836,10 @@ function renderPlan(){
   wrap.querySelectorAll("[data-chk]").forEach(b=>b.addEventListener("click",()=>{
     const item=CHECKLIST.find(i=>i.id===b.dataset.chk), s=chkState(item);
     chkSet(item.id,{st:(s.st==="booked"||s.st==="paid")?"todo":"booked"});
+  }));
+  wrap.querySelectorAll("[data-pf]").forEach(b=>b.addEventListener("click",()=>{
+    const item=PREFLIGHT.find(i=>i.id===b.dataset.pf); if(!item) return;
+    chkSet(item.id,{st: chkDone(item)? "todo" : "booked"});
   }));
   wrap.querySelectorAll("[data-cyc]").forEach(b=>b.addEventListener("click",()=>{
     const item=CHECKLIST.find(i=>i.id===b.dataset.cyc), s=chkState(item);
@@ -5229,18 +5266,56 @@ async function cloudPush(){
     const r=await fetch(cloudUrl(),{method:"PUT",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({app:"pathseeker",version:1,savedAt:new Date().toISOString(),device:DEVICE_ID,trip:S.trip})});
     cloudPending = !r.ok;
+    if(r.ok) rememberIds(S.trip);
     cloudStatus(r.ok? "Live" : "Sync error");
   }catch(e){ cloudPending=true; cloudStatus("Offline — will retry"); }
 }
 function cloudPushSoon(){ if(!CLOUD||cloudApplying) return; clearTimeout(cloudPushT); cloudPushT=setTimeout(cloudPush,1200); }
+/* ---- merge, don't clobber (2026-09-06) ----
+   Two phones editing offline used to end with the last one to reconnect overwriting the other's
+   journal notes and expenses (whole-document PUT). Now a remote copy is MERGED: anything this device
+   created since its last sync (ids the server has never seen from us) is kept and pushed back.
+   Remote wins on items both sides know; a remote deletion of a known item is honoured; a local
+   deletion of an item the server still has is NOT (it comes back) — the cheaper failure. The first
+   adopt after joining, or on a device with no sync memory yet, is a plain replace so a stale copy
+   can't resurrect old bookings. */
+const KNOWN_KEY="ps.cloud.known", SYNC_COLLS=["bookings","journal","expenses","customCities","cards","stops","shortlist","packCustom"];
+let cloudFresh=false;
+function knownIds(){ try{ const v=localStorage.getItem(KNOWN_KEY); return v? new Set(JSON.parse(v)) : null; }catch(e){ return null; } }
+function rememberIds(trip){
+  const ids=[]; SYNC_COLLS.forEach(k=>(Array.isArray(trip[k])?trip[k]:[]).forEach(x=>{ if(x&&x.id) ids.push(x.id); }));
+  Object.keys(trip.checklist||{}).forEach(k=>ids.push("chk:"+k));
+  if(trip.carSpot) ids.push("carspot");
+  try{ localStorage.setItem(KNOWN_KEY,JSON.stringify(ids)); }catch(e){}
+}
+function mergeTrips(local, remote, known){
+  const out=Object.assign(DEFAULT_TRIP(), remote); let added=0;
+  SYNC_COLLS.forEach(k=>{
+    const r=Array.isArray(remote[k])? remote[k].slice() : [];
+    const rid=new Set(r.map(x=>x&&x.id));
+    (Array.isArray(local[k])?local[k]:[]).forEach(x=>{ if(x&&x.id && !rid.has(x.id) && !known.has(x.id)){ r.push(x); added++; } });
+    if(k==="stops") r.sort((a,b)=>a.arrive<b.arrive?-1:1);
+    out[k]=r;
+  });
+  const ck=Object.assign({}, remote.checklist||{});
+  Object.entries(local.checklist||{}).forEach(([k,v])=>{ if(!(k in ck) && !known.has("chk:"+k)){ ck[k]=v; added++; } });
+  out.checklist=ck;
+  if(local.carSpot && !remote.carSpot && !known.has("carspot")){ out.carSpot=local.carSpot; added++; }
+  return {trip:out, added};
+}
 function cloudAdopt(payload){
   if(!payload || !payload.trip || payload.device===DEVICE_ID) return;
   cloudApplying=true;
-  S.trip=Object.assign(DEFAULT_TRIP(), payload.trip);
+  const known=cloudFresh? null : knownIds();
+  let added=0;
+  if(known){ const m=mergeTrips(S.trip, payload.trip, known); S.trip=m.trip; added=m.added; }
+  else S.trip=Object.assign(DEFAULT_TRIP(), payload.trip);
+  cloudFresh=false; rememberIds(S.trip);
   S.dirty=false; persist(); histBase();
   try{ renderAll(); renderHome(); }catch(e){}
   cloudApplying=false;
   cloudStatus("Live");
+  if(added){ toast(`Kept ${added} change${added===1?"":"s"} made on this phone`); cloudPushSoon(); }
 }
 async function cloudPull(){ try{ const r=await fetch(cloudUrl()); cloudAdopt(await r.json()); }catch(e){} }
 function cloudConnect(){
@@ -5283,15 +5358,25 @@ const joinLink=()=> CLOUD? `${location.origin}${location.pathname}#join=${btoa(J
 function renderCloudDlg(){
   const b=$("#cloud-body");
   if(!CLOUD){
-    b.innerHTML=`<p style="font-size:13.5px;margin:0 0 12px">Paste the <b>Realtime Database URL</b> from your Firebase
-      project — it looks like <code>https://pathseeker-1234-default-rtdb.firebaseio.com</code>.</p>
-      <input id="cloud-url" placeholder="https://…firebaseio.com" style="width:100%">
+    b.innerHTML=`<p style="font-size:13.5px;margin:0 0 12px"><b>Joining the shared trip?</b> Paste the <b>join link</b> from a phone
+      that's already syncing (Sync → Copy link). This works inside the Home Screen app too — on iPhone the Home Screen copy has its
+      own storage, so opening the link in Safari isn't enough.</p>
+      <input id="cloud-url" placeholder="Paste the join link (…#join=…) — or a Firebase database URL to start a new group" style="width:100%">
       <div class="quick-row" style="margin-top:12px">
-        <button type="button" class="btn btn-sm btn-primary" id="cloud-go">Start syncing</button>
+        <button type="button" class="btn btn-sm btn-primary" id="cloud-go">Join / start syncing</button>
       </div>
-      <p class="times-note">This device becomes the first in the group; you'll get a link to open on the others.</p>`;
+      <p class="times-note">Joining pulls the shared trip over this device's copy. A bare database URL starts a brand-new group instead.</p>`;
     $("#cloud-go").addEventListener("click",async()=>{
       const u=$("#cloud-url").value.trim(); if(!u) return;
+      const m=/#join=([^&\s]+)/.exec(u);
+      if(m){
+        try{ const j=JSON.parse(atob(decodeURIComponent(m[1])));
+          if(!(j.u&&j.k)) throw 0;
+          cloudSet({url:j.u,key:j.k}); cloudFresh=true; localStorage.removeItem(KNOWN_KEY);
+          await cloudPull(); cloudConnect(); renderCloudDlg(); toast("Joined — this device now follows the shared trip"); return;
+        }catch(e){ toast("That doesn't look like a Pathseeker join link"); return; }
+      }
+      if(!/^https:\/\/.+firebaseio\.com/i.test(u)){ toast("Paste the join link, or a Firebase database URL"); return; }
       cloudSet({url:u, key:newTripKey()});
       await cloudPush(); cloudConnect(); renderCloudDlg();
     });
@@ -5323,7 +5408,7 @@ function cloudInit(){
   const m=/#join=([^&]+)/.exec(location.hash||"");
   if(m){
     try{ const j=JSON.parse(atob(decodeURIComponent(m[1])));
-      if(j.u&&j.k){ cloudSet({url:j.u,key:j.k}); history.replaceState(null,"",location.pathname); } }catch(e){}
+      if(j.u&&j.k){ cloudSet({url:j.u,key:j.k}); cloudFresh=true; localStorage.removeItem(KNOWN_KEY); history.replaceState(null,"",location.pathname); } }catch(e){}
   }
   cloudLoad();
   if(CLOUD){ cloudConnect(); cloudPull(); }
@@ -5536,11 +5621,41 @@ function beginTrip(){
   toast("Andiamo — Day 1. Step through your route with ‹ ›");
 }
 const QUICK_TOOLS = `<div class="quick-row"><button class="btn btn-quiet btn-sm" id="td-cards">🪧 Show-cards</button>
+      <button class="btn btn-quiet btn-sm" id="td-car">🚗 Parked here</button>
       <button class="btn btn-quiet btn-sm" id="td-sheet">⇩ Offline trip sheet</button>
       <button class="btn btn-quiet btn-sm" id="td-ics">📅 Phone reminders</button>
       <button class="btn btn-quiet btn-sm" id="td-deps">🚉 Departures</button>
       <button class="btn btn-quiet btn-sm" id="td-sync">☁ Sync &amp; backup</button></div>`;
+/* ---- where's the car: one tap saves the spot (synced), the compass walks you back ---- */
+const phoneOf=(b)=>{ const m=((b&&(b.notes||""))+" "+(b&&b.address||"")).match(/\+39[\d\s-]{8,16}|\+1[\d\s-]{10,14}/); return m? m[0].trim() : null; };
+function parkHere(){
+  if(!navigator.geolocation){ toast("No location on this device"); return; }
+  toast("Marking the car…");
+  navigator.geolocation.getCurrentPosition(p=>{
+    S.trip.carSpot={lat:+p.coords.latitude.toFixed(6), lon:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy||0), at:new Date().toISOString(), note:""};
+    mutate(); toast("Car spot saved — 🧭 Find it from the Today tab"); if(UI.view==="today") renderToday(); if(LIVE.map) liveDrawTrip();
+  },()=>toast("Couldn't get a location — allow location access and try again"),{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+function carCardHtml(){
+  const c=S.trip.carSpot; if(!c) return "";
+  const when=new Date(c.at); const ago=Math.round((Date.now()-when)/60000);
+  const agoTxt= ago<60? `${ago} min ago` : ago<1440? `${Math.round(ago/60)} h ago` : `${Math.round(ago/1440)} day${Math.round(ago/1440)===1?"":"s"} ago`;
+  return `<div class="t-card"><span class="label">🚗 Your car</span>
+    <div class="big">Parked ${esc(agoTxt)}</div>
+    <p>${when.toLocaleString([],{weekday:"short",hour:"2-digit",minute:"2-digit"})}${c.acc?` · GPS ±${c.acc} m`:""}${c.note?` · ${esc(c.note)}`:""}</p>
+    <div class="t-acts"><button class="btn btn-sm btn-primary" id="td-car-find">🧭 Find it</button>
+      <a class="btn btn-sm" href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lon}&travelmode=walking" target="_blank" rel="noopener">Walk there ↗</a>
+      <button class="btn btn-sm" id="td-car-note">✎ Note</button>
+      <button class="btn btn-quiet btn-sm" id="td-car-clear">Clear</button></div></div>`;
+}
+function wireCarCard(){
+  const f=$("#td-car-find"); if(f) f.addEventListener("click",()=>openCompass("car"));
+  const n=$("#td-car-note"); if(n) n.addEventListener("click",()=>{ const v=prompt("Where exactly? (level, bay, street…)", S.trip.carSpot?.note||""); if(v===null) return; S.trip.carSpot.note=v.trim(); mutate(); renderToday(); });
+  const x=$("#td-car-clear"); if(x) x.addEventListener("click",()=>{ S.trip.carSpot=null; mutate(); renderToday(); if(LIVE.map) liveDrawTrip(); toast("Car spot cleared"); });
+}
 function wireQuickTools(){
+  const car=$("#td-car"); if(car){ if(S.trip.carSpot) car.textContent="🚗 Re-mark the car"; car.addEventListener("click",parkHere); }
+  wireCarCard();
   const c=$("#td-cards"); if(c) c.addEventListener("click",()=>{ setView("translate"); const sc=$("#showcards"); if(sc) sc.scrollIntoView({behavior:"smooth",block:"start"}); });
   wireOfflinePack(document);
   const s=$("#td-sheet"); if(s) s.addEventListener("click",exportTripSheet);
@@ -5565,7 +5680,7 @@ function renderToday(){
           <div class="label" style="margin-top:6px">days until Italy</div>
           <p style="margin-top:10px">${fmtShort(S.trip.startDate)}: fly into ${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")} ·
           ${S.trip.stops.length} stop${S.trip.stops.length===1?"":"s"} planned · ${S.trip.bookings.length} booking${S.trip.bookings.length===1?"":"s"} made</p>
-          <p class="nudge" style="margin-top:10px">${nextBestAction()}</p>
+          <p class="nudge" style="margin-top:10px">${nextBestAction()}</p>${preflightNudge()}
           ${S.trip.stops.length?
             `<div style="margin-top:18px"><button class="btn btn-primary" id="td-begin">Begin your trip — walk it day by day</button></div>`
             :`<p style="margin-top:12px">Add cities on the map first, then walk the whole route from here.</p>`}
@@ -5621,7 +5736,8 @@ function renderToday(){
   const lodgingCard = city? `<div class="t-card"><span class="label">Tonight</span>
     ${lodging? `<div class="big">${esc(lodging.name)}</div>
       <p>${lodging.conf?`Conf <span class="mono">#${esc(lodging.conf)}</span> · `:""}${esc(city.n)}${lodging.notes?` · ${esc(lodging.notes)}`:""}</p>
-      <div class="t-acts"><a class="btn btn-sm" href="${dirLink(lodging.name+", "+city.n)}" target="_blank" rel="noopener">Directions ↗</a>
+      <div class="t-acts"><a class="btn btn-sm" href="${dirLink(lodging.address||(lodging.name+", "+city.n))}" target="_blank" rel="noopener">Directions ↗</a>
+      ${(()=>{ const ph=phoneOf(lodging); return ph?`<a class="btn btn-sm" href="tel:${ph.replace(/\s+/g,"")}">📞 Call host</a>`:""; })()}
       ${lodging.link?`<a class="btn btn-sm" href="${esc(lodging.link)}" target="_blank" rel="noopener">Booking ↗</a>`:""}</div>`
     : `<div class="big">No lodging saved for ${esc(city.n)}</div>
       <p>Add it so tonight's address is one tap away.</p>
@@ -5646,8 +5762,9 @@ function renderToday(){
         `<button class="btn btn-quiet btn-sm" id="dn-today">Jump to today</button>`:""}
       ${!S.trip.begun && S.trip.stops.length? `<button class="btn btn-sm" id="td-begin2">Begin trip mode</button>`:""}
     </div>
+    ${preflightNudge()}
     ${transfer}
-    <div class="t-cards">${cityCard}${lodgingCard}
+    <div class="t-cards">${cityCard}${lodgingCard}${carCardHtml()}
       <div class="t-card"><span class="label">Tomorrow</span><p style="font-size:14px;margin-top:2px">${tomorrow}</p></div>
     </div>
     ${(()=>{ /* ticket rail: today's scannables, one tap from pocket to scanner */
@@ -5886,10 +6003,11 @@ function openCompass(defaultCity){
   const dlg=$("#dlg-compassnav"), sel=$("#cmp-target");
   const ids=[...new Set([S.trip.arrivalCity,...sortedStops().map(s=>s.cityId),S.trip.departureCity])].filter(id=>CITY_BY_ID[id]);
   const lodges=S.trip.bookings.filter(b=>(b.type==="hotel"||b.type==="airbnb")&&Array.isArray(b.ll));
-  sel.innerHTML=ids.map(id=>`<option value="${id}">${esc(CITY_BY_ID[id].n)}</option>`).join("")
-    +lodges.map(b=>`<option value="bk:${b.id}">🏨 ${esc(b.name)}</option>`).join("");
+  const carOpt=S.trip.carSpot? `<option value="car">🚗 Your car${S.trip.carSpot.note?" · "+esc(S.trip.carSpot.note):""}</option>` : "";
+  sel.innerHTML=carOpt+lodges.map(b=>`<option value="bk:${b.id}">🏨 ${esc(b.name.slice(0,48))}</option>`).join("")
+    +ids.map(id=>`<option value="${id}">${esc(CITY_BY_ID[id].n)}</option>`).join("");
   const dl=defaultCity&&lodges.find(b=>b.cityId===defaultCity);
-  CMP.target=dl?("bk:"+dl.id):((defaultCity&&ids.includes(defaultCity))?defaultCity:ids[0]);
+  CMP.target= (defaultCity==="car"&&S.trip.carSpot)? "car" : dl?("bk:"+dl.id):((defaultCity&&ids.includes(defaultCity))?defaultCity:ids[0]);
   sel.value=CMP.target;
   sel.onchange=()=>{ CMP.target=sel.value; cmpUpdate(); };
   $("#cmp-info").textContent="Tap Start to aim the needle.";
@@ -6523,8 +6641,9 @@ function autoCards(){
     const c=CITY_BY_ID[cid], l=lodgingFor(cid); if(!c||!l) return;
     const where=l.address ? l.address : `${l.name}, ${itName(c)}`;
     out.push({auto:true, k:"taxi:"+cid, en:`Please take us to: ${where}`, it:`Per favore, ci porti a: ${where}`});
-    out.push({auto:true, k:"res:"+cid, en:`We have a reservation under ${guestName()}${l.conf?` — code ${l.conf}`:""}. ${l.name}.`,
-              it:`Abbiamo una prenotazione a nome ${guestName()}${l.conf?` — codice ${l.conf}`:""}. ${l.name}.`});
+    const who=(l.guest||"").trim()||guestName();
+    out.push({auto:true, k:"res:"+cid, en:`We have a reservation under ${who}${l.conf?` — code ${l.conf}`:""}. ${l.name}.`,
+              it:`Abbiamo una prenotazione a nome ${who}${l.conf?` — codice ${l.conf}`:""}. ${l.name}.`});
   });
   const seq=sortedStops(), nx=seq.find(s=>s.arrive>day);
   if(nx && here && nx.cityId!==here){
@@ -6830,11 +6949,15 @@ async function geocodeLodging(b){
 }
 const lodgePin=()=>L.divIcon({className:"",html:'<div class="live-lodge">🏨</div>',iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-12]});
 function liveDrawLodging(){
+  if(S.trip.carSpot){ const c=S.trip.carSpot;
+    L.marker([c.lat,c.lon],{icon:L.divIcon({className:"",html:'<div class="live-lodge" style="border-color:#BE1E3C">🚗</div>',iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-12]})})
+      .bindPopup(`<b>Your car</b><br>${new Date(c.at).toLocaleString([],{weekday:"short",hour:"2-digit",minute:"2-digit"})}${c.note?"<br>"+esc(c.note):""}`).addTo(LIVE.tripLayer); }
   S.trip.bookings.filter(b=>(b.type==="hotel"||b.type==="airbnb")&&Array.isArray(b.ll)).forEach(b=>{
     L.marker(b.ll,{icon:lodgePin()}).bindPopup(`<b>${esc(b.name)}</b><br>${esc(b.address||"")}${b.conf?`<br>code <b>${esc(b.conf)}</b>`:""}`).addTo(LIVE.tripLayer);
   });
 }
 function cmpTarget(){
+  if(CMP.target==="car"){ const c=S.trip.carSpot; return c? {n:"Your car"+(c.note?" · "+c.note:""),lat:c.lat,lon:c.lon} : null; }
   if(String(CMP.target||"").startsWith("bk:")){ const b=S.trip.bookings.find(x=>x.id===CMP.target.slice(3)); return b&&b.ll ? {n:b.name,lat:b.ll[0],lon:b.ll[1]} : null; }
   return CITY_BY_ID[CMP.target];
 }
