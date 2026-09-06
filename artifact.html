@@ -935,6 +935,8 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   .print-pack .pp-note{color:#555;font-size:10.5px}
   .print-pack .pp-codes td{padding:2px 12px 2px 0;font-size:12px}
   .print-pack .pp-em li{margin-bottom:4px}
+  .print-pack .pp-line{margin:2px 0}
+  .print-pack .pp-journal{margin:4px 0 0;font-style:italic}
 }
 /* budget cap */
 .budget-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:2px 0 14px;font-size:13px}
@@ -3829,11 +3831,16 @@ function renderItin(){
     <button class="wseg" data-iview="list" aria-pressed="${iv==="list"}">☰ Day list</button>
     <button class="wseg" data-iview="cal" aria-pressed="${iv==="cal"}">🗓 Calendar</button>
     <button class="wseg" data-gomap aria-pressed="false" title="Edit stops on the map — the itinerary updates itself">🗺 Trip map</button>
-  </div>`;
+  </div>
+  <div class="quick-row" style="margin:-4px 0 12px"><button class="btn btn-sm" data-itin-print>🖨 Print itinerary</button>
+    <button class="btn btn-sm" data-itin-pdf>📄 View as PDF</button>
+    <span class="times-note" style="margin:0">Day by day with every confirmation code, addresses and phone numbers — the paper backup.</span></div>`;
   if(iv==="cal"){
     wrap.innerHTML=head+calendarHtml()+
       `<p class="times-note">Tap any trip day for its schedule · dots are bookings, ✎ marks journal notes.</p>`;
     wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
+  wrap.querySelectorAll("[data-itin-print]").forEach(b=>b.addEventListener("click",printItinerary));
+  wrap.querySelectorAll("[data-itin-pdf]").forEach(b=>b.addEventListener("click",viewItineraryPdf));
   wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>{
     setView("map");
     /* plan on the accurate live map wherever it can load (not inside the claude.ai artifact) */
@@ -3913,6 +3920,8 @@ function renderItin(){
   after.forEach(d=>{ rows+=edgeRow(d,"After the trip"); });
   wrap.innerHTML=head+rows;
   wrap.querySelectorAll("[data-iview]").forEach(b=>b.addEventListener("click",()=>{ UI.itinView=b.dataset.iview; renderItin(); }));
+  wrap.querySelectorAll("[data-itin-print]").forEach(b=>b.addEventListener("click",printItinerary));
+  wrap.querySelectorAll("[data-itin-pdf]").forEach(b=>b.addEventListener("click",viewItineraryPdf));
   wrap.querySelectorAll("[data-gomap]").forEach(b=>b.addEventListener("click",()=>{
     setView("map");
     /* plan on the accurate live map wherever it can load (not inside the claude.ai artifact) */
@@ -5842,6 +5851,150 @@ function printPack(){
   const done=()=>{ document.body.classList.remove("pp-mode"); window.removeEventListener("afterprint",done); };
   window.addEventListener("afterprint",done);
   window.print();
+}
+
+
+/* ---- printable itinerary + real PDF (2026-09-06) ----
+   One document model (`itineraryDoc()`), two renderers: HTML for the print sheet
+   (reuses the print-pack CSS) and a dependency-free PDF writer (Helvetica, WinAnsi,
+   A4) so "View as PDF" works in the artifact too — no CDN needed. */
+const clip=(t,n)=>{ t=String(t||"").trim(); if(t.length<=n) return t; const cut=t.slice(0,n); return cut.slice(0,Math.max(cut.lastIndexOf(" "),n-40)).replace(/[\s,;:—–-]+$/,"")+"…"; };
+function lodgingLine(b){
+  const bits=[];
+  if(b.address) bits.push(b.address);
+  const ph=(b.notes||"").match(/\+39[\d\s]{8,14}/); if(ph) bits.push("tel "+ph[0].trim());
+  if(b.time) bits.push("check-in "+b.time+(b.checkOut?` · out ${fmtShort(b.checkOut)}${b.checkOutTime?" by "+b.checkOutTime:""}`:""));
+  return bits.join(" · ");
+}
+function itineraryDoc(){
+  const days=tripDays(), doc={title:`Pathseeker · Italia — ${fmtShort(S.trip.startDate)} to ${fmtShort(S.trip.endDate)}`,
+    sub:`${guestName()} & Allison · ${S.trip.stops.length} stops · ${S.trip.bookings.length} bookings · printed ${new Date().toLocaleDateString()}`, days:[], codes:[], emergency:[]};
+  days.forEach((d,i)=>{
+    const here=stopsOn(d), city=here[0]?CITY_BY_ID[here[0].cityId]:null;
+    const prev=i? (stopsOn(days[i-1])[0]||{}).cityId : null;
+    const arriving=here.find(s=>s.arrive===d);
+    let transfer=null;
+    if(arriving && prev && prev!==arriving.cityId){ const tt=travelInfo(prev,arriving.cityId); transfer=`${CITY_BY_ID[prev]?.n||"—"} → ${CITY_BY_ID[arriving.cityId]?.n||"—"}${tt?` · ~${tt}`:""}`; }
+    const lodging=city?lodgingFor(city.id):null;
+    const bks=[...S.trip.bookings.filter(b=>b.date===d)].sort((a,b)=>(a.time||"99")<(b.time||"99")?-1:1)
+      .map(b=>({time:b.time||"", name:b.name, conf:b.conf||"", route:(b.from||b.to)?`${b.from||"?"} → ${b.to||"?"}`:"", notes:clip(b.notes,260)}));
+    const note=(S.trip.journal.find(j=>j.date===d)||{}).text||"";
+    doc.days.push({n:i+1, date:d, label:`${fmtDow(d)} ${fmtShort(d)}`, city:city?city.n:(d===S.trip.endDate?"Fly home":"Unassigned"),
+      transfer, lodging: lodging?{name:lodging.name, line:lodgingLine(lodging), conf:lodging.conf||""}:null, bks, note});
+  });
+  doc.codes=S.trip.bookings.filter(b=>b.conf).sort((a,b)=>a.date<b.date?-1:1).map(b=>({date:fmtShort(b.date),name:b.name,conf:b.conf}));
+  doc.emergency=["112 — all emergencies, EU-wide (English available) · 118 medical",
+    "US Embassy Rome +39 06 46741 · Consulate Milan +39 02 290351 · Consulate Naples +39 081 583 8111",
+    "Pharmacy = farmacia (green cross) — the after-hours rota is posted on every pharmacy door",
+    "Lost card (collect calls): Visa +1 303 967 1096 · Mastercard +1 636 722 7111",
+    "Rental: Europcar conf 1206318613 · +39 041 931094 · United conf GF7KB1"];
+  return doc;
+}
+function buildItineraryHtml(){
+  const D=itineraryDoc();
+  let h=`<h1>${esc(D.title)}</h1><p class="pp-sub">${esc(D.sub)}</p><h2>Day by day</h2>`;
+  D.days.forEach(d=>{
+    h+=`<div class="pp-day"><h3>Day ${d.n} · ${esc(d.label)} — ${esc(d.city)}</h3>
+      ${d.transfer?`<p class="pp-line"><b>Travel:</b> ${esc(d.transfer)}</p>`:""}
+      ${d.lodging?`<p class="pp-line"><b>Sleep:</b> ${esc(d.lodging.name)}${d.lodging.conf?` · code <b>${esc(d.lodging.conf)}</b>`:""}${d.lodging.line?`<br><span class="pp-note">${esc(d.lodging.line)}</span>`:""}</p>`:""}
+      ${d.bks.length?`<ul>${d.bks.map(b=>`<li>${b.time?b.time+" — ":""}${esc(b.name)}${b.route?` <span class="pp-note">(${esc(b.route)})</span>`:""}${b.conf?` · code <b>${esc(b.conf)}</b>`:""}${b.notes?`<br><span class="pp-note">${esc(b.notes)}</span>`:""}</li>`).join("")}</ul>`:""}
+      ${d.note?`<p class="pp-note pp-journal">${esc(d.note)}</p>`:""}
+    </div>`;
+  });
+  if(D.codes.length) h+=`<h2>All confirmation codes</h2><table class="pp-codes">${D.codes.map(c=>`<tr><td>${esc(c.date)}</td><td>${esc(c.name)}</td><td><b>${esc(c.conf)}</b></td></tr>`).join("")}</table>`;
+  h+=`<h2>Emergency card</h2><ul class="pp-em">${D.emergency.map(e=>`<li>${esc(e)}</li>`).join("")}</ul>`;
+  return h;
+}
+function printSheet(html){
+  $("#print-pack").innerHTML=html;
+  document.body.classList.add("pp-mode");
+  const done=()=>{ document.body.classList.remove("pp-mode"); window.removeEventListener("afterprint",done); };
+  window.addEventListener("afterprint",done);
+  setTimeout(()=>window.print(),50);
+}
+function printItinerary(){ printSheet(buildItineraryHtml()); }
+
+/* minimal PDF writer: A4, Helvetica/Helvetica-Bold, WinAnsi text, word-wrap, pagination */
+const PDF_MAP={"—":0x97,"–":0x96,"’":0x92,"‘":0x91,"“":0x93,"”":0x94,"…":0x85,"€":0x80,"•":0x95,"·":0xB7};
+function pdfText(s){
+  s=String(s||"").replace(/→/g,"->").replace(/←/g,"<-").replace(/⇄|↔/g,"<->").replace(/[✈🚗🚢🚆🚄🚌⛴🎟🏨🍝📎☐✓✔]/gu,"").replace(/^\s*\+\s*/,"").replace(/\s+/g," ").trim();   /* "🚢+🚆 Ferry" → "Ferry" */
+  let out="";
+  for(const ch of s){ const c=ch.codePointAt(0);
+    if(c<128) out+=ch; else if(c<256) out+=String.fromCharCode(c); else if(PDF_MAP[ch]) out+=String.fromCharCode(PDF_MAP[ch]);
+    else if(/\p{L}/u.test(ch)) out+=ch.normalize("NFD").replace(/[^\x00-\x7f]/g,""); }
+  return out.replace(/\s+/g," ").trim();
+}
+const pdfW=(s,size)=>{ let w=0; for(const ch of s){ w+= /[iljtfI.,:;'|!]/.test(ch)?0.28 : /[mwMW]/.test(ch)?0.83 : /[A-Z0-9]/.test(ch)?0.66 : ch===" "?0.28 : 0.53; } return w*size; };
+function pdfWrap(s,size,maxW){
+  const words=s.split(" "), lines=[]; let cur="";
+  for(const w of words){ const t=cur?cur+" "+w:w; if(pdfW(t,size)>maxW && cur){ lines.push(cur); cur=w; } else cur=t; }
+  if(cur) lines.push(cur); return lines;
+}
+function buildItineraryPdf(){
+  const D=itineraryDoc();
+  const PW=595.28, PH=841.89, M=46, LW=PW-2*M, LEAD=1.32;
+  const pages=[]; let ops=[], y=PH-M;
+  const esc=(s)=>s.replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
+  const newPage=()=>{ if(ops.length) pages.push(ops); ops=[]; y=PH-M; };
+  newPage();
+  const line=(txt,size,bold,gray,indent)=>{
+    const s=pdfText(txt); if(!s) return;
+    for(const l of pdfWrap(s,size,LW-(indent||0))){
+      if(y-size<M){ newPage(); }
+      ops.push(`BT /${bold?"F2":"F1"} ${size} Tf ${gray?"0.38 g":"0 g"} ${(M+(indent||0)).toFixed(1)} ${(y-size).toFixed(1)} Td (${esc(l)}) Tj ET`);
+      y-=size*LEAD;
+    }
+  };
+  const gap=(n)=>{ y-=n; if(y<M) newPage(); };
+  const rule=()=>{ if(y-6<M) newPage(); ops.push(`0.6 w 0.55 G ${M} ${(y-3).toFixed(1)} m ${(PW-M)} ${(y-3).toFixed(1)} l S`); y-=8; };
+  line(D.title,16,true); line(D.sub,9,false,true); gap(8);
+  line("Day by day",12.5,true); rule();
+  D.days.forEach(d=>{
+    const need=d.bks.length? 60 : 34; if(y-need<M) newPage();
+    line(`Day ${d.n} · ${d.label} — ${d.city}`,11,true);
+    if(d.transfer) line("Travel: "+d.transfer,9.5,false,false,10);
+    if(d.lodging){ line("Sleep: "+d.lodging.name+(d.lodging.conf?"  · code "+d.lodging.conf:""),9.5,true,false,10); if(d.lodging.line) line(d.lodging.line,8.5,false,true,20); }
+    d.bks.forEach(b=>{ line(`${b.time?b.time+"  ":""}${b.name}${b.route?"  ("+b.route+")":""}${b.conf?"  · code "+b.conf:""}`,9.5,false,false,10); if(b.notes) line(b.notes,8.2,false,true,20); });
+    if(d.note) line(d.note,8.5,false,true,10);
+    gap(7);
+  });
+  if(D.codes.length){ gap(6); line("All confirmation codes",12.5,true); rule(); D.codes.forEach(c=>line(`${c.date}   ${c.conf}   ${c.name}`,9.5,false,false,4)); }
+  gap(6); line("Emergency card",12.5,true); rule(); D.emergency.forEach(e=>line("• "+e,9.5,false,false,4));
+  if(ops.length) pages.push(ops);
+  /* assemble objects: 1 catalog, 2 pages, 3 F1, 4 F2, then page+content pairs */
+  const objs=[]; const add=(s)=>{ objs.push(s); return objs.length; };
+  add("<< /Type /Catalog /Pages 2 0 R >>"); add("PAGES");
+  add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+  add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+  const pageIds=[];
+  pages.forEach((p,i)=>{
+    const foot=`BT /F1 8 Tf 0.5 g ${M} ${M-16} Td (${esc(pdfText(D.title))}  ·  page ${i+1} of ${pages.length}) Tj ET`;
+    const stream=p.concat([foot]).join("\n");
+    const cid=add(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    const pid=add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${cid} 0 R >>`);
+    pageIds.push(pid);
+  });
+  objs[1]=`<< /Type /Pages /Kids [${pageIds.map(i=>i+" 0 R").join(" ")}] /Count ${pageIds.length} >>`;
+  let out="%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"; const offs=[];
+  objs.forEach((o,i)=>{ offs.push(out.length); out+=`${i+1} 0 obj\n${o}\nendobj\n`; });
+  const xref=out.length;
+  out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+offs.map(o=>String(o).padStart(10,"0")+" 00000 n \n").join("")
+     +`trailer\n<< /Size ${objs.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const bytes=new Uint8Array(out.length); for(let i=0;i<out.length;i++) bytes[i]=out.charCodeAt(i)&0xff;
+  return new Blob([bytes],{type:"application/pdf"});
+}
+async function viewItineraryPdf(){
+  let blob; try{ blob=buildItineraryPdf(); }catch(e){ toast("Couldn't build the PDF"); return; }
+  const name=`pathseeker-itinerary-${S.trip.startDate}.pdf`;
+  if(window.claude && window.claude.downloads){
+    try{ const buf=new Uint8Array(await blob.arrayBuffer()); let bin=""; buf.forEach(b=>bin+=String.fromCharCode(b));
+      await window.claude.downloads.save({filename:name, data:btoa(bin), encoding:"base64"}); toast("PDF saved"); return; }
+    catch(e){ if(e && e.code==="declined") return; }
+  }
+  const url=URL.createObjectURL(blob);
+  const w=window.open(url,"_blank");
+  if(!w){ const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
 /* ---- phone reminders: .ics calendar with alarms for every dated booking ----
