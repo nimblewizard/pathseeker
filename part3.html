@@ -2103,9 +2103,29 @@ function planDayCard(st, prevCityId){
       ${getting?`<div class="plan-drive">${getting}</div>`:""}
       ${(()=>{const gl=goldenLine(st.cityId, st.arrive); return gl?`<div class="plan-drive golden">${gl}</div>`:"";})()}
       ${dayTransportStrip(st)}
-      ${planBlocks(g.blocks||[], c.n)}
+      ${planBookedHtml(st)}
+      ${planBlocks((g.blocks||[]).filter(bl=>!(lodgingFor(st.cityId) && /^where to stay$/i.test(bl.h||""))), c.n)}
       ${g.callout?`<div class="plan-callout">${g.callout}</div>`:""}
     </div></div>`;
+}
+/* everything already confirmed for this stop, straight from the bookings (2026-09-06) */
+function planBookedHtml(st){
+  const c=CITY_BY_ID[st.cityId]; if(!c) return "";
+  const out=addD(st.arrive, Math.max(1,st.nights));
+  const mine=S.trip.bookings.filter(b=>b.cityId===st.cityId && b.conf).sort((a,b)=>(a.date+(a.time||""))<(b.date+(b.time||""))?-1:1);
+  if(!mine.length) return `<div class="plan-booked none"><b>Nothing booked here yet.</b> ${lodgingFor(st.cityId)?"":"The concierge list above has the lodging step for this stop."}</div>`;
+  const row=(b)=>{
+    const isStay=b.type==="hotel"||b.type==="airbnb";
+    const icon=isStay?"🏨":/✈/.test(b.name)||b.type==="flight"?"✈":b.type==="train"?"🚆":/🚗|rental|car/i.test(b.name)?"🚗":b.type==="ticket"?"🎟":"📌";
+    const when=isStay? `${fmtDow(b.date)} ${fmtShort(b.date)}${b.time?` from ${b.time}`:""}${b.checkOut?` → out ${fmtShort(b.checkOut)}${b.checkOutTime?` by ${b.checkOutTime}`:""}`:""}`
+                     : `${fmtDow(b.date)} ${fmtShort(b.date)}${b.time?` · ${b.time}`:""}${b.arrTime?` → ${b.arrTime}`:""}`;
+    const phone=(b.notes||"").match(/\+39[\d\s]{8,14}/); 
+    return `<li><span class="pb-ic">${icon}</span><div class="pb-t"><b>${esc(b.name.replace(/^[^\w(]+/,""))}</b>
+      <div class="pb-meta">${esc(when)}${b.address?` · ${esc(b.address)}`:""}${phone?` · ${esc(phone[0].trim())}`:""}</div>
+      <div class="pb-code">code <b>${esc(b.conf)}</b>${b.price?` · ${esc(b.price)}`:""}${b.party?` · ${esc(b.party)}`:""}</div></div></li>`;
+  };
+  return `<div class="plan-booked"><h4>✅ Booked for ${esc(c.short||c.n)} <span class="pb-dates">${fmtShort(st.arrive)} → ${fmtShort(out)}</span></h4>
+    <ul>${mine.map(row).join("")}</ul></div>`;
 }
 function planDaytripCard(dt){
   return `<div class="plan-day">
