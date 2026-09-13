@@ -1128,6 +1128,25 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 .plan-booked .pb-meta{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
 .plan-booked .pb-code{font-size:12.5px;margin-top:2px}
 .plan-booked .pb-code b{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em}
+/* Wallet ledger (2026-09-13) */
+.wl-filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+.wl-chip{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink-soft);cursor:pointer}
+.wl-chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.wl-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.wl-row{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.wl-row.now{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.wl-row .type-dot{width:10px;height:10px;border-radius:50%;flex:none;margin-top:6px}
+.wl-main{flex:1;min-width:0}
+.wl-name{font-weight:700;font-size:14px;line-height:1.25}
+.wl-meta{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.wl-status{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.wl-code{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:700;letter-spacing:.06em;padding:3px 9px;border-radius:8px;
+  background:var(--surface2);color:var(--ink);border:none;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--ink-soft)}
+.wl-pill.none{color:#8E1230;background:rgba(190,30,60,.10)}
+.wl-pill.docs{color:#4C6B23;background:rgba(107,142,52,.14)}
+.wl-acts{display:flex;flex-direction:column;gap:5px;flex:none;align-items:stretch}
+@media (max-width:560px){ .wl-row{flex-wrap:wrap} .wl-acts{flex-direction:row;flex-wrap:wrap;width:100%;padding-left:20px} }
 /* ---- offline kit (2026-09-06): show-cards, sign decoder, translator, offline pack ---- */
 [hidden]{display:none !important}   /* .btn/.t-acts set display, which would otherwise beat the attribute */
 .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
@@ -1612,7 +1631,7 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
   </form>
 </dialog>
 
-<input type="file" id="doc-file" accept="image/*,application/pdf" capture="environment" hidden>
+<input type="file" id="doc-file" accept="image/*,application/pdf" hidden>
 
 <dialog id="dlg-day">
   <form method="dialog" novalidate>
@@ -4462,7 +4481,7 @@ function renderDocsList(){
        screenshot of the confirmation.</p>`;
   $$("#docs-list [data-dv]").forEach(b=>b.addEventListener("click",()=>viewDoc(b.dataset.dv)));
   $$("#docs-list [data-dx]").forEach(b=>b.addEventListener("click",async()=>{
-    await docDel(b.dataset.dx); renderDocsList(); renderPlan();
+    await docDel(b.dataset.dx); renderDocsList(); renderPlan(); if(UI.view==="wallet") renderWallet();
   }));
 }
 function openDocsDlg(chk,label){
@@ -4501,7 +4520,7 @@ function wireDocsDlg(){
       if(f.size>15*1048576){ toast(`${f.name} is too big (15 MB max)`); continue; }
       await docAdd(docsCtx,f);
     }
-    e.target.value=""; renderDocsList(); renderPlan();
+    e.target.value=""; renderDocsList(); renderPlan(); if(UI.view==="wallet") renderWallet();
   });
 }
 
@@ -6292,17 +6311,57 @@ const DOC_SLOTS=[
 ];
 let walletUrls=[];
 function walletRevoke(){ walletUrls.forEach(u=>URL.revokeObjectURL(u)); walletUrls=[]; }
+/* ---- Wallet ledger (2026-09-13): every booking, chronological, with a one-tap attach ---- */
+const WALLET_FILTERS=[["all","All"],["conf","Confirmed"],["none","Needs a code"],["docs","With tickets attached"]];
+function walletLedgerHtml(){
+  const f=UI.walletFilter||"all", t=todayISO();
+  const all=[...S.trip.bookings].sort((a,b)=>(a.date+(a.time||"99"))<(b.date+(b.time||"99"))?-1:1);
+  const nConf=all.filter(b=>b.conf).length, nDocs=all.filter(b=>docsFor("bk:"+b.id).length).length;
+  const list=all.filter(b=> f==="conf"? !!b.conf : f==="none"? !b.conf : f==="docs"? docsFor("bk:"+b.id).length>0 : true);
+  let h=`<p class="wallet-note">${all.length} bookings · <b>${nConf}</b> with a confirmation code · <b>${nDocs}</b> with tickets attached.
+      Tap 📎 on any row to attach its PDF or a photo of the ticket; attachments stay on this device.</p>
+    <div class="wl-filters">${WALLET_FILTERS.map(([k,l])=>`<button class="wl-chip" data-wfilter="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}</div>`;
+  if(!list.length) return h+`<div class="empty">Nothing matches this filter.</div>`;
+  const byDate={}; list.forEach(b=>{ (byDate[b.date||"undated"]=byDate[b.date||"undated"]||[]).push(b); });
+  Object.keys(byDate).sort().forEach(d=>{
+    const city=d!=="undated"&&stopsOn(d)[0]? CITY_BY_ID[stopsOn(d)[0].cityId] : null;
+    h+=`<div class="poi-section" style="margin-top:16px"><span class="label">${d==="undated"?"No date":`${fmtDow(d)} ${fmtShort(d)}`}${city?` · ${esc(city.short||city.n)}`:""}${d===t?" · TODAY":""}</span></div>
+      <div class="wl-list">${byDate[d].map(b=>{
+        const nd=docsFor("bk:"+b.id).length, tm=typeMeta(b.type);
+        const conf=(b.conf||"").split(/\s*·\s*/)[0];
+        return `<div class="wl-row${d===t?" now":""}">
+          <span class="type-dot" style="background:${tm.c}"></span>
+          <div class="wl-main">
+            <div class="wl-name">${esc(b.name)}</div>
+            <div class="wl-meta">${b.time?esc(b.time)+" · ":""}${esc(tm.label||b.type)}${b.price?" · "+esc(b.price):""}${b.seats?" · "+esc(b.seats):""}</div>
+            <div class="wl-status">
+              ${b.conf?`<button class="wl-code" data-bigcode="${esc(conf)}" title="Enlarge for scanning">${esc(b.conf)}</button>`:`<span class="wl-pill none">no code yet</span>`}
+              ${nd?`<span class="wl-pill docs">📎 ${nd} attached</span>`:""}
+            </div>
+          </div>
+          <div class="wl-acts">
+            <button class="btn btn-sm btn-primary" data-wattach="${b.id}" title="Attach a PDF or photo of the ticket">📎 Attach</button>
+            ${nd?`<button class="btn btn-sm" data-tkshow2="${b.id}">Show</button><button class="btn btn-sm" data-bkdocs="${b.id}">Manage</button>`:""}
+            <button class="btn btn-sm btn-quiet" data-wedit="${b.id}">✎ Edit</button>
+            ${b.link?`<a class="btn btn-sm btn-quiet" href="${esc(b.link)}" target="_blank" rel="noopener">Open ↗</a>`:""}
+          </div></div>`;}).join("")}</div>`;
+  });
+  return h;
+}
 function renderWallet(){
   const wrap=$("#wallet-wrap");
-  const tab=UI.wallet||"tickets";
+  const tab=UI.wallet||"all";
   walletRevoke();
   let h=`<h2 class="view-title serif">Wallet</h2>
-    <p class="view-sub">Everything you might be asked to show — tickets on the left, papers on the right.</p>
+    <p class="view-sub">Every booking in one place — codes to show, tickets to attach, papers to carry.</p>
     <div class="wallet-seg" role="tablist">
-      <button class="wseg" data-wtab="tickets" aria-pressed="${tab==="tickets"}">🎫 Tickets</button>
+      <button class="wseg" data-wtab="all" aria-pressed="${tab==="all"}">📋 All bookings</button>
+      <button class="wseg" data-wtab="tickets" aria-pressed="${tab==="tickets"}">🎫 Codes</button>
       <button class="wseg" data-wtab="docs" aria-pressed="${tab==="docs"}">🪪 Documents</button>
     </div>`;
-  if(tab==="tickets"){
+  if(tab==="all"){
+    h+=walletLedgerHtml();
+  }else if(tab==="tickets"){
     const t=todayISO();
     const withCode=S.trip.bookings.filter(b=>b.conf||docsFor("bk:"+b.id).length);
     const plain=S.trip.bookings.filter(b=>!(b.conf||docsFor("bk:"+b.id).length));
@@ -6354,6 +6413,14 @@ function renderWallet(){
   }
   wrap.innerHTML=h;
   wrap.querySelectorAll("[data-wtab]").forEach(b=>b.addEventListener("click",()=>{ UI.wallet=b.dataset.wtab; renderWallet(); }));
+  wrap.querySelectorAll("[data-wfilter]").forEach(b=>b.addEventListener("click",()=>{ UI.walletFilter=b.dataset.wfilter; renderWallet(); }));
+  wrap.querySelectorAll("[data-wattach]").forEach(b=>b.addEventListener("click",()=>{
+    if(!DOCDB){ toast("Document storage isn't available in this browser"); return; }
+    docsCtx="bk:"+b.dataset.wattach; $("#doc-file").click();
+  }));
+  wrap.querySelectorAll("[data-wedit]").forEach(b=>b.addEventListener("click",()=>{
+    const bk=S.trip.bookings.find(x=>x.id===b.dataset.wedit); if(bk) openBookingDlg(bk);
+  }));
   wrap.querySelectorAll("[data-tkshow2]").forEach(b=>b.addEventListener("click",()=>{
     const docs=docsFor("bk:"+b.dataset.tkshow2);
     if(docs.length===1) viewDoc(docs[0].id);
