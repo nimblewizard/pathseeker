@@ -1147,6 +1147,21 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 .wl-pill.docs{color:#4C6B23;background:rgba(107,142,52,.14)}
 .wl-acts{display:flex;flex-direction:column;gap:5px;flex:none;align-items:stretch}
 @media (max-width:560px){ .wl-row{flex-wrap:wrap} .wl-acts{flex-direction:row;flex-wrap:wrap;width:100%;padding-left:20px} }
+/* cue cards by place (2026-09-13) */
+.place-picker{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.place-chip{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:86px;padding:8px 10px;border-radius:12px;
+  border:1.5px solid var(--line);background:var(--surface);color:var(--ink-soft);cursor:pointer}
+.place-chip .pc-ic{font-size:20px;line-height:1}
+.place-chip .pc-n{font-size:11.5px;font-weight:700;letter-spacing:.02em;text-align:center}
+.place-chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.cue-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px}
+.cue{display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);
+  background:var(--surface);color:var(--ink);cursor:pointer}
+.cue:hover{border-color:var(--gold);box-shadow:var(--shadow-sm)}
+.cue-it{font-weight:700;font-size:14.5px;line-height:1.25}
+.cue-say{font-size:11.5px;font-style:italic;color:var(--gold);letter-spacing:.01em}
+.cue-en{font-size:12px;color:var(--ink-soft)}
+@media (max-width:520px){ .cue-grid{grid-template-columns:1fr 1fr} .place-chip{min-width:0;flex:1 1 30%} }
 /* ---- offline kit (2026-09-06): show-cards, sign decoder, translator, offline pack ---- */
 [hidden]{display:none !important}   /* .btn/.t-acts set display, which would otherwise beat the attribute */
 .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
@@ -2341,7 +2356,7 @@ const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09
   arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{},
   packing:{}, packCustom:[], budget:null, shortlist:[], cards:[], guestName:"", carSpot:null});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
-let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null};
+let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null, place:(function(){ try{ return localStorage.getItem("ps.place")||"restaurant"; }catch(e){ return "restaurant"; } })()};
 
 function loadState(){
   try{
@@ -6639,11 +6654,12 @@ function renderTranslate(){
       on the bill. Round up or leave a euro or two for great service. Card is fine nearly everywhere;
       keep ~€50 cash for markets, small bars, and ZTL parking meters.</p>
     </div>
+    ${cueCardsHtml()}
     ${showCardsHtml()}
     ${mtHtml()}
     <div class="tr-search"><input id="tr-q" placeholder="Search — try 'check please', 'vongole' or 'ZTL'…" autocomplete="off"></div>
     <div id="tr-body">${trResults("")}</div>`;
-  wireFx(); wireShowCards(wrap); wireMt(wrap);
+  wireFx(); wireCueCards(wrap); wireShowCards(wrap); wireMt(wrap);
   const q=$("#tr-q");
   q.addEventListener("input",()=>{ $("#tr-body").innerHTML=trResults(q.value); });
   wrap.addEventListener("click",(e)=>{
@@ -6774,6 +6790,144 @@ function openCardAdd(preEn,preIt){
     if(!it){ toast("The card needs its Italian line"); return; }
     S.trip.cards=S.trip.cards||[]; S.trip.cards.push({id:uid(),en,it}); mutate(); rerenderCards(); toast("Card saved — it syncs to every device");
   },{once:true});
+}
+
+
+/* ---- cue cards by place (2026-09-13): what you'd actually say at the airport, the station,
+   a museum gate, a hotel desk or a restaurant table. [Italian, pronunciation, English] ---- */
+const PLACES=[
+ {id:"airport",  ic:"✈️", n:"Airport",         sub:"Malpensa arrival, FCO departure"},
+ {id:"station",  ic:"🚆", n:"Train station",   sub:"Centrale, Varenna, Venezia S. Lucia"},
+ {id:"museum",   ic:"🏛", n:"Museums & sights", sub:"Duomo, basilica, palace, tickets"},
+ {id:"lodging",  ic:"🏨", n:"Hotel & Airbnb",  sub:"check-in, keys, bags, Wi-Fi"},
+ {id:"restaurant",ic:"🍝", n:"Restaurant",     sub:"table, ordering, allergies, the bill"},
+ {id:"driving",  ic:"🚗", n:"Car & road",      sub:"rental desk, fuel, parking, tolls"},
+ {id:"directions",ic:"🧭", n:"Asking the way", sub:"lost in the lanes, finding a place"},
+ {id:"taxi",     ic:"🚕", n:"Taxi & rides",    sub:"ranks, fares, FreeNow / itTaxi, Uber"}
+];
+const CUE_CARDS={
+ airport:[
+  ["Dov'è il treno per Milano Centrale?","doh-VEH eel TREH-no pehr mee-LAH-no chen-TRAH-leh","Where is the train to Milano Centrale?"],
+  ["Dove si comprano i biglietti?","DOH-veh see KOM-prah-no ee bee-LYET-tee","Where do I buy tickets?"],
+  ["Due biglietti per il Malpensa Express, per favore.","DOO-eh bee-LYET-tee pehr eel mal-PEN-sa ex-PRESS, pehr fah-VOH-reh","Two tickets for the Malpensa Express, please."],
+  ["Dov'è il ritiro bagagli?","doh-VEH eel ree-TEE-ro bah-GAH-lyee","Where is baggage claim?"],
+  ["La nostra valigia non è arrivata.","lah NOS-trah vah-LEE-jah non eh ar-ree-VAH-tah","Our suitcase didn't arrive."],
+  ["Dov'è la fila per i passaporti non UE?","doh-VEH lah FEE-lah pehr ee pas-sa-POR-tee non oo-EH","Where is the line for non-EU passports?"],
+  ["Siamo qui in vacanza per dieci giorni.","see-AH-mo kwee een vah-KAHN-tsah pehr dee-EH-chee JOR-nee","We're here on holiday for ten days."],
+  ["Dov'è la riconsegna delle auto a noleggio?","doh-VEH lah ree-kon-SEH-nyah DEL-leh OW-to ah no-LED-jo","Where is the rental car return?"],
+  ["A che ora chiude il gate?","ah keh OH-rah KYOO-deh eel gate","What time does the gate close?"],
+  ["Posso avere un sacchetto per i liquidi?","POS-so ah-VEH-reh oon sak-KET-to pehr ee LEE-kwee-dee","Can I have a bag for liquids?"],
+  ["Dov'è un bancomat?","doh-VEH oon BAHN-ko-mat","Where is an ATM?"]],
+ station:[
+  ["Quale binario per Varenna?","KWAH-leh bee-NAH-ryo pehr vah-REN-nah","Which platform for Varenna?"],
+  ["È questo il treno per Venezia Santa Lucia?","eh KWES-to eel TREH-no pehr veh-NEH-tsyah SAHN-tah loo-CHEE-ah","Is this the train to Venezia Santa Lucia?"],
+  ["Dove si convalida il biglietto?","DOH-veh see kon-VAH-lee-dah eel bee-LYET-to","Where do I validate the ticket?"],
+  ["Due biglietti per Varenna-Esino, per favore.","DOO-eh bee-LYET-tee pehr vah-REN-nah eh-ZEE-no, pehr fah-VOH-reh","Two tickets to Varenna-Esino, please."],
+  ["Il treno è in ritardo?","eel TREH-no eh een ree-TAR-do","Is the train late?"],
+  ["Questo treno ferma a Varenna?","KWES-to TREH-no FEHR-mah ah vah-REN-nah","Does this train stop at Varenna?"],
+  ["Carrozza tre, posti quindici e sedici.","kar-ROT-tsah treh, POS-tee KWEEN-dee-chee eh SEH-dee-chee","Coach three, seats fifteen and sixteen."],
+  ["Questo posto è occupato?","KWES-to POS-to eh ok-koo-PAH-to","Is this seat taken?"],
+  ["Dov'è il deposito bagagli?","doh-VEH eel deh-POH-zee-to bah-GAH-lyee","Where is the left-luggage office?"],
+  ["Abbiamo perso il treno. C'è un altro?","ab-BYAH-mo PEHR-so eel TREH-no. cheh oon AHL-tro","We missed the train. Is there another?"],
+  ["C'è uno sciopero oggi?","cheh OO-no SHOH-peh-ro OD-jee","Is there a strike today?"]],
+ museum:[
+  ["Abbiamo i biglietti online.","ab-BYAH-mo ee bee-LYET-tee on-LINE","We have online tickets."],
+  ["Dov'è l'ingresso con prenotazione?","doh-VEH leen-GRES-so kon preh-no-tah-TSYOH-neh","Where is the entrance for reservations?"],
+  ["Due biglietti interi, per favore.","DOO-eh bee-LYET-tee een-TEH-ree, pehr fah-VOH-reh","Two full-price tickets, please."],
+  ["A che ora chiudete?","ah keh OH-rah kyoo-DEH-teh","What time do you close?"],
+  ["Dov'è il guardaroba?","doh-VEH eel gwar-dah-ROH-bah","Where is the cloakroom?"],
+  ["Si può fotografare?","see pwoh fo-to-grah-FAH-reh","Is photography allowed?"],
+  ["Dov'è l'ascensore per le terrazze?","doh-VEH lah-shen-SOH-reh pehr leh tehr-RAT-tseh","Where is the lift to the terraces?"],
+  ["Abbiamo una prenotazione per le nove e mezza.","ab-BYAH-mo OO-nah preh-no-tah-TSYOH-neh pehr leh NOH-veh eh MED-dzah","We have a reservation for 9:30."],
+  ["C'è un'audioguida in inglese?","cheh oon ow-dyo-GWEE-dah een een-GLEH-zeh","Is there an audio guide in English?"],
+  ["Dov'è l'uscita?","doh-VEH loo-SHEE-tah","Where is the exit?"],
+  ["È vietato lo zaino? Dove lo lascio?","eh vyeh-TAH-to lo DZAH-ee-no? DOH-veh lo LAH-sho","Are backpacks not allowed? Where do I leave it?"]],
+ lodging:[
+  ["Buongiorno, abbiamo una prenotazione a nome Valin.","bwon-JOR-no, ab-BYAH-mo OO-nah preh-no-tah-TSYOH-neh ah NOH-meh VAH-lin","Hello, we have a reservation under Valin."],
+  ["Possiamo lasciare i bagagli fino al check-in?","pos-SYAH-mo lah-SHAH-reh ee bah-GAH-lyee FEE-no ahl check-in","Can we leave our bags until check-in?"],
+  ["Qual è la password del Wi-Fi?","kwah-LEH lah password del wee-FEE","What's the Wi-Fi password?"],
+  ["A che ora è il check-out?","ah keh OH-rah eh eel check-out","What time is checkout?"],
+  ["Dove possiamo parcheggiare la macchina?","DOH-veh pos-SYAH-mo par-ked-JAH-reh lah MAK-kee-nah","Where can we park the car?"],
+  ["La colazione è inclusa? A che ora?","lah ko-lah-TSYOH-neh eh een-KLOO-zah? ah keh OH-rah","Is breakfast included? What time?"],
+  ["Possiamo avere un altro asciugamano?","pos-SYAH-mo ah-VEH-reh oon AHL-tro ah-shoo-gah-MAH-no","Can we have another towel?"],
+  ["Il riscaldamento / l'aria condizionata non funziona.","eel ree-skal-dah-MEN-to / LAH-ryah kon-dee-tsyo-NAH-tah non foon-TSYOH-nah","The heating / air conditioning isn't working."],
+  ["Può chiamarci un taxi per le nove?","pwoh kyah-MAR-chee oon TAK-see pehr leh NOH-veh","Could you call us a taxi for nine?"],
+  ["Dove si paga la tassa di soggiorno?","DOH-veh see PAH-gah lah TAS-sah dee sod-JOR-no","Where do we pay the city tax?"],
+  ["Ci consiglia un ristorante qui vicino?","chee kon-SEE-lyah oon rees-to-RAHN-teh kwee vee-CHEE-no","Can you recommend a restaurant nearby?"],
+  ["Dov'è l'imbarcadero più vicino?","doh-VEH leem-bar-kah-DEH-ro pyoo vee-CHEE-no","Where is the nearest ferry pier?"]],
+ restaurant:[
+  ["Un tavolo per due, per favore.","oon TAH-vo-lo pehr DOO-eh, pehr fah-VOH-reh","A table for two, please."],
+  ["Abbiamo prenotato a nome Valin.","ab-BYAH-mo preh-no-TAH-to ah NOH-meh VAH-lin","We booked under Valin."],
+  ["Il menù in inglese, per favore.","eel meh-NOO een een-GLEH-zeh, pehr fah-VOH-reh","The English menu, please."],
+  ["Cosa ci consiglia?","KOH-zah chee kon-SEE-lyah","What do you recommend?"],
+  ["Qual è il piatto tipico di qui?","kwah-LEH eel PYAT-to TEE-pee-ko dee kwee","What's the local dish here?"],
+  ["Acqua naturale e frizzante, per favore.","AH-kwah nah-too-RAH-leh eh freet-TSAHN-teh, pehr fah-VOH-reh","Still and sparkling water, please."],
+  ["Un bicchiere di vino della casa.","oon beek-KYEH-reh dee VEE-no DEL-lah KAH-zah","A glass of the house wine."],
+  ["Sono allergico ai frutti di mare.","SOH-no al-LEHR-jee-ko ai FROOT-tee dee MAH-reh","I'm allergic to shellfish."],
+  ["Senza glutine, per favore.","SEN-tsah GLOO-tee-neh, pehr fah-VOH-reh","Gluten-free, please."],
+  ["Era buonissimo, grazie.","EH-rah bwo-NEES-see-mo, GRAH-tsyeh","It was delicious, thank you."],
+  ["Il conto, per favore.","eel KON-to, pehr fah-VOH-reh","The bill, please."],
+  ["Possiamo pagare con la carta?","pos-SYAH-mo pah-GAH-reh kon lah KAR-tah","Can we pay by card?"],
+  ["Due caffè, per favore.","DOO-eh kaf-FEH, pehr fah-VOH-reh","Two espressos, please."]],
+ driving:[
+  ["Abbiamo prenotato un'auto a nome Valin.","ab-BYAH-mo preh-no-TAH-to oon OW-to ah NOH-meh VAH-lin","We reserved a car under Valin."],
+  ["È automatica?","eh ow-to-MAH-tee-kah","Is it automatic?"],
+  ["Benzina o gasolio?","ben-DZEE-nah oh gah-ZOH-lyo","Petrol or diesel?"],
+  ["Il pieno, per favore.","eel PYEH-no, pehr fah-VOH-reh","Fill it up, please."],
+  ["Dov'è un parcheggio custodito?","doh-VEH oon par-KED-jo koos-to-DEE-to","Where is an attended car park?"],
+  ["Posso parcheggiare qui?","POS-so par-ked-JAH-reh kwee","Can I park here?"],
+  ["Questa strada è aperta?","KWES-tah STRAH-dah eh ah-PEHR-tah","Is this road open?"],
+  ["Il casello accetta la carta?","eel kah-ZEL-lo ah-CHET-tah lah KAR-tah","Does the toll booth take cards?"],
+  ["Abbiamo una gomma a terra.","ab-BYAH-mo OO-nah GOM-mah ah TEHR-rah","We have a flat tyre."],
+  ["Dove riconsegno l'auto?","DOH-veh ree-kon-SEH-nyo LOW-to","Where do I return the car?"]],
+ directions:[
+  ["Scusi, dov'è…?","SKOO-zee, doh-VEH","Excuse me, where is…?"],
+  ["Ci siamo persi.","chee SYAH-mo PEHR-see","We're lost."],
+  ["Può mostrarmelo sulla mappa?","pwoh mos-TRAR-meh-lo SOOL-lah MAP-pah","Can you show me on the map?"],
+  ["È lontano a piedi?","eh lon-TAH-no ah PYEH-dee","Is it far on foot?"],
+  ["Quanti minuti a piedi?","KWAN-tee mee-NOO-tee ah PYEH-dee","How many minutes on foot?"],
+  ["A sinistra, a destra, dritto?","ah see-NEES-trah, ah DES-trah, DREET-to","Left, right, straight?"],
+  ["Dov'è la fermata del vaporetto?","doh-VEH lah fehr-MAH-tah del vah-po-RET-to","Where is the vaporetto stop?"],
+  ["Dov'è Piazza San Marco?","doh-VEH PYAT-tsah sahn MAR-ko","Where is St Mark's Square?"],
+  ["Stiamo cercando questo indirizzo.","STYAH-mo cher-KAHN-do KWES-to een-dee-REET-tso","We're looking for this address."],
+  ["Dov'è il bagno più vicino?","doh-VEH eel BAH-nyo pyoo vee-CHEE-no","Where is the nearest bathroom?"],
+  ["Dov'è una farmacia aperta?","doh-VEH OO-nah far-mah-CHEE-ah ah-PEHR-tah","Where is an open pharmacy?"],
+  ["Può ripetere più lentamente?","pwoh ree-PEH-teh-reh pyoo len-tah-MEN-teh","Can you repeat that more slowly?"],
+  ["Grazie mille, è stato gentilissimo.","GRAH-tsyeh MEEL-leh, eh STAH-to jen-tee-LEES-see-mo","Thank you so much, you've been very kind."]],
+ taxi:[
+  ["Dov'è il posteggio dei taxi?","doh-VEH eel pos-TED-jo day TAK-see","Where is the taxi rank?"],
+  ["A questo indirizzo, per favore.","ah KWES-to een-dee-REET-tso, pehr fah-VOH-reh","To this address, please."],
+  ["Alla stazione Termini, per favore.","AHL-lah stah-TSYOH-neh TEHR-mee-nee, pehr fah-VOH-reh","To Termini station, please."],
+  ["All'aeroporto di Fiumicino, per favore.","ahl-lah-eh-ro-POR-to dee fyoo-mee-CHEE-no, pehr fah-VOH-reh","To Fiumicino airport, please."],
+  ["Quanto costa più o meno?","KWAN-to KOS-tah pyoo oh MEH-no","How much, roughly?"],
+  ["C'è una tariffa fissa?","cheh OO-nah tah-REEF-fah FEES-sah","Is there a fixed fare?"],
+  ["Può accendere il tassametro, per favore?","pwoh ah-CHEN-deh-reh eel tas-SAH-meh-tro, pehr fah-VOH-reh","Could you turn on the meter, please?"],
+  ["Accetta la carta?","ah-CHET-tah lah KAR-tah","Do you take cards?"],
+  ["Si fermi qui, va bene.","see FEHR-mee kwee, vah BEH-neh","Stop here, that's fine."],
+  ["Può aspettare due minuti?","pwoh as-pet-TAH-reh DOO-eh mee-NOO-tee","Can you wait two minutes?"],
+  ["Abbiamo due valigie grandi.","ab-BYAH-mo DOO-eh vah-LEE-jeh GRAHN-dee","We have two big suitcases."],
+  ["Può chiamarci un taxi?","pwoh kyah-MAR-chee oon TAK-see","Could you call us a taxi?"],
+  ["Mi può fare la ricevuta?","mee pwoh FAH-reh lah ree-cheh-VOO-tah","Can I have a receipt?"]]
+};
+function cueCard(c){
+  return `<button type="button" class="cue" data-card-it="${esc(c[0])}" data-card-en="${esc(c[2])}">
+    <span class="cue-it">${esc(c[0])}</span><span class="cue-say">${esc(c[1])}</span><span class="cue-en">${esc(c[2])}</span></button>`;
+}
+function cueCardsHtml(){
+  const p=UI.place||"restaurant"; const P=PLACES.find(x=>x.id===p)||PLACES[0];
+  return `<div class="t-card" id="cuecards" style="margin-bottom:4px"><span class="label">🗣 Cue cards — where are you?</span>
+    <p>Pick the place and the phrases you'll actually need are laid out to read, say, or show. Tap a card to fill the screen; ▷ speaks it.</p>
+    <div class="place-picker">${PLACES.map(x=>`<button type="button" class="place-chip" data-place="${x.id}" aria-pressed="${x.id===p}"><span class="pc-ic">${x.ic}</span><span class="pc-n">${esc(x.n)}</span></button>`).join("")}</div>
+    <p class="times-note" style="margin:6px 0 0">${esc(P.ic+" "+P.n)} · ${esc(P.sub)}</p>
+    <div class="cue-grid">${(CUE_CARDS[p]||[]).map(cueCard).join("")}</div>
+  </div>`;
+}
+function wireCueCards(root){
+  root.addEventListener("click",e=>{
+    const pc=e.target.closest("[data-place]");
+    if(pc){ UI.place=pc.dataset.place; try{ localStorage.setItem("ps.place",UI.place); }catch(x){}
+      const old=$("#cuecards"); const tmp=document.createElement("div"); tmp.innerHTML=cueCardsHtml(); old.replaceWith(tmp.firstElementChild); }
+  });
 }
 
 /* ---- signs & driving decoder (pure data, offline) ---- */
