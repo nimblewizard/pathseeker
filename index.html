@@ -2019,7 +2019,7 @@ const GUIDE = {
  sub:"A lakeside village and the floating city by train, then a road trip south — an open night on the way, a cave city glowing at dusk, the vertical coast, and Rome to finish",
  legNotes:{
   "milan>como":"Trenord regional from Milano Centrale to Varenna-Esino — direct, ~64 min, roughly hourly. Leave around 8:30–9:30, walk down to the pier, ferry the bags across to your Bellagio hotel, and ferry back to explore Varenna.",
-  "como>venice":"Morning ferry Bellagio → Varenna (~15 min, leave by ~9:00), the uphill walk to Varenna-Esino, then Trenord to Milano Centrale (~64 min). Allow 45–60 min for the connection, then Frecciarossa/Italo to Venezia S. LUCIA — not Mestre — and step off the train onto the Grand Canal by mid-afternoon.",
+  "como>venice":"Checkout by 9, breakfast, ferry Bellagio → Varenna ~10:30 (15 min), the uphill walk to Varenna-Esino, Trenord 11:35 → Milano Centrale 12:43. Lunch under the platforms, then your booked Frecciarossa 9733 at 14:15 (PNR X9L2A5, coach 3, seats 15D/16D) → Venezia S. Lucia 16:42 — step off the train onto the Grand Canal. Miss the 11:35? The 12:35 still makes it.",
   "venice>c_openroad":"Collect the car in Venice (Piazzale Roma or Mestre) on the morning of Sep 26 and point it south — A13 to Bologna, then the A14 down the Adriatic. Tonight is deliberately unplanned: stop wherever the day feels right (Ravenna's mosaics, the Conero coast, a Puglian trullo town…) and book the room that afternoon.",
   "c_openroad>matera":"Finish the run down the A14 to Bari, then SS96/SS99 inland to Matera — 3–4 hours from most Adriatic stops. Aim to reach the sassi by late afternoon; park at the top of the old town.",
   "matera>amalfi":"About 4 hours: A2 to Salerno, then the SS163 coast road from Vietri sul Mare through Amalfi to Laurito, just past Positano — slow, narrow and spectacular. Leave Matera by ~11; the B&B expects you 16:00–17:00 and you want daylight on the corniche.",
@@ -2062,7 +2062,7 @@ const GUIDE = {
      {n:"Evening in Bellagio",d:"Late-afternoon ferry back; waterfront, historic centre, gardens if open, dinner over the lake, sunset / night walk once the crowds have gone."}]},
     {h:"Keep it simple",items:[
      {n:"Don't add Como city",d:"One night here means Varenna + Bellagio, nothing else — that's the whole point."}]}],
-   callout:"<b>Ferries:</b> Sep 23 is inside the published 2026 summer Lake Como timetable — buy a return/day pass at the pier; no advance ticket needed. <b>Next morning:</b> Bellagio has no station — breakfast, ferry Bellagio → Varenna (~15 min, leave by ~9:00), walk 10–15 min uphill to Varenna-Esino, Trenord to Milano Centrale, then the Venice train."},
+   callout:"<b>Ferries:</b> Sep 23 is inside the published 2026 summer Lake Como timetable — buy a return/day pass at the pier; no advance ticket needed. <b>Next morning:</b> Bellagio has no station — checkout by 9, breakfast, ferry Bellagio → Varenna ~10:30 (15 min), walk 10–15 min uphill to Varenna-Esino, Trenord 11:35 → Milano Centrale 12:43, then the 14:15 Frecciarossa (booked)."},
   venice:{vibe:"Floating city of the imagination — arrive by train onto the Grand Canal, get gloriously lost, and walk it after dark.",
    getting:"Ferry Bellagio → Varenna, Trenord to Milano Centrale (~64 min), 45–60 min buffer, then Frecciarossa/Italo to Venezia Santa Lucia — mid-afternoon arrival right in the historic city.",
    blocks:[
@@ -2243,7 +2243,7 @@ const CHECKLIST = [
  {id:"stay-milan",label:"Book Milan — 1 night",               sub:"Tue Sep 22 · CVM 19 booked — near Centrale for the Varenna train", stay:"milan"},
  {id:"train-varenna",label:"Train Milan → Varenna",           sub:"Wed Sep 23 · Trenord regional, direct, ~64 min, hourly — buy day-of or on the Trenord app; leave ~8:30–9:30", href:"https://www.trenord.it/en/", match:{type:"train", city:"como"}},
  {id:"stay-varenna",label:"Book Lake Como — 1 night (Bellagio)", sub:"Wed Sep 23 · your Bellagio hotel, near the pier · bags over by ferry first, then back to explore Varenna · book early", stay:"como"},
- {id:"train-ven", label:"Train Milan → Venice",               sub:"Thu Sep 24 · Frecciarossa or Italo to Venezia S. LUCIA (not Mestre) · morning ferry Bellagio → Varenna first (leave by ~9:00), Trenord to Centrale, 45–60 min buffer · reserve seats!", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"venice"}},
+ {id:"train-ven", label:"Train Milan → Venice",               sub:"Booked · Thu Sep 24 · Frecciarossa 9733, Milano Centrale 14:15 → Venezia S. Lucia 16:42, Business coach 3 seats 15D/16D — PNR X9L2A5", href:"https://www.trenitalia.com/en.html", match:{type:"train", city:"venice"}},
  {id:"stay-venice",label:"Book Venice — 2 nights",            sub:"Sep 24–25 · Cannaregio, Dorsoduro or Castello", stay:"venice"},
  {id:"marks",     label:"St. Mark's & Doge's Palace slots",   sub:"Fri Sep 25 morning — skip-the-line, before the day-trip crowds", href:"https://www.basilicasanmarco.it/?lang=en", match:{type:"ticket", kw:"marco|doge"}},
  {id:"car",       label:"Rental car — Venice → Rome, one-way",  sub:"Pick up Sat Sep 26 (Piazzale Roma or Mestre), drop Fri Oct 2 at FCO · automatic = book early · Auto Europe / DiscoverCars compare well", href:"https://www.autoeurope.com/", match:{kw:"rental|car pickup|pick up rental|auto europe|hertz|avis|sixt|europcar"}},
@@ -4733,7 +4733,7 @@ function renderPlan(){
   const LEG_SCHED={
     "milan>venice":"Frecciarossa & Italo run all day, roughly every 30 min from ~6 AM. Book 2–3 months out and morning seats are ~€25–35; day-of can triple.",
     "milan>como":"Trenord regionals to Varenna-Esino roughly hourly (Tirano/Sondrio line); ~€7, buy on the app or day-of. Aim for 8:30–9:30.",
-    "como>venice":"Ferry Bellagio → Varenna first (~15 min; leave by ~9:00), then Trenord to Centrale hourly; Frecciarossa/Italo to Venezia S. Lucia every ~30 min. Book the fast train with a 45–60 min buffer after the regional.",
+    "como>venice":"Booked: Frecciarossa 9733 at 14:15 (PNR X9L2A5). Ferry Bellagio → Varenna ~10:30, Trenord 11:35 → Centrale 12:43 (hourly at :35 — the 12:35 also makes it), 92 min for lunch at Centrale.",
     "venice>c_openroad":"Collect the rental at Piazzale Roma or Mestre by ~9 AM (rentals open 8–8:30). A13 → Bologna → A14; tolls to Bari ~€60. Tonight is unbooked on purpose — decide the stop by mid-afternoon and book on the spot.",
     "c_openroad>matera":"A14 to Bari, then SS96/SS99 to Matera — 3–4 h from most Adriatic stops. Reach the sassi by late afternoon; park on the rim.",
     "matera>amalfi":"~3½–4 h: A2 to Salerno, SS163 from Vietri. Leave mid-morning for daylight on the corniche; hand the car to the hotel garage on arrival.",
