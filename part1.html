@@ -420,38 +420,61 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .view-sub{color:var(--ink-soft);margin:0 0 22px;font-size:14.5px}
 .day-row.edge{opacity:.92}
 .edge-label{font-style:italic;color:var(--ink-soft);font-weight:600}
+/* ---- itinerary day list: date block · serif city header · colour-coded booking cards ---- */
+.itin-legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin:-12px 0 16px}
+.itin-legend span{display:inline-flex;align-items:center;gap:5px}
+.itin-legend i{display:inline-block;width:9px;height:9px;border-radius:50%}
+.itin-legend .lg-ok{color:var(--olive)} .itin-legend .lg-none{color:var(--gold)}
 .day-row{
-  display:grid;grid-template-columns:86px 1fr;gap:16px;padding:14px 0;
+  display:grid;grid-template-columns:86px 1fr;gap:16px;padding:16px 0 18px;
   border-top:1px solid var(--line);
 }
 .day-date{text-align:right}
-.day-date .dow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
-.day-date .num{font-size:24px;font-weight:600;line-height:1.1}
-.day-date .mon{font-size:12px;color:var(--ink-soft)}
-.day-city{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:28px}
-.day-city .name{font-weight:700;font-size:15.5px}
-.day-city .transfer{color:var(--accent);font-weight:600;font-size:13px}
+.day-date .dow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:800}
+.day-date .num{font-family:"Bodoni 72",Didot,"Bodoni MT","Playfair Display",Georgia,serif;font-size:32px;font-weight:600;line-height:1.05}
+.day-date .mon{font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.day-date .tod{display:inline-block;margin-top:5px;font-size:9.5px;font-weight:800;letter-spacing:.12em;
+  color:var(--accent-ink);background:var(--accent);padding:2px 7px;border-radius:999px}
+.day-row.today .day-date .num{color:var(--accent)}
+.day-city{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-height:28px}
+.day-city .name{font-family:"Bodoni 72",Didot,"Bodoni MT","Playfair Display",Georgia,serif;font-weight:700;font-size:22px;line-height:1.15}
+.day-city .transfer{color:var(--accent);font-weight:700;font-size:13px}
 .day-city .unassigned{color:var(--ink-soft);font-style:italic;font-size:13.5px}
-.day-items{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.day-night{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-top:1px}
+.day-night em{font-style:normal;color:var(--accent)}
+.day-items{margin-top:8px;display:flex;flex-direction:column;gap:7px}
 .bk{
-  display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);
-  border-radius:10px;padding:8px 12px;font-size:13.5px;cursor:pointer;
+  display:block;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--tc,var(--line));
+  border-radius:10px;padding:8px 12px 10px;font-size:13.5px;cursor:pointer;
 }
 .bk:hover{box-shadow:var(--shadow-sm)}
+.bk-head{display:flex;gap:6px 8px;align-items:center;flex-wrap:wrap}
 .bk .type-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bk-type{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--tc,var(--ink-soft));
+  background:var(--surface2);padding:2px 8px;border-radius:999px;line-height:1.5}
+@supports (color:color-mix(in srgb,red,blue)){ .bk-type{background:color-mix(in srgb,var(--tc,var(--line)) 15%,transparent)} }
+.bk-time{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.bk-state{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;letter-spacing:.04em;line-height:1.5}
+.bk-state.ok{color:var(--olive);background:var(--olive-soft)}
+.bk-state.none{color:var(--gold);background:var(--surface2)}
+@supports (color:color-mix(in srgb,red,blue)){ .bk-state.none{background:color-mix(in srgb,var(--gold) 16%,transparent)} }
 .bk .bk-docs-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .bk-doccount{font-size:12px;font-weight:700;color:#4C6B23}
 :root[data-theme="dark"] .bk-doccount{color:#B5CC7E}
-.bk-route{color:var(--ink);font-weight:700}
+.bk-name{display:block;font-weight:700;font-size:15.5px;line-height:1.3;margin-top:5px;color:var(--ink)}
+.bk-route{display:block;font-weight:600;font-size:13px;color:var(--ink);margin-top:2px}
+.bk .bk-meta{display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center;margin-top:5px;color:var(--ink-soft);font-size:12.5px}
+.bk-meta .sep{display:none}
+.bk-conf{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--ink);
+  background:var(--surface2);padding:1px 7px;border-radius:6px;letter-spacing:.02em}
+.bk-price{font-weight:800;color:var(--olive);font-variant-numeric:tabular-nums}
 .bk-note{
-  flex-basis:100%;order:9;margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--ink-soft);
+  margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--ink-soft);font-style:italic;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
 }
-.bk-name{font-weight:600}
-.bk .bk-meta{color:var(--ink-soft);font-size:12.5px}
 .bk .spacer{flex:1}
 .bk a{color:var(--ink-soft);text-decoration:none;font-size:13px}
-.day-add{margin-top:7px}
+.day-add{margin-top:8px}
 .empty{
   border:1.5px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;
   color:var(--ink-soft);font-size:14px;

@@ -430,38 +430,61 @@ h1,h2,h3{margin:0;text-wrap:balance}
 .view-sub{color:var(--ink-soft);margin:0 0 22px;font-size:14.5px}
 .day-row.edge{opacity:.92}
 .edge-label{font-style:italic;color:var(--ink-soft);font-weight:600}
+/* ---- itinerary day list: date block · serif city header · colour-coded booking cards ---- */
+.itin-legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin:-12px 0 16px}
+.itin-legend span{display:inline-flex;align-items:center;gap:5px}
+.itin-legend i{display:inline-block;width:9px;height:9px;border-radius:50%}
+.itin-legend .lg-ok{color:var(--olive)} .itin-legend .lg-none{color:var(--gold)}
 .day-row{
-  display:grid;grid-template-columns:86px 1fr;gap:16px;padding:14px 0;
+  display:grid;grid-template-columns:86px 1fr;gap:16px;padding:16px 0 18px;
   border-top:1px solid var(--line);
 }
 .day-date{text-align:right}
-.day-date .dow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
-.day-date .num{font-size:24px;font-weight:600;line-height:1.1}
-.day-date .mon{font-size:12px;color:var(--ink-soft)}
-.day-city{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:28px}
-.day-city .name{font-weight:700;font-size:15.5px}
-.day-city .transfer{color:var(--accent);font-weight:600;font-size:13px}
+.day-date .dow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:800}
+.day-date .num{font-family:"Bodoni 72",Didot,"Bodoni MT","Playfair Display",Georgia,serif;font-size:32px;font-weight:600;line-height:1.05}
+.day-date .mon{font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.day-date .tod{display:inline-block;margin-top:5px;font-size:9.5px;font-weight:800;letter-spacing:.12em;
+  color:var(--accent-ink);background:var(--accent);padding:2px 7px;border-radius:999px}
+.day-row.today .day-date .num{color:var(--accent)}
+.day-city{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-height:28px}
+.day-city .name{font-family:"Bodoni 72",Didot,"Bodoni MT","Playfair Display",Georgia,serif;font-weight:700;font-size:22px;line-height:1.15}
+.day-city .transfer{color:var(--accent);font-weight:700;font-size:13px}
 .day-city .unassigned{color:var(--ink-soft);font-style:italic;font-size:13.5px}
-.day-items{margin-top:6px;display:flex;flex-direction:column;gap:6px}
+.day-night{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-top:1px}
+.day-night em{font-style:normal;color:var(--accent)}
+.day-items{margin-top:8px;display:flex;flex-direction:column;gap:7px}
 .bk{
-  display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);
-  border-radius:10px;padding:8px 12px;font-size:13.5px;cursor:pointer;
+  display:block;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--tc,var(--line));
+  border-radius:10px;padding:8px 12px 10px;font-size:13.5px;cursor:pointer;
 }
 .bk:hover{box-shadow:var(--shadow-sm)}
+.bk-head{display:flex;gap:6px 8px;align-items:center;flex-wrap:wrap}
 .bk .type-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bk-type{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--tc,var(--ink-soft));
+  background:var(--surface2);padding:2px 8px;border-radius:999px;line-height:1.5}
+@supports (color:color-mix(in srgb,red,blue)){ .bk-type{background:color-mix(in srgb,var(--tc,var(--line)) 15%,transparent)} }
+.bk-time{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.bk-state{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;letter-spacing:.04em;line-height:1.5}
+.bk-state.ok{color:var(--olive);background:var(--olive-soft)}
+.bk-state.none{color:var(--gold);background:var(--surface2)}
+@supports (color:color-mix(in srgb,red,blue)){ .bk-state.none{background:color-mix(in srgb,var(--gold) 16%,transparent)} }
 .bk .bk-docs-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .bk-doccount{font-size:12px;font-weight:700;color:#4C6B23}
 :root[data-theme="dark"] .bk-doccount{color:#B5CC7E}
-.bk-route{color:var(--ink);font-weight:700}
+.bk-name{display:block;font-weight:700;font-size:15.5px;line-height:1.3;margin-top:5px;color:var(--ink)}
+.bk-route{display:block;font-weight:600;font-size:13px;color:var(--ink);margin-top:2px}
+.bk .bk-meta{display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center;margin-top:5px;color:var(--ink-soft);font-size:12.5px}
+.bk-meta .sep{display:none}
+.bk-conf{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--ink);
+  background:var(--surface2);padding:1px 7px;border-radius:6px;letter-spacing:.02em}
+.bk-price{font-weight:800;color:var(--olive);font-variant-numeric:tabular-nums}
 .bk-note{
-  flex-basis:100%;order:9;margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--ink-soft);
+  margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--ink-soft);font-style:italic;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
 }
-.bk-name{font-weight:600}
-.bk .bk-meta{color:var(--ink-soft);font-size:12.5px}
 .bk .spacer{flex:1}
 .bk a{color:var(--ink-soft);text-decoration:none;font-size:13px}
-.day-add{margin-top:7px}
+.day-add{margin-top:8px}
 .empty{
   border:1.5px dashed var(--line);border-radius:12px;padding:26px 20px;text-align:center;
   color:var(--ink-soft);font-size:14px;
@@ -1688,9 +1711,9 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
     <div class="dlg-head"><h3>New show-card</h3><p>Write it in English; translate offline, or type the Italian yourself.</p></div>
     <div class="dlg-body">
       <div class="field"><label class="label" for="ca-en">English</label>
-        <textarea id="ca-en" rows="2" placeholder="My wife is allergic to shellfish."></textarea></div>
+        <textarea id="ca-en" rows="2" placeholder="Is there a table outside?"></textarea></div>
       <div class="field"><label class="label" for="ca-it">Italiano</label>
-        <textarea id="ca-it" rows="2" placeholder="Mia moglie è allergica ai frutti di mare."></textarea>
+        <textarea id="ca-it" rows="2" placeholder="C'è un tavolo fuori?"></textarea>
         <p class="times-note" id="ca-note" style="margin-top:6px"></p></div>
       <button type="button" class="btn btn-sm" id="ca-translate">Translate offline →</button>
     </div>
@@ -2368,7 +2391,7 @@ const DEFAULT_TRIP = ()=>({name:"Italy", destination:"italy", startDate:"2026-09
   arrivalCity:"milan", departureCity:"rome", stops:[], bookings:[], journal:[], expenses:[], begun:false, checklist:{},
   packing:{}, packCustom:[], budget:null, shortlist:[], cards:[], guestName:"", carSpot:null});
 let S = {trip: DEFAULT_TRIP(), savedAt:null, driveSavedAt:null, dirty:false};
-let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null, place:(function(){ try{ return localStorage.getItem("ps.place")||"restaurant"; }catch(e){ return "restaurant"; } })()};
+let UI = {view:"map", selected:null, filter:"all", mcpServer:null, mcpReady:false, hintShown:false, focusDay:null, place:(function(){ try{ return localStorage.getItem("ps.place")||"basics"; }catch(e){ return "basics"; } })()};
 
 function loadState(){
   try{
@@ -3610,16 +3633,23 @@ function bkRow(b, detail){
   const route=(b.from||b.to)? `${esc(b.from||"?")} → ${esc(b.to||"?")}` : "";
   const stay = b.checkOut? `out ${fmtShort(b.checkOut)}` : "";
   const guests = b.party? (b.type==="ticket"? `${b.party} tickets` : `table for ${b.party}`) : "";
-  const meta=[clock, stay, guests, b.seats?`seats ${b.seats}`:"", b.conf?`#${b.conf}`:"", b.price]
-    .filter(Boolean).join(" · ");
-  return `<div class="bk" data-bk="${b.id}" role="button" tabindex="0" aria-label="Edit booking ${esc(b.name)}">
-    <span class="type-dot" style="background:${t.c}"></span>
+  const facts=[stay, guests, b.seats?`seats ${b.seats}`:""].filter(Boolean);
+  /* booked state: anything with a confirmation code is booked; plain notes ("other") don't need one */
+  const state = b.conf? `<span class="bk-state ok">✓ booked</span>` : (b.type!=="other"? `<span class="bk-state none">no code yet</span>` : "");
+  const nDocs=docsFor("bk:"+b.id).length;
+  return `<div class="bk" data-bk="${b.id}" role="button" tabindex="0" aria-label="Edit booking ${esc(b.name)}" style="--tc:${t.c}">
+    <div class="bk-head">
+      <span class="bk-type">${esc(t.n)}</span>
+      ${clock?`<span class="bk-time">${esc(clock)}</span>`:""}
+      ${state}
+      <span class="spacer"></span>
+      <button class="icon-btn bk-clip${nDocs?" has":""}" data-bkdocs="${b.id}"
+        onclick="event.stopPropagation()" aria-label="Tickets & documents for ${esc(b.name)}">📎${nDocs||""}</button>
+      ${b.link?`<a href="${esc(b.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" aria-label="Open booking link">↗</a>`:""}
+    </div>
     <span class="bk-name">${esc(b.name)}</span>
-    <span class="bk-meta">${route?`<b class="bk-route">${route}</b> · `:""}${esc(t.n)}${meta?" · "+esc(meta):""}</span>
-    <span class="spacer"></span>
-    <button class="icon-btn bk-clip${docsFor("bk:"+b.id).length?" has":""}" data-bkdocs="${b.id}"
-      onclick="event.stopPropagation()" aria-label="Tickets & documents for ${esc(b.name)}">📎${docsFor("bk:"+b.id).length||""}</button>
-    ${b.link?`<a href="${esc(b.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" aria-label="Open booking link">↗</a>`:""}
+    ${route?`<span class="bk-route">${route}</span>`:""}
+    ${(facts.length||b.conf||b.price)?`<span class="bk-meta">${facts.map(f=>`<span>${esc(f)}</span>`).join("")}${b.conf?`<span class="bk-conf">${esc(b.conf)}</span>`:""}${b.price?`<span class="bk-price">${esc(b.price)}</span>`:""}</span>`:""}
     ${detail&&b.notes?`<div class="bk-note">${esc(b.notes)}</div>`:""}
   </div>`;
 }
@@ -3904,7 +3934,8 @@ function renderItin(){
   let head=`<h2 class="view-title serif">Itinerary</h2>
     <p class="view-sub">${fmtShort(S.trip.startDate)} – ${fmtShort(S.trip.endDate)} ·
       fly into <b>${esc(CITY_BY_ID[S.trip.arrivalCity]?.n||"—")}</b>, out of <b>${esc(CITY_BY_ID[S.trip.departureCity]?.n||"—")}</b> ·
-      ${nightsPlanned}/${totalNights} nights placed</p>`;
+      ${nightsPlanned}/${totalNights} nights placed</p>
+    <div class="itin-legend">${BK_TYPES.map(t=>`<span><i style="background:${t.c}"></i>${esc(t.n)}</span>`).join("")}<span class="lg-ok">✓ booked</span><span class="lg-none">no code yet</span></div>`;
   if(!days.length){ wrap.innerHTML=head+`<div class="empty">Set your trip dates on the home screen first.</div>`; return; }
   const iv=UI.itinView||"list";
   head+=tripCostHtml();
@@ -3976,9 +4007,19 @@ function renderItin(){
     }
     const bks=S.trip.bookings.filter(b=>b.date===d).sort((x,y)=>(x.time||"99")<(y.time||"99")?-1:1).map(b=>bkRow(b,true)).join("");
     const cityForAdd = here.length? here[0].cityId : (UI.selected||S.trip.arrivalCity);
-    rows+=`<div class="day-row">
-      <div class="day-date"><div class="dow">${fmtDow(d)}</div><div class="num">${pD(d).getDate()}</div><div class="mon">${pD(d).toLocaleDateString("en-US",{month:"short"})}</div></div>
-      <div><div class="day-city">${cityHtml}</div>${chips}
+    /* "Night 3 of 10 · last night here" — the night index counts nights slept, so the fly-home day has none */
+    let nightHtml="";
+    if(d<S.trip.endDate){
+      const n=Math.round((pD(d)-pD(S.trip.startDate))/864e5)+1;
+      const st=here[0];
+      const inStop = st? Math.round((pD(d)-pD(st.arrive))/864e5)+1 : 0;
+      const last = st && inStop===(+st.nights||0);
+      nightHtml=`<div class="day-night">Night ${n} of ${totalNights}${st&&st.nights>1?` · ${inStop} of ${st.nights} here`:""}${last&&d<addD(S.trip.endDate,-1)?` · <em>check out tomorrow</em>`:""}</div>`;
+    }
+    const isToday = d===todayISO();
+    rows+=`<div class="day-row${isToday?" today":""}">
+      <div class="day-date"><div class="dow">${fmtDow(d)}</div><div class="num">${pD(d).getDate()}</div><div class="mon">${pD(d).toLocaleDateString("en-US",{month:"short"})}</div>${isToday?`<div class="tod">Today</div>`:""}</div>
+      <div><div class="day-city">${cityHtml}</div>${nightHtml}${chips}
         ${bks?`<div class="day-items">${bks}</div>`:""}
         ${(()=>{
           const pencilled=slAll().filter(x=>x.date===d);
@@ -6133,9 +6174,81 @@ function itineraryDoc(){
     "Rental: Europcar conf 1206318613 · +39 041 931094 · United conf GF7KB1"];
   return doc;
 }
+/* ---- printed QR for the itinerary sheet: the public app link with this trip's join key.
+   No QR encoder ships in the app (payload budget), so the matrix for THIS trip's join link was
+   pre-rendered (segno, version 9-M, 53×53) and is drawn only when the live join link still matches;
+   a different trip/key prints the link text alone. Regenerate if the trip key ever changes. ---- */
+const APP_LINK="https://nimblewizard.github.io/pathseeker/";
+const QR_JOIN={u:"https://nimblewizard.github.io/pathseeker/#join=eyJ1IjoiaHR0cHM6Ly9wYXRoc2Vla2VyLWY1YzhjLWRlZmF1bHQtcnRkYi5maXJlYmFzZWlvLmNvbSIsImsiOiI0YTU2dXU3Mjk2bjByOHUyYm5pd3BoNGoifQ==",m:[
+ "11111110110011011111110011110111110001110110001111111",
+ "10000010000110000101100111110001101010011111001000001",
+ "10111010000111100010001100011100100111010101001011101",
+ "10111010111100000000101110011001000001001010101011101",
+ "10111010110101001001011111111111110000100010001011101",
+ "10000010100100110001101010001000101010011010001000001",
+ "11111110101010101010101010101010101010101010101111111",
+ "00000000111110101001001110001110111100100011100000000",
+ "10001011111111011101010111111110101110110000111111001",
+ "10001101111010010010110011001110110100110110100100111",
+ "00110111011111011110110001001100110100010110100101001",
+ "10110001010011000100101001011000110000100010111111011",
+ "01101010001110110001010101010000110111010101101111001",
+ "11010000010001000100101000000110010100110110100001101",
+ "10010011100100111011001000001000000000101111010101101",
+ "01101101110101000110011001010111100111110010111000001",
+ "01000110001110110010110100010011111110110011010110011",
+ "00001101100011001111110111101111010000100110100011101",
+ "01000010001001010011000111101011011110000000100011001",
+ "10001101010101110110110001010101101011010110110111001",
+ "01000010101110101100011011011101100110110001010110111",
+ "01011101000101101110000011000111000110110110110011001",
+ "01100110101001010100101101011100010101110001110010101",
+ "01011100001101110110111011001101110101011111110011000",
+ "00011111100101011100110011111000110110010011111111011",
+ "10011000101000000101101110001110110100101111100010101",
+ "11011010100001101011110010101100110100101001101010001",
+ "01111000110100111111011010001010100000101110100011000",
+ "10011111111111010001010111111100100111010110111110000",
+ "10111100010011001111110110111110010001110111101110101",
+ "01001110000001110111010111100111101101111111101001001",
+ "01010000110010011000001110111101111000110111111001011",
+ "10101111101110000000000010010110111111110111101101011",
+ "00010100100010110010011101101010110010110110001111100",
+ "11110010100101111100010101100011111010100110111100101",
+ "10101000110101110100011001101000000111110001110101000",
+ "00100110000010100111110001110110101111010101111000100",
+ "01101000100100111100110101000110110110101110011111001",
+ "10001011001001111101111110100111111111111000011110001",
+ "11110100110111001011101101011111000110001001110101001",
+ "10110010010101011111000101110010101111110101000001110",
+ "11100000101110111001010100011111110000110110101111001",
+ "11011111010010101101101111110100110110110110001111101",
+ "01100000000000011010001010111110111010100001001110010",
+ "00010011010100100100000111111010110010110111111110000",
+ "00000000101011100101011110001110010010100110100010111",
+ "11111110111011010100100110101001011001100011101010001",
+ "10000010001111101001010110001110110110000011100011011",
+ "10111010110000001011011011111110101110100110111110001",
+ "10111010000011111000000110101110010000110110011001001",
+ "10111010001010001001010101011101010000010111001001110",
+ "10000010011101101011110001000010110100100010101111011",
+ "11111110101001110101101111100110110111000001100111010"]};
+const printJoinLink=()=> CLOUD? `${APP_LINK}#join=${btoa(JSON.stringify({u:CLOUD.url,k:CLOUD.key}))}` : APP_LINK;
+function qrSvg(size){
+  if(!CLOUD || printJoinLink()!==QR_JOIN.u) return "";
+  const n=QR_JOIN.m.length, q=4, s=size/(n+2*q); let d="";
+  QR_JOIN.m.forEach((row,y)=>{ for(let x=0;x<n;x++) if(row[x]==="1") d+=`M${((x+q)*s).toFixed(2)} ${((y+q)*s).toFixed(2)}h${s.toFixed(2)}v${s.toFixed(2)}h-${s.toFixed(2)}z`; });
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
 function buildItineraryHtml(){
   const D=itineraryDoc();
-  let h=`<h1>${esc(D.title)}</h1><p class="pp-sub">${esc(D.sub)}</p><h2>Day by day</h2>`;
+  const jl=printJoinLink(), qr=qrSvg(110);
+  let h=`<div style="display:flex;gap:18px;align-items:flex-start;justify-content:space-between">
+      <div><h1>${esc(D.title)}</h1><p class="pp-sub">${esc(D.sub)}</p></div>
+      ${qr?`<div style="text-align:center;flex:none;font-size:9px;line-height:1.3">${qr}<div><b>Scan to open the live trip</b></div></div>`:""}
+    </div>
+    <p class="pp-note" style="word-break:break-all;margin:2px 0 10px"><b>Pathseeker app:</b> ${esc(jl)}</p>
+    <h2>Day by day</h2>`;
   D.days.forEach(d=>{
     h+=`<div class="pp-day"><h3>Day ${d.n} · ${esc(d.label)} — ${esc(d.city)}</h3>
       ${d.transfer?`<p class="pp-line"><b>Travel:</b> ${esc(d.transfer)}</p>`:""}
@@ -6180,9 +6293,9 @@ function buildItineraryPdf(){
   const esc=(s)=>s.replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
   const newPage=()=>{ if(ops.length) pages.push(ops); ops=[]; y=PH-M; };
   newPage();
-  const line=(txt,size,bold,gray,indent)=>{
+  const line=(txt,size,bold,gray,indent,maxW)=>{
     const s=pdfText(txt); if(!s) return;
-    for(const l of pdfWrap(s,size,LW-(indent||0))){
+    for(const l of pdfWrap(s,size,(maxW||LW)-(indent||0))){
       if(y-size<M){ newPage(); }
       ops.push(`BT /${bold?"F2":"F1"} ${size} Tf ${gray?"0.38 g":"0 g"} ${(M+(indent||0)).toFixed(1)} ${(y-size).toFixed(1)} Td (${esc(l)}) Tj ET`);
       y-=size*LEAD;
@@ -6190,7 +6303,22 @@ function buildItineraryPdf(){
   };
   const gap=(n)=>{ y-=n; if(y<M) newPage(); };
   const rule=()=>{ if(y-6<M) newPage(); ops.push(`0.6 w 0.55 G ${M} ${(y-3).toFixed(1)} m ${(PW-M)} ${(y-3).toFixed(1)} l S`); y-=8; };
-  line(D.title,16,true); line(D.sub,9,false,true); gap(8);
+  /* QR + link header: the QR sits top-right on page 1, title text wraps short of it */
+  const jl=printJoinLink(), hasQr=!!qrSvg(10);
+  const QS=92, qx=PW-M-QS, qtop=y;
+  if(hasQr){
+    const n=QR_JOIN.m.length, q=2, s=QS/(n+2*q); let d="";
+    QR_JOIN.m.forEach((row,ry)=>{ for(let x=0;x<n;x++) if(row[x]==="1") d+=` ${(qx+(x+q)*s).toFixed(2)} ${(qtop-(ry+q+1)*s).toFixed(2)} ${s.toFixed(2)} ${s.toFixed(2)} re`; });
+    ops.push(`q 1 g ${qx} ${(qtop-QS).toFixed(1)} ${QS} ${QS} re f 0 g${d} f Q`);
+    const cap="Scan to open the live trip"; const cw=cap.length*7*0.5;
+    ops.push(`BT /F2 7 Tf 0 g ${(qx+QS/2-cw/2).toFixed(1)} ${(qtop-QS-9).toFixed(1)} Td (${esc(cap)}) Tj ET`);
+  }
+  line(D.title,16,true,false,0,hasQr?LW-QS-14:LW); line(D.sub,9,false,true,0,hasQr?LW-QS-14:LW);
+  gap(4); line("Pathseeker app:",7.5,true,true,0,hasQr?LW-QS-14:LW);
+  /* the join link has no spaces, so the word-wrapper can't break it — chunk it by hand */
+  (jl.match(/.{1,84}/g)||[]).forEach(ch=>line(ch,7.5,false,true,0,hasQr?LW-QS-14:LW));
+  if(hasQr) y=Math.min(y, qtop-QS-18);
+  gap(8);
   line("Day by day",12.5,true); rule();
   D.days.forEach(d=>{
     const need=d.bks.length? 60 : 34; if(y-need<M) newPage();
@@ -6516,7 +6644,7 @@ const PHRASES=[
  ["Still water / sparkling","Acqua naturale / frizzante"],
  ["A glass of house wine","Un bicchiere di vino della casa"],
  ["The check, please","Il conto, per favore"],["Can I pay by card?","Posso pagare con la carta?"],
- ["I'm allergic to…","Sono allergico a…"],["…nuts / gluten / shellfish","…noci / glutine / frutti di mare"],
+ ["Where is the restroom?","Dov'è il bagno?"],
  ["Delicious!","Buonissimo!"],["A little more, please","Ancora un po', per favore"]]},
 {c:"Shopping & paying",list:[
  ["How much is this?","Quanto costa questo?"],["Too expensive","Troppo caro"],
@@ -6696,9 +6824,7 @@ const SHOW_CARDS=[
   ["A table for two, please.","Un tavolo per due, per favore."],
   ["The bill, please.","Il conto, per favore."],
   ["We'd like to order.","Vorremmo ordinare."],
-  ["Does this contain gluten / dairy?","Contiene glutine / latticini?"],
-  ["I'm allergic to shellfish.","Sono allergico ai frutti di mare."],
-  ["We're vegetarian.","Siamo vegetariani."],
+  ["Where is the restroom?","Dov'è il bagno?"],
   ["Still / sparkling water, please.","Acqua naturale / frizzante, per favore."],
   ["Can we pay by card?","Possiamo pagare con la carta?"],
   ["What do you recommend that's local?","Cosa ci consiglia di tipico?"]]},
@@ -6808,16 +6934,35 @@ function openCardAdd(preEn,preIt){
 /* ---- cue cards by place (2026-09-13): what you'd actually say at the airport, the station,
    a museum gate, a hotel desk or a restaurant table. [Italian, pronunciation, English] ---- */
 const PLACES=[
+ {id:"basics",   ic:"👋", n:"Basics",          sub:"hello, please, thank you, I don't understand"},
  {id:"airport",  ic:"✈️", n:"Airport",         sub:"Malpensa arrival, FCO departure"},
  {id:"station",  ic:"🚆", n:"Train station",   sub:"Centrale, Varenna, Venezia S. Lucia"},
  {id:"museum",   ic:"🏛", n:"Museums & sights", sub:"Duomo, basilica, palace, tickets"},
  {id:"lodging",  ic:"🏨", n:"Hotel & Airbnb",  sub:"check-in, keys, bags, Wi-Fi"},
- {id:"restaurant",ic:"🍝", n:"Restaurant",     sub:"table, ordering, allergies, the bill"},
+ {id:"restaurant",ic:"🍝", n:"Restaurant",     sub:"table, ordering, the restroom, the bill"},
  {id:"driving",  ic:"🚗", n:"Car & road",      sub:"rental desk, fuel, parking, tolls"},
  {id:"directions",ic:"🧭", n:"Asking the way", sub:"lost in the lanes, finding a place"},
  {id:"taxi",     ic:"🚕", n:"Taxi & rides",    sub:"ranks, fares, FreeNow / itTaxi, Uber"}
 ];
 const CUE_CARDS={
+ basics:[
+  ["Buongiorno.","bwon-JOR-no","Good morning / hello."],
+  ["Buonasera.","bwo-nah-SEH-rah","Good evening."],
+  ["Per favore.","pehr fah-VOH-reh","Please."],
+  ["Grazie.","GRAH-tsyeh","Thank you."],
+  ["Prego.","PREH-go","You're welcome."],
+  ["Mi scusi.","mee SKOO-zee","Excuse me / sorry."],
+  ["Non parlo bene italiano.","non PAR-lo BEH-neh ee-tah-LYAH-no","I don't speak Italian well."],
+  ["Parla inglese?","PAR-lah een-GLEH-zeh","Do you speak English?"],
+  ["Può parlare più lentamente?","pwoh par-LAH-reh pyoo len-tah-MEN-teh","Can you speak more slowly?"],
+  ["Può ripetere, per favore?","pwoh ree-PEH-teh-reh, pehr fah-VOH-reh","Can you repeat that, please?"],
+  ["Non capisco.","non kah-PEES-ko","I don't understand."],
+  ["Può scriverlo?","pwoh SKREE-vehr-lo","Can you write it down?"],
+  ["Quanto costa?","KWAN-to KOS-tah","How much does it cost?"],
+  ["Dov'è…?","doh-VEH","Where is…?"],
+  ["Ho bisogno di aiuto.","oh bee-ZOH-nyo dee ah-YOO-to","I need help."],
+  ["Va bene.","vah BEH-neh","That's fine / okay."],
+  ["Sì / No.","see / noh","Yes / No."]],
  airport:[
   ["Dov'è il treno per Milano Centrale?","doh-VEH eel TREH-no pehr mee-LAH-no chen-TRAH-leh","Where is the train to Milano Centrale?"],
   ["Dove si comprano i biglietti?","DOH-veh see KOM-prah-no ee bee-LYET-tee","Where do I buy tickets?"],
@@ -6829,7 +6974,17 @@ const CUE_CARDS={
   ["Dov'è la riconsegna delle auto a noleggio?","doh-VEH lah ree-kon-SEH-nyah DEL-leh OW-to ah no-LED-jo","Where is the rental car return?"],
   ["A che ora chiude il gate?","ah keh OH-rah KYOO-deh eel gate","What time does the gate close?"],
   ["Posso avere un sacchetto per i liquidi?","POS-so ah-VEH-reh oon sak-KET-to pehr ee LEE-kwee-dee","Can I have a bag for liquids?"],
-  ["Dov'è un bancomat?","doh-VEH oon BAHN-ko-mat","Where is an ATM?"]],
+  ["Scusi, dov'è il bagno?","SKOO-zee, doh-VEH eel BAH-nyo","Excuse me, where is the restroom?"],
+  ["Dov'è un bancomat?","doh-VEH oon BAHN-ko-mat","Where is an ATM?"],
+  ["Dov'è il check-in?","doh-VEH eel check-in","Where is check-in?"],
+  ["Dov'è il controllo di sicurezza?","doh-VEH eel kon-TROL-lo dee see-koo-RET-tsah","Where is security?"],
+  ["Dov'è il nostro gate?","doh-VEH eel NOS-tro gate","Where is our gate?"],
+  ["A che ora inizia l'imbarco?","ah keh OH-rah ee-NEE-tsyah leem-BAR-ko","What time does boarding begin?"],
+  ["Il volo è in ritardo?","eel VOH-lo eh een ree-TAR-do","Is the flight delayed?"],
+  ["Il volo è stato cancellato?","eel VOH-lo eh STAH-to kahn-chel-LAH-to","Has the flight been cancelled?"],
+  ["Dove posso prendere un taxi?","DOH-veh POS-so PREN-deh-reh oon TAK-see","Where can I get a taxi?"],
+  ["Dov'è la stazione ferroviaria?","doh-VEH lah stah-TSYOH-neh fehr-ro-VYAH-ryah","Where is the train station?"],
+  ["Dov'è l'uscita?","doh-VEH loo-SHEE-tah","Where is the exit?"]],
  station:[
   ["Quale binario per Varenna?","KWAH-leh bee-NAH-ryo pehr vah-REN-nah","Which platform for Varenna?"],
   ["È questo il treno per Venezia Santa Lucia?","eh KWES-to eel TREH-no pehr veh-NEH-tsyah SAHN-tah loo-CHEE-ah","Is this the train to Venezia Santa Lucia?"],
@@ -6841,7 +6996,23 @@ const CUE_CARDS={
   ["Questo posto è occupato?","KWES-to POS-to eh ok-koo-PAH-to","Is this seat taken?"],
   ["Dov'è il deposito bagagli?","doh-VEH eel deh-POH-zee-to bah-GAH-lyee","Where is the left-luggage office?"],
   ["Abbiamo perso il treno. C'è un altro?","ab-BYAH-mo PEHR-so eel TREH-no. cheh oon AHL-tro","We missed the train. Is there another?"],
-  ["C'è uno sciopero oggi?","cheh OO-no SHOH-peh-ro OD-jee","Is there a strike today?"]],
+  ["Scusi, dov'è il bagno?","SKOO-zee, doh-VEH eel BAH-nyo","Excuse me, where is the restroom?"],
+  ["C'è uno sciopero oggi?","cheh OO-no SHOH-peh-ro OD-jee","Is there a strike today?"],
+  ["Vorrei due biglietti per…","vor-RAY DOO-eh bee-LYET-tee pehr","I'd like two tickets to…"],
+  ["Solo andata.","SOH-lo ahn-DAH-tah","One way."],
+  ["Andata e ritorno.","ahn-DAH-tah eh ree-TOR-no","Round trip."],
+  ["Da quale binario parte il treno?","dah KWAH-leh bee-NAH-ryo PAR-teh eel TREH-no","Which platform does the train leave from?"],
+  ["Dov'è il binario…?","doh-VEH eel bee-NAH-ryo","Where is platform…?"],
+  ["A che ora parte?","ah keh OH-rah PAR-teh","What time does it leave?"],
+  ["A che ora arriva?","ah keh OH-rah ar-REE-vah","What time does it arrive?"],
+  ["Questo treno va a…?","KWES-to TREH-no vah ah","Does this train go to…?"],
+  ["Devo cambiare treno?","DEH-vo kahm-BYAH-reh TREH-no","Do I have to change trains?"],
+  ["Dove dobbiamo cambiare?","DOH-veh dob-BYAH-mo kahm-BYAH-reh","Where do we have to change?"],
+  ["Quanto dura il viaggio?","KWAN-to DOO-rah eel VYAD-jo","How long is the journey?"],
+  ["Quanto è il ritardo?","KWAN-to eh eel ree-TAR-do","How long is the delay?"],
+  ["Il treno è stato cancellato?","eel TREH-no eh STAH-to kahn-chel-LAH-to","Has the train been cancelled?"],
+  ["Dobbiamo convalidare il biglietto?","dob-BYAH-mo kon-vah-lee-DAH-reh eel bee-LYET-to","Do we need to validate the ticket?"],
+  ["Qual è il prossimo treno per…?","kwah-LEH eel PROS-see-mo TREH-no pehr","What's the next train to…?"]],
  museum:[
   ["Abbiamo i biglietti online.","ab-BYAH-mo ee bee-LYET-tee on-LINE","We have online tickets."],
   ["Dov'è l'ingresso con prenotazione?","doh-VEH leen-GRES-so kon preh-no-tah-TSYOH-neh","Where is the entrance for reservations?"],
@@ -6852,10 +7023,15 @@ const CUE_CARDS={
   ["Dov'è l'ascensore per le terrazze?","doh-VEH lah-shen-SOH-reh pehr leh tehr-RAT-tseh","Where is the lift to the terraces?"],
   ["Abbiamo una prenotazione per le nove e mezza.","ab-BYAH-mo OO-nah preh-no-tah-TSYOH-neh pehr leh NOH-veh eh MED-dzah","We have a reservation for 9:30."],
   ["C'è un'audioguida in inglese?","cheh oon ow-dyo-GWEE-dah een een-GLEH-zeh","Is there an audio guide in English?"],
+  ["Scusi, dov'è il bagno?","SKOO-zee, doh-VEH eel BAH-nyo","Excuse me, where is the restroom?"],
   ["Dov'è l'uscita?","doh-VEH loo-SHEE-tah","Where is the exit?"],
-  ["È vietato lo zaino? Dove lo lascio?","eh vyeh-TAH-to lo DZAH-ee-no? DOH-veh lo LAH-sho","Are backpacks not allowed? Where do I leave it?"]],
+  ["È vietato lo zaino? Dove lo lascio?","eh vyeh-TAH-to lo DZAH-ee-no? DOH-veh lo LAH-sho","Are backpacks not allowed? Where do I leave it?"],
+  ["Quanto costa l'ingresso?","KWAN-to KOS-tah leen-GRES-so","How much is admission?"],
+  ["Abbiamo già i biglietti.","ab-BYAH-mo jah ee bee-LYET-tee","We already have tickets."],
+  ["Dove si entra?","DOH-veh see EN-trah","Where is the entrance?"],
+  ["Possiamo entrare con questo?","pos-SYAH-mo en-TRAH-reh kon KWES-to","Can we enter with this?"]],
  lodging:[
-  ["Buongiorno, abbiamo una prenotazione a nome Valin.","bwon-JOR-no, ab-BYAH-mo OO-nah preh-no-tah-TSYOH-neh ah NOH-meh VAH-lin","Hello, we have a reservation under Valin."],
+  ["Buongiorno, abbiamo una prenotazione a nome Lucia.","bwon-JOR-no, ab-BYAH-mo OO-nah preh-no-tah-TSYOH-neh ah NOH-meh loo-CHEE-ah","Hello, we have a reservation under Lucia."],
   ["Possiamo lasciare i bagagli fino al check-in?","pos-SYAH-mo lah-SHAH-reh ee bah-GAH-lyee FEE-no ahl check-in","Can we leave our bags until check-in?"],
   ["Qual è la password del Wi-Fi?","kwah-LEH lah password del wee-FEE","What's the Wi-Fi password?"],
   ["A che ora è il check-out?","ah keh OH-rah eh eel check-out","What time is checkout?"],
@@ -6866,23 +7042,33 @@ const CUE_CARDS={
   ["Può chiamarci un taxi per le nove?","pwoh kyah-MAR-chee oon TAK-see pehr leh NOH-veh","Could you call us a taxi for nine?"],
   ["Dove si paga la tassa di soggiorno?","DOH-veh see PAH-gah lah TAS-sah dee sod-JOR-no","Where do we pay the city tax?"],
   ["Ci consiglia un ristorante qui vicino?","chee kon-SEE-lyah oon rees-to-RAHN-teh kwee vee-CHEE-no","Can you recommend a restaurant nearby?"],
-  ["Dov'è l'imbarcadero più vicino?","doh-VEH leem-bar-kah-DEH-ro pyoo vee-CHEE-no","Where is the nearest ferry pier?"]],
+  ["Dov'è l'imbarcadero più vicino?","doh-VEH leem-bar-kah-DEH-ro pyoo vee-CHEE-no","Where is the nearest ferry pier?"],
+  ["Possiamo fare il check-in?","pos-SYAH-mo FAH-reh eel check-in","Can we check in?"],
+  ["La camera non è pronta?","lah KAH-meh-rah non eh PRON-tah","Is the room not ready?"],
+  ["C'è un problema con la camera.","cheh oon pro-BLEH-mah kon lah KAH-meh-rah","There's a problem with the room."],
+  ["Non c'è acqua calda.","non cheh AH-kwah KAHL-dah","There's no hot water."]],
  restaurant:[
   ["Un tavolo per due, per favore.","oon TAH-vo-lo pehr DOO-eh, pehr fah-VOH-reh","A table for two, please."],
-  ["Abbiamo prenotato a nome Valin.","ab-BYAH-mo preh-no-TAH-to ah NOH-meh VAH-lin","We booked under Valin."],
+  ["Abbiamo prenotato a nome Lucia.","ab-BYAH-mo preh-no-TAH-to ah NOH-meh loo-CHEE-ah","We booked under Lucia."],
   ["Il menù in inglese, per favore.","eel meh-NOO een een-GLEH-zeh, pehr fah-VOH-reh","The English menu, please."],
   ["Cosa ci consiglia?","KOH-zah chee kon-SEE-lyah","What do you recommend?"],
   ["Qual è il piatto tipico di qui?","kwah-LEH eel PYAT-to TEE-pee-ko dee kwee","What's the local dish here?"],
   ["Acqua naturale e frizzante, per favore.","AH-kwah nah-too-RAH-leh eh freet-TSAHN-teh, pehr fah-VOH-reh","Still and sparkling water, please."],
   ["Un bicchiere di vino della casa.","oon beek-KYEH-reh dee VEE-no DEL-lah KAH-zah","A glass of the house wine."],
-  ["Sono allergico ai frutti di mare.","SOH-no al-LEHR-jee-ko ai FROOT-tee dee MAH-reh","I'm allergic to shellfish."],
-  ["Senza glutine, per favore.","SEN-tsah GLOO-tee-neh, pehr fah-VOH-reh","Gluten-free, please."],
+  ["Scusi, dov'è il bagno?","SKOO-zee, doh-VEH eel BAH-nyo","Excuse me, where is the restroom?"],
   ["Era buonissimo, grazie.","EH-rah bwo-NEES-see-mo, GRAH-tsyeh","It was delicious, thank you."],
   ["Il conto, per favore.","eel KON-to, pehr fah-VOH-reh","The bill, please."],
   ["Possiamo pagare con la carta?","pos-SYAH-mo pah-GAH-reh kon lah KAR-tah","Can we pay by card?"],
-  ["Due caffè, per favore.","DOO-eh kaf-FEH, pehr fah-VOH-reh","Two espressos, please."]],
+  ["Due caffè, per favore.","DOO-eh kaf-FEH, pehr fah-VOH-reh","Two espressos, please."],
+  ["Possiamo vedere il menù?","pos-SYAH-mo veh-DEH-reh eel meh-NOO","Can we see the menu?"],
+  ["Qual è la specialità della casa?","kwah-LEH lah speh-chah-lee-TAH DEL-lah KAH-zah","What is the house specialty?"],
+  ["Vorrei questo, per favore.","vor-RAY KWES-to, pehr fah-VOH-reh","I'd like this, please."],
+  ["Per me…","pehr meh","For me…"],
+  ["Senza…, per favore.","SEN-tsah…, pehr fah-VOH-reh","Without…, please."],
+  ["Un'altra birra, per favore.","oon-AHL-trah BEER-rah, pehr fah-VOH-reh","Another beer, please."],
+  ["Possiamo pagare separatamente?","pos-SYAH-mo pah-GAH-reh seh-pah-rah-tah-MEN-teh","Can we pay separately?"]],
  driving:[
-  ["Abbiamo prenotato un'auto a nome Valin.","ab-BYAH-mo preh-no-TAH-to oon OW-to ah NOH-meh VAH-lin","We reserved a car under Valin."],
+  ["Abbiamo prenotato un'auto a nome Lucia.","ab-BYAH-mo preh-no-TAH-to oon OW-to ah NOH-meh loo-CHEE-ah","We reserved a car under Lucia."],
   ["È automatica?","eh ow-to-MAH-tee-kah","Is it automatic?"],
   ["Benzina o gasolio?","ben-DZEE-nah oh gah-ZOH-lyo","Petrol or diesel?"],
   ["Il pieno, per favore.","eel PYEH-no, pehr fah-VOH-reh","Fill it up, please."],
@@ -6891,7 +7077,15 @@ const CUE_CARDS={
   ["Questa strada è aperta?","KWES-tah STRAH-dah eh ah-PEHR-tah","Is this road open?"],
   ["Il casello accetta la carta?","eel kah-ZEL-lo ah-CHET-tah lah KAR-tah","Does the toll booth take cards?"],
   ["Abbiamo una gomma a terra.","ab-BYAH-mo OO-nah GOM-mah ah TEHR-rah","We have a flat tyre."],
-  ["Dove riconsegno l'auto?","DOH-veh ree-kon-SEH-nyo LOW-to","Where do I return the car?"]],
+  ["Dove riconsegno l'auto?","DOH-veh ree-kon-SEH-nyo LOW-to","Where do I return the car?"],
+  ["È benzina o diesel?","eh ben-DZEE-nah oh DEE-zel","Is it gasoline or diesel?"],
+  ["Quale pompa?","KWAH-leh POM-pah","Which pump?"],
+  ["Come funziona questa pompa?","KOH-meh foon-TSYOH-nah KWES-tah POM-pah","How does this pump work?"],
+  ["La pompa non funziona.","lah POM-pah non foon-TSYOH-nah","The pump isn't working."],
+  ["Dove posso pagare?","DOH-veh POS-so pah-GAH-reh","Where can I pay?"],
+  ["Posso pagare con la carta?","POS-so pah-GAH-reh kon lah KAR-tah","Can I pay by card?"],
+  ["Avete un compressore per le gomme?","ah-VEH-teh oon kom-pres-SOH-reh pehr leh GOM-meh","Do you have an air pump for the tires?"],
+  ["Dov'è il bagno?","doh-VEH eel BAH-nyo","Where is the bathroom?"]],
  directions:[
   ["Scusi, dov'è…?","SKOO-zee, doh-VEH","Excuse me, where is…?"],
   ["Ci siamo persi.","chee SYAH-mo PEHR-see","We're lost."],
@@ -6926,7 +7120,7 @@ function cueCard(c){
     <span class="cue-it">${esc(c[0])}</span><span class="cue-say">${esc(c[1])}</span><span class="cue-en">${esc(c[2])}</span></button>`;
 }
 function cueCardsHtml(){
-  const p=UI.place||"restaurant"; const P=PLACES.find(x=>x.id===p)||PLACES[0];
+  const p=UI.place||"basics"; const P=PLACES.find(x=>x.id===p)||PLACES[0];
   return `<div class="t-card" id="cuecards" style="margin-bottom:4px"><span class="label">🗣 Cue cards — where are you?</span>
     <p>Pick the place and the phrases you'll actually need are laid out to read, say, or show. Tap a card to fill the screen; ▷ speaks it.</p>
     <div class="place-picker">${PLACES.map(x=>`<button type="button" class="place-chip" data-place="${x.id}" aria-pressed="${x.id===p}"><span class="pc-ic">${x.ic}</span><span class="pc-n">${esc(x.n)}</span></button>`).join("")}</div>
