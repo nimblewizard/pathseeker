@@ -641,7 +641,7 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
     padding:8px 12px;border-right:none;border-bottom:1px solid rgba(233,215,171,.18);
     background:linear-gradient(180deg,#1c1409,#120c05);
   }
-  .map-side .chips{flex-direction:row;flex-wrap:nowrap}
+  .map-side .chips{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .map-side .chip{white-space:nowrap;font-size:15px;padding:4px 6px 4px 18px}
   .side-label{display:none}
   .panel{
@@ -1245,4 +1245,19 @@ dialog::backdrop{background:rgba(20,18,12,.45);backdrop-filter:blur(2px)}
 @media (prefers-reduced-motion: reduce){
   *{transition:none !important;animation:none !important}
 }
+/* ---- Plan tab road book (driving legs) ---- */
+.rb-leg{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:10px 0;padding:0 14px}
+.rb-leg summary{cursor:pointer;padding:12px 0;font-size:15px;line-height:1.35;list-style:none}
+.rb-leg summary::-webkit-details-marker{display:none}
+.rb-leg summary::before{content:"›";display:inline-block;margin-right:8px;color:var(--gold);font-weight:700;transition:transform .15s}
+.rb-leg[open] summary::before{transform:rotate(90deg)}
+.rb-meta{display:block;color:var(--ink-soft);font-size:12.5px;margin-left:18px}
+.rb-actions{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.rb-notes{margin:0 0 12px 18px;padding:0;font-size:13px;line-height:1.45}
+.rb-notes li{margin:4px 0}
+.rb-warn{color:var(--accent);font-weight:700}
+.rb-steps{list-style:none;margin:0;padding:0 0 12px;counter-reset:rb}
+.rb-steps li{display:grid;grid-template-columns:1fr 62px;gap:10px;padding:5px 0;border-top:1px dotted var(--line);font-size:13px;line-height:1.35;counter-increment:rb}
+.rb-steps li>span:first-child::before{content:counter(rb) ". ";color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.rb-km{font-variant-numeric:tabular-nums;font-weight:700;color:var(--olive);font-size:12px;text-align:right;white-space:nowrap}
 </style>
